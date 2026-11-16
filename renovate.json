@@ -9,9 +9,9 @@
       "pinDigests": false
     },
     {
-      "description": "Hold TypeScript below 7 until the toolchain (typescript-eslint, vite) is checked against it",
+      "description": "typescript-eslint's peer range is typescript <6.1.0, so a newer TypeScript breaks linting; raise this with typescript-eslint",
       "matchPackageNames": ["typescript"],
-      "allowedVersions": "<7"
+      "allowedVersions": "<6.1.0"
     }
   ]
 }
