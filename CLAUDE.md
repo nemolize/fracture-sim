@@ -2,13 +2,21 @@
 
 Guidance for Claude Code (claude.ai/code) working in this repository.
 
+## Architecture
+
+The solver lives in `src/sim` and knows nothing about React; the React layer
+(`App`, `ControlPanel`, `FractureCanvas`) only owns settings and the frame loop.
+Solver hot loops read typed arrays through the helpers in `src/sim/array.ts`
+(one per array type, so V8 keeps the loads monomorphic). Run the solver outside
+vitest when timing it: vitest's transform makes a step about six times slower.
+
 ## Design principle: built for large-project scale
 
-This template is small on purpose but meant to hold up in very large projects.
-Judge tooling, structure and conventions by whether they still work at that
-scale, not at this repo's current size. A speed gain measured on this small
-repo does not justify swapping a proven tool. Avoid choices that stop scaling,
-such as per-file registrations edited by hand or hand-kept lists that drift.
+This project started from a template that is small on purpose but meant to hold
+up in very large projects. Judge tooling, structure and conventions by whether
+they still work at that scale, not at this repo's current size. Avoid choices
+that stop scaling, such as per-file registrations edited by hand or hand-kept
+lists that drift.
 
 ## Issue labels
 
@@ -57,12 +65,11 @@ data loss is `high`, and a week-long refactor that changes no behaviour is `low`
 | `priority:medium` | Do soon. Default for something that works but is wrong or degrading |
 | `priority:low`    | When convenient. Default for friction, cosmetics and nice-to-haves  |
 
-**Core functionality here is that a generated project builds, tests, and
-deploys.** `pnpm run build`, the checks CI runs, and `pnpm run deploy` reaching
-Cloudflare Workers — anything that stops one of those for every user of the
-template is `high`. A project generated from this template replaces that
-sentence with the flows its own users would lose: the screens and API calls an
-app exists for, the public API of a library.
+**Core functionality here is that the simulation runs.** The page loads, the body
+stands on the floor, a thrown ball, pull or blast reaches it, and it deforms or
+breaks without the solver diverging into NaN; `pnpm run build`, the checks CI
+runs and `pnpm run deploy` still succeed. Anything that stops one of those for
+every user is `high`.
 
 **`type:investigation` takes no priority.** Its impact is what the
 investigation exists to find out, and recording an unmeasured impact as `low`
@@ -73,14 +80,14 @@ issue the answer produces, not to the question.
 layers; a project that grows different ones updates its labels and the Area
 dropdown in each form together.
 
-| Label        | Covers                                           |
-| ------------ | ------------------------------------------------ |
-| `area:ui`    | Screens, components, styles                      |
-| `area:api`   | Server-side request handling and business logic  |
-| `area:build` | Build, compile, lint/format config, dependencies |
-| `area:ci`    | CI pipelines and git hooks                       |
-| `area:test`  | Test suites and coverage config                  |
-| `area:infra` | Deployment target and runtime environment        |
+| Label        | Covers                                            |
+| ------------ | ------------------------------------------------- |
+| `area:ui`    | Screens, components, styles                       |
+| `area:sim`   | The solver, materials and contact under `src/sim` |
+| `area:build` | Build, compile, lint/format config, dependencies  |
+| `area:ci`    | CI pipelines and git hooks                        |
+| `area:test`  | Test suites and coverage config                   |
+| `area:infra` | Deployment target and runtime environment         |
 
 When a change spans layers, label the one a fix starts in rather than every one
 it touches.

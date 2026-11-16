@@ -9,6 +9,8 @@ export default defineConfig({
           name: "dom",
           environment: "happy-dom",
           setupFiles: ["./src/test-setup.ts"],
+          // The solver tests step a real mesh thousands of times.
+          testTimeout: 30_000,
           include: ["src/**/*.{test,spec}.{js,ts,tsx}"],
         },
       },
@@ -29,6 +31,8 @@ export default defineConfig({
         "src/**/*.d.ts",
         "src/test-setup.ts",
         "src/main.tsx",
+        // Needs a real canvas and requestAnimationFrame; e2e-tests/index.spec.ts drives it.
+        "src/FractureCanvas.tsx",
       ],
       thresholds: {
         autoUpdate: true,
