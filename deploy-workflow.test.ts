@@ -11,7 +11,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { loadWorkflow, requireRun, requireStep } from "./workflow-yaml.ts";
+import { loadWorkflow, requireRunScript } from "./workflow-yaml.ts";
 
 const WORKFLOW_FILE = ".github/workflows/deploy.yml";
 const workflow = loadWorkflow(WORKFLOW_FILE);
@@ -36,9 +36,11 @@ afterEach(() => {
 });
 
 function runHostsStep(hosts: string[], { ghFails = false } = {}) {
-  const run = requireRun(
-    requireStep(workflow, WORKFLOW_FILE, "ArtifactHosts", "hosts"),
-    "the hosts step",
+  const run = requireRunScript(
+    workflow,
+    WORKFLOW_FILE,
+    "ArtifactHosts",
+    "hosts",
   );
   const fixture = join(dir, "meta.txt");
   const output = join(dir, "github-output");

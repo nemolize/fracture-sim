@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { parse } from "yaml";
 
-export interface Step {
+interface Step {
   id?: string;
   uses?: string;
   run?: string;
@@ -16,6 +16,7 @@ interface Job {
 }
 
 export interface Workflow {
+  concurrency?: { group: string };
   jobs: Record<string, Job>;
 }
 
@@ -40,7 +41,7 @@ export function loadWorkflow(file: string): Workflow {
   return parsed;
 }
 
-export function requireStep(
+function requireStep(
   workflow: Workflow,
   file: string,
   job: string,
@@ -55,9 +56,15 @@ export function requireStep(
   return step;
 }
 
-export function requireRun(step: Step, label: string): string {
-  if (step.run === undefined) {
-    throw new Error(`${label} has no run script`);
+export function requireRunScript(
+  workflow: Workflow,
+  file: string,
+  job: string,
+  id: string,
+): string {
+  const run = requireStep(workflow, file, job, id).run;
+  if (run === undefined) {
+    throw new Error(`${file} step "${id}" in job "${job}" has no run script`);
   }
-  return step.run;
+  return run;
 }

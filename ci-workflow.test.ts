@@ -2,8 +2,10 @@ import { spawnSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -11,18 +13,22 @@ import { dirname, join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { loadWorkflow, requireRun, requireStep } from "./workflow-yaml.ts";
+import { loadWorkflow, requireRunScript } from "./workflow-yaml.ts";
 
 const WORKFLOW_FILE = ".github/workflows/ci.yml";
 const workflow = loadWorkflow(WORKFLOW_FILE);
 
-const filterScript = requireRun(
-  requireStep(workflow, WORKFLOW_FILE, "SweepFilter", "filter"),
-  "the filter step",
+const filterScript = requireRunScript(
+  workflow,
+  WORKFLOW_FILE,
+  "SweepFilter",
+  "filter",
 );
-const gateScript = requireRun(
-  requireStep(workflow, WORKFLOW_FILE, "E2ETests", "sweep-gate"),
-  "the gate step",
+const gateScript = requireRunScript(
+  workflow,
+  WORKFLOW_FILE,
+  "E2ETests",
+  "sweep-gate",
 );
 
 let dir: string;
@@ -36,7 +42,15 @@ afterEach(() => {
 });
 
 function git(...args: string[]): string {
-  const result = spawnSync("git", args, { cwd: dir, encoding: "utf8" });
+  const result = spawnSync("git", args, {
+    cwd: dir,
+    encoding: "utf8",
+    env: {
+      PATH: process.env["PATH"] ?? "",
+      GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_CONFIG_NOSYSTEM: "1",
+    },
+  });
   if (result.status !== 0) {
     throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
   }
@@ -99,6 +113,7 @@ describe("SweepFilter job", () => {
     "src/harness/main.ts",
     "e2e-tests/gpu.spec.ts",
     "playwright.config.ts",
+    "port.ts",
     "harness.html",
     ".github/workflows/ci.yml",
   ])("runs the sweep for a change to %s", (file) => {
@@ -127,6 +142,17 @@ describe("SweepFilter job", () => {
     expect(sweepRunsFor(["docs/x\nsrc/sim/y"])).toBe(false);
   });
 
+  it("runs the sweep for a file moved out of a sweep path", () => {
+    git("init", "--quiet");
+    commit(["README.md"]);
+    const base = commit(["src/sim/dead.ts"]);
+    mkdirSync(join(dir, "src/legacy"), { recursive: true });
+    git("mv", "src/sim/dead.ts", "src/legacy/dead.ts");
+    commit([]);
+
+    expect(runFilter(base).output).toBe("run=true\n");
+  });
+
   it("runs the sweep when the range lists no changed file", () => {
     git("init", "--quiet");
     const head = commit(["README.md"]);
@@ -143,6 +169,87 @@ describe("SweepFilter job", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("::error::");
     expect(result.output).toBe("run=true\n");
+  });
+});
+
+describe("SweepFilter path list", () => {
+  const casePattern = /case "\$name" in\n\s*([^)\n]+)\)/.exec(filterScript);
+  const patterns = (casePattern?.[1] ?? "")
+    .split("|")
+    .map((glob) => glob.trim())
+    .map(
+      (glob) =>
+        new RegExp(
+          `^${glob.replace(/[.+^${}()[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`,
+        ),
+    );
+
+  const importPattern = /(?:from|import)\s*\(?\s*"([^"]+)"/g;
+  const extensions = ["", ".ts", ".tsx", "/index.ts"];
+
+  function resolve(from: string, specifier: string): string | undefined {
+    const base = specifier.split("?")[0] ?? specifier;
+    const target = base.startsWith("@/")
+      ? join("src", base.slice(2))
+      : base.startsWith(".")
+        ? join(dirname(from), base)
+        : undefined;
+    return extensions
+      .map((extension) => `${target ?? ""}${extension}`)
+      .find((candidate) => target !== undefined && isFile(candidate));
+  }
+
+  function isFile(path: string): boolean {
+    return statSync(path, { throwIfNoEntry: false })?.isFile() ?? false;
+  }
+
+  function importClosure(entries: string[]): Set<string> {
+    const seen = new Set<string>();
+    const pending = [...entries];
+    for (let file = pending.pop(); file !== undefined; file = pending.pop()) {
+      if (seen.has(file)) {
+        continue;
+      }
+      seen.add(file);
+      if (!/\.tsx?$/.test(file)) {
+        continue;
+      }
+      for (const [, specifier = ""] of readFileSync(file, "utf8").matchAll(
+        importPattern,
+      )) {
+        const resolved = resolve(file, specifier);
+        if (resolved !== undefined) {
+          pending.push(resolved);
+        }
+      }
+    }
+    return seen;
+  }
+
+  it("reads its patterns from the filter step", () => {
+    expect(patterns.length).toBeGreaterThan(1);
+  });
+
+  it("covers every file the harness page and the sweep tests import", () => {
+    const entries = [
+      "src/harness/main.ts",
+      "playwright.config.ts",
+      ...readdirSync("e2e-tests").map((name) => join("e2e-tests", name)),
+    ];
+
+    const outside = [...importClosure(entries)].filter(
+      (file) => !patterns.some((pattern) => pattern.test(file)),
+    );
+
+    expect(outside).toEqual([]);
+  });
+});
+
+describe("workflow concurrency", () => {
+  it("gives a push its own group, so a queued run never replaces a pending one", () => {
+    const group = workflow.concurrency?.group;
+
+    expect(group).toContain("github.sha");
   });
 });
 

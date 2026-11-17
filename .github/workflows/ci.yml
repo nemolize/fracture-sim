@@ -9,7 +9,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # A queued run replaces a pending one, and a main run left unrun would hide its
+  # commit from the next run's changed-file range, so a main run gets its own group.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   # Cancelling an in-progress main run would leave that commit with no CI verdict.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
@@ -103,7 +105,7 @@ jobs:
       - id: filter
         run: |
           changed="$(mktemp)"
-          if ! git diff --name-only -z "$BASE_SHA" HEAD >"$changed"; then
+          if ! git diff --no-renames --name-only -z "$BASE_SHA" HEAD >"$changed"; then
             echo "::error::could not list the files changed since ${BASE_SHA}, so the stability sweep runs"
             echo "run=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -113,7 +115,7 @@ jobs:
           [ -s "$changed" ] || sweep=true
           while IFS= read -r -d '' name; do
             case "$name" in
-              src/sim/* | src/gpu/* | src/harness/* | e2e-tests/* | playwright.config.ts | harness.html | .github/workflows/ci.yml)
+              src/sim/* | src/gpu/* | src/harness/* | e2e-tests/* | playwright.config.ts | port.ts | harness.html | .github/workflows/ci.yml)
                 sweep=true
                 break
                 ;;
@@ -146,7 +148,7 @@ jobs:
           case "${SWEEP_RUN}:${SWEEP_RESULT}" in
             true:success | false:skipped) ;;
             *)
-              echo "::error::the stability sweep was ${SWEEP_RUN} to run and finished as ${SWEEP_RESULT}"
+              echo "::error::the filter's run output was '${SWEEP_RUN}' and the stability sweep finished as ${SWEEP_RESULT}"
               exit 1
               ;;
           esac
