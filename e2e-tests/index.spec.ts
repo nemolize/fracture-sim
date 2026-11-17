@@ -131,7 +131,7 @@ const sendMotion = (
     ([g, a]) => {
       window.dispatchEvent(
         new DeviceMotionEvent("devicemotion", {
-          accelerationIncludingGravity: { x: -g.x, y: -g.y, z: 0 },
+          accelerationIncludingGravity: { x: a.x - g.x, y: a.y - g.y, z: 0 },
           acceleration: { x: a.x, y: a.y, z: 0 },
         }),
       );
@@ -206,9 +206,7 @@ test.describe("gyro tilt", () => {
     expect(Math.abs((await bodyCentre(page)) - before)).toBeLessThan(0.005);
   });
 
-  test("should push the body against a shake, and stop pushing when the shake ends", async ({
-    page,
-  }) => {
+  test("should push the body against a shake", async ({ page }) => {
     await page.getByLabel("Gyro tilt").check();
     await page.getByLabel(/^Tilt smoothing/).fill("0");
     const before = await bodyCentre(page);

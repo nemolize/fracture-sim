@@ -133,7 +133,7 @@ export const FractureCanvas = ({
         paused: pausedRef.current,
         view: settingsRef.current.view,
         aim,
-        gravity: tracker.gravity(settingsRef.current),
+        gravity: tracker.gravity(settingsRef.current, performance.now()),
       }),
       onStats: (stats) => {
         onStatsRef.current(stats);

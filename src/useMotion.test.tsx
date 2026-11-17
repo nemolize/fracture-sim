@@ -72,7 +72,55 @@ describe("where events arrive without asking", () => {
     expect(result.current.support).toBe("supported");
   });
 
-  it("gives up when no usable reading comes", () => {
+  it("supports a device that lies flat while the page loads", () => {
+    const { result } = renderHook(() => useMotion(DEFAULT_SETTINGS));
+    act(() => {
+      window.dispatchEvent(motionEvent({ x: 0, y: 0, z: GRAVITY }, null, 0));
+    });
+    expect(result.current.support).toBe("supported");
+  });
+
+  describe("while the page is hidden", () => {
+    const setHidden = (hidden: boolean): void => {
+      Object.defineProperty(document, "hidden", {
+        value: hidden,
+        configurable: true,
+      });
+    };
+    afterEach(() => {
+      Reflect.deleteProperty(document, "hidden");
+    });
+
+    it("waits for the page to show before giving up", () => {
+      setHidden(true);
+      const { result } = renderHook(() => useMotion(DEFAULT_SETTINGS));
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+      expect(result.current.support).toBe("checking");
+      setHidden(false);
+      act(() => {
+        document.dispatchEvent(new Event("visibilitychange"));
+        vi.advanceTimersByTime(5000);
+      });
+      expect(result.current.support).toBe("unsupported");
+    });
+
+    it("stops the clock when the page hides mid-probe", () => {
+      const { result } = renderHook(() => useMotion(DEFAULT_SETTINGS));
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+      setHidden(true);
+      act(() => {
+        document.dispatchEvent(new Event("visibilitychange"));
+        vi.advanceTimersByTime(5000);
+      });
+      expect(result.current.support).toBe("checking");
+    });
+  });
+
+  it("gives up when no reading comes", () => {
     const { result } = renderHook(() => useMotion(DEFAULT_SETTINGS));
     act(() => {
       vi.advanceTimersByTime(5000);
@@ -98,7 +146,7 @@ describe("where events arrive without asking", () => {
         motionEvent(rightEdgeDown, { x: 2, y: 0, z: 0 }, 10),
       );
     });
-    const tilted = result.current.tracker.gravity(TUNING);
+    const tilted = result.current.tracker.gravity(TUNING, 10);
     expect(tilted.x).toBeCloseTo(GRAVITY - 2);
     expect(tilted.y).toBeCloseTo(0);
 
@@ -106,13 +154,13 @@ describe("where events arrive without asking", () => {
       result.current.setEnabled(false);
     });
     expect(result.current.enabled).toBe(false);
-    const off = result.current.tracker.gravity(TUNING);
+    const off = result.current.tracker.gravity(TUNING, 0);
     expect(off.x).toBeCloseTo(0);
     expect(off.y).toBeCloseTo(-GRAVITY);
     act(() => {
       window.dispatchEvent(motionEvent(rightEdgeDown, null, 20));
     });
-    expect(result.current.tracker.gravity(TUNING).x).toBeCloseTo(0);
+    expect(result.current.tracker.gravity(TUNING, 20).x).toBeCloseTo(0);
   });
 
   it("reads the screen angle when each event arrives", () => {
@@ -127,7 +175,7 @@ describe("where events arrive without asking", () => {
     act(() => {
       window.dispatchEvent(motionEvent({ x: GRAVITY, y: 0, z: 0 }, null, 10));
     });
-    const { x, y } = result.current.tracker.gravity(TUNING);
+    const { x, y } = result.current.tracker.gravity(TUNING, 10);
     expect(x).toBeCloseTo(0);
     expect(y).toBeCloseTo(-GRAVITY);
   });
@@ -148,12 +196,12 @@ describe("where events arrive without asking", () => {
     act(() => {
       window.dispatchEvent(motionEvent(rightEdgeDown, null, 10));
     });
-    expect(result.current.tracker.gravity(TUNING).x).toBeLessThan(0.1);
+    expect(result.current.tracker.gravity(TUNING, 10).x).toBeLessThan(0.1);
     rerender(0);
     act(() => {
       window.dispatchEvent(motionEvent(rightEdgeDown, null, 20));
     });
-    expect(result.current.tracker.gravity(TUNING).x).toBeCloseTo(GRAVITY);
+    expect(result.current.tracker.gravity(TUNING, 20).x).toBeCloseTo(GRAVITY);
   });
 });
 
@@ -200,7 +248,7 @@ describe("where Chromium offers requestPermission but needs no answer", () => {
     act(() => {
       window.dispatchEvent(motionEvent(rightEdgeDown, null, 10));
     });
-    expect(result.current.tracker.gravity(TUNING).x).toBeCloseTo(GRAVITY);
+    expect(result.current.tracker.gravity(TUNING, 10).x).toBeCloseTo(GRAVITY);
   });
 });
 
@@ -253,7 +301,7 @@ describe("where the browser asks permission", () => {
     act(() => {
       window.dispatchEvent(motionEvent({ x: GRAVITY, y: 0, z: 0 }, null, 0));
     });
-    expect(result.current.tracker.gravity(TUNING).x).toBeCloseTo(GRAVITY);
+    expect(result.current.tracker.gravity(TUNING, 0).x).toBeCloseTo(GRAVITY);
   });
 
   it("stays off and says so when the user denies access", async () => {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Settings } from "@/settings";
-import { MotionTracker, readMotion } from "@/sim/motion";
+import { hasReading, MotionTracker, readMotion } from "@/sim/motion";
 
 /** How long the probe waits for a first usable reading; chosen empirically, no fixed source. */
 const PROBE_MS = 1000;
@@ -46,9 +46,6 @@ const detectSupport = (): MotionSupport => {
   return permissionRequest() === null ? "checking" : "supported";
 };
 
-const usable = (event: DeviceMotionEvent): boolean =>
-  readMotion(event, 0, false).tilt !== null;
-
 export const useMotion = (settings: Settings): MotionControl => {
   const [tracker] = useState(() => new MotionTracker());
   const [support, setSupport] = useState(detectSupport);
@@ -63,14 +60,23 @@ export const useMotion = (settings: Settings): MotionControl => {
   useEffect(() => {
     if (!probing) return;
     const onMotion = (event: DeviceMotionEvent): void => {
-      if (usable(event)) setSupport("supported");
+      if (hasReading(event)) setSupport("supported");
     };
     window.addEventListener("devicemotion", onMotion);
-    const timer = window.setTimeout(() => {
-      setSupport("unsupported");
-    }, PROBE_MS);
+    let timer = 0;
+    // Hidden pages get no sensor events, so the clock runs only while the page is visible.
+    const restart = (): void => {
+      window.clearTimeout(timer);
+      if (document.hidden) return;
+      timer = window.setTimeout(() => {
+        setSupport("unsupported");
+      }, PROBE_MS);
+    };
+    restart();
+    document.addEventListener("visibilitychange", restart);
     return () => {
       window.removeEventListener("devicemotion", onMotion);
+      document.removeEventListener("visibilitychange", restart);
       window.clearTimeout(timer);
     };
   }, [probing]);
