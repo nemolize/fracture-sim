@@ -169,6 +169,10 @@ describe("where events arrive without asking", () => {
       window.dispatchEvent(motionEvent(upright, null, 0));
     });
     act(() => {
+      result.current.setEnabled(false);
+    });
+    expect(result.current.enabled).toBe(false);
+    act(() => {
       result.current.setEnabled(true);
     });
     expect(result.current.enabled).toBe(true);
