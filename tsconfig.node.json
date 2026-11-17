@@ -8,6 +8,7 @@
   "include": [
     "*.test.ts",
     "port.ts",
+    "workflow-yaml.ts",
     "vite.config.ts",
     "vitest.config.ts",
     "playwright.config.ts"

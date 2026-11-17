@@ -10,55 +10,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { parse } from "yaml";
 
-interface Step {
-  id?: string;
-  uses?: string;
-  run?: string;
-  with?: Record<string, string>;
-}
+import { loadWorkflow, requireRun, requireStep } from "./workflow-yaml.ts";
 
-interface Job {
-  needs?: string | string[];
-  if?: string;
-  steps: Step[];
-}
-
-interface Workflow {
-  jobs: Record<string, Job>;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function isWorkflow(value: unknown): value is Workflow {
-  if (!isRecord(value) || !isRecord(value["jobs"])) {
-    return false;
-  }
-  return Object.values(value["jobs"]).every(
-    (job) => isRecord(job) && Array.isArray(job["steps"]),
-  );
-}
-
-const parsed: unknown = parse(
-  readFileSync(".github/workflows/deploy.yml", "utf8"),
-);
-if (!isWorkflow(parsed)) {
-  throw new Error("deploy.yml is not a workflow with jobs and steps");
-}
-const workflow = parsed;
-
-function requireStep(job: string, id: string): Step {
-  const step = workflow.jobs[job]?.steps.find(
-    (candidate) => candidate.id === id,
-  );
-  if (step === undefined) {
-    throw new Error(`deploy.yml has no step "${id}" in job "${job}"`);
-  }
-  return step;
-}
+const WORKFLOW_FILE = ".github/workflows/deploy.yml";
+const workflow = loadWorkflow(WORKFLOW_FILE);
 
 const ghStub = `#!/bin/sh
 [ "$*" = "api meta --jq .domains.actions[]" ] || { echo "unexpected gh call: $*" >&2; exit 2; }
@@ -80,10 +36,10 @@ afterEach(() => {
 });
 
 function runHostsStep(hosts: string[], { ghFails = false } = {}) {
-  const run = requireStep("ArtifactHosts", "hosts").run;
-  if (run === undefined) {
-    throw new Error("the hosts step has no run script");
-  }
+  const run = requireRun(
+    requireStep(workflow, WORKFLOW_FILE, "ArtifactHosts", "hosts"),
+    "the hosts step",
+  );
   const fixture = join(dir, "meta.txt");
   const output = join(dir, "github-output");
   writeFileSync(fixture, hosts.map((host) => `${host}\n`).join(""));
