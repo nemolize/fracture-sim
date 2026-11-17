@@ -13,7 +13,7 @@
 @group(0) @binding(7) var<storage, read> balls: array<Ball>;
 @group(0) @binding(8) var<storage, read_write> ballPush: array<vec2<f32>>;
 
-@compute @workgroup_size(64)
+@compute @workgroup_size(WORKGROUP_SIZE)
 fn nodeStep(@builtin(global_invocation_id) gid: vec3<u32>) {
   let n = gid.x;
   if (n >= params.nodeCount) { return; }

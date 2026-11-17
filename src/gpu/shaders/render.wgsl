@@ -1,6 +1,6 @@
 // The body as one flat-coloured triangle per element, then balls and flat
 // shapes (floor, aim line). Positions are mapped from world metres to canvas
-// pixels exactly as the 2D renderer did: y up, floor line `floorPixel` rows down.
+// pixels: y up, floor line `floorPixel` rows down.
 
 struct View {
   size: vec2<f32>,

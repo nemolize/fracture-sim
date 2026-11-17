@@ -8,6 +8,8 @@ export const FLOOR_RESTITUTION = 0.1;
 export const CONTACT_STIFFNESS = 2e4;
 export const CONTACT_DAMPING = 14;
 export const BALL_RESTITUTION = 0.3;
+/** Rate at which a ball rolling on the floor loses horizontal speed. */
+export const BALL_FLOOR_DRAG = 2;
 export const GRAB_STIFFNESS = 1500;
 export const GRAB_DAMPING = 54;
 export const GRAB_RADIUS = 0.3;
@@ -110,7 +112,7 @@ export const stepBall = (ball: Ball, width: number, dt: number): void => {
   if (ball.y < ball.radius) {
     ball.y = ball.radius;
     if (ball.vy < 0) ball.vy *= -BALL_RESTITUTION;
-    ball.vx *= 1 - 2 * dt;
+    ball.vx *= 1 - BALL_FLOOR_DRAG * dt;
   }
   if (ball.x < ball.radius) {
     ball.x = ball.radius;

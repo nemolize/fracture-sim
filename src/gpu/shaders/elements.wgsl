@@ -56,7 +56,7 @@ fn mul2(a: vec4<f32>, b: vec4<f32>) -> vec4<f32> {
   );
 }
 
-@compute @workgroup_size(64)
+@compute @workgroup_size(WORKGROUP_SIZE)
 fn elementForces(@builtin(global_invocation_id) gid: vec3<u32>) {
   let e = gid.x;
   if (e >= params.triCount) { return; }
@@ -98,7 +98,7 @@ fn elementForces(@builtin(global_invocation_id) gid: vec3<u32>) {
     state.plasticStrain += plasticStep;
     // Fp^-1 <- F^-1 Fe', so the next step sees the relaxed elastic part.
     let det = f.x * f.w - f.y * f.z;
-    if (abs(det) > 1e-9) {
+    if (abs(det) > MIN_DEFORMATION_DET) {
       let n = compose(rot, exp(l1), exp(l2));
       state.plasticInverse = vec4<f32>(
         (f.w * n.x - f.y * n.z) / det,

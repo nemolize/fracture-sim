@@ -10,6 +10,7 @@ import {
   packMesh,
   RECORD_BYTES,
   RECORD_WORDS,
+  unpackBalls,
   unpackNodes,
   WORKGROUP_SIZE,
 } from "./layout";
@@ -127,5 +128,16 @@ describe("packMaterial", () => {
     expect(packMaterial(MATERIALS.glass)[3]).toBeLessThan(Infinity);
     expect(packMaterial(MATERIALS.glass)[3]).toBeGreaterThan(1e30);
     expect(packMaterial(MATERIALS.steel)[3]).toBe(MATERIALS.steel.yieldStress);
+  });
+});
+
+describe("unpackBalls", () => {
+  it("reads the first records back at the packed stride", () => {
+    const first = { x: 1, y: 2, vx: 3, vy: 4, radius: 0.25, mass: 2 };
+    const second = { x: 5, y: 6, vx: 7, vy: 8, radius: 0.25, mass: 2 };
+    const bytes = new Float32Array(3 * RECORD_WORDS);
+    bytes.set(packBall(first), 0);
+    bytes.set(packBall(second), RECORD_WORDS);
+    expect(unpackBalls(bytes.buffer, 2)).toEqual([first, second]);
   });
 });

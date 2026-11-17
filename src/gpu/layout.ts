@@ -1,11 +1,13 @@
 import { at as atF64, atF32, atInt, atU32 } from "@/sim/array";
-import { type Ball } from "@/sim/contact";
+import type { Ball } from "@/sim/contact";
 import { type Material, VISCOSITY_PER_YOUNGS } from "@/sim/materials";
 import { restShape } from "@/sim/rest";
 import type { Mesh } from "@/sim/scenes";
 
-/** Threads per workgroup in every compute shader. */
+/** Threads per workgroup in the element, node and interaction shaders. */
 export const WORKGROUP_SIZE = 64;
+/** Threads per workgroup in the ball shader, which reduces over the nodes with one group per ball. */
+export const BALL_WORKGROUP_SIZE = 256;
 
 /** Workgroups needed to cover `items` threads. */
 export const dispatchCount = (items: number): number =>
@@ -176,4 +178,19 @@ export const unpackNodes = (
     fields.nodeRefs[n] = atU32(u32, base + 7);
   }
   return fields;
+};
+
+export const unpackBalls = (buffer: ArrayBuffer, count: number): Ball[] => {
+  const f32 = new Float32Array(buffer);
+  return Array.from({ length: count }, (_, b) => {
+    const base = RECORD_WORDS * b;
+    return {
+      x: atF32(f32, base),
+      y: atF32(f32, base + 1),
+      vx: atF32(f32, base + 2),
+      vy: atF32(f32, base + 3),
+      radius: atF32(f32, base + 4),
+      mass: atF32(f32, base + 5),
+    };
+  });
 };

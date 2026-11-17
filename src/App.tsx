@@ -33,7 +33,7 @@ const App = () => {
   const [paused, setPaused] = useState(false);
   const [resetToken, setResetToken] = useState(0);
   const [stats, setStats] = useState<WorldStats>(INITIAL_STATS);
-  const { gpu, fail } = useGpu();
+  const { gpu, unsupported } = useGpu();
 
   return (
     <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-4 bg-gray-50 p-4 md:flex-row md:items-start">
@@ -46,7 +46,7 @@ const App = () => {
             paused={paused}
             resetToken={resetToken}
             onStats={setStats}
-            onFatal={fail}
+            onContextUnavailable={unsupported}
           />
         ) : null}
         {gpu.status === "unavailable" ? (

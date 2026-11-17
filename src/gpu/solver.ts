@@ -1,5 +1,6 @@
 import {
   AIR_DRAG,
+  type Ball,
   BLAST_RADIUS,
   BLAST_SPEED,
   makeBall,
@@ -16,6 +17,7 @@ import {
   packMaterial,
   packMesh,
   RECORD_BYTES,
+  unpackBalls,
   unpackNodes,
 } from "./layout";
 import { encodeParams, PARAMS_BYTES, type SolverParams } from "./params";
@@ -47,8 +49,8 @@ export interface Snapshot extends ElemFields {
   vy: Float32Array;
   nodeRefs: Uint32Array;
   chunkOf: Int32Array;
-  /** `x, y, vx, vy, radius, mass` per active ball. */
-  balls: number[][];
+  /** Active balls in ring-slot order, not oldest first. */
+  balls: Ball[];
   time: number;
 }
 
@@ -62,11 +64,7 @@ interface Pass {
   group: GPUBindGroup;
 }
 
-/**
- * The solver on WebGPU: three compute passes per step (triangle forces, node
- * update, balls), the same algorithm as the CPU `World` in f32. Its state
- * never leaves the GPU except for the statistics read-back.
- */
+/** The CPU `World`'s algorithm in f32 on WebGPU; only the statistics read-back and `snapshot` copy state out. */
 export class GpuSolver {
   readonly dt: number;
   readonly nodeCount: number;
@@ -281,16 +279,11 @@ export class GpuSolver {
       throw new Error("state read-back failed");
     }
     this.tracker.update(elemBytes);
-    const floats = new Float32Array(ballBytes);
-    const balls: number[][] = [];
-    for (let b = 0; b < this.params.ballCount; b++) {
-      balls.push(Array.from(floats.slice(8 * b, 8 * b + 6)));
-    }
     return {
       ...unpackNodes(nodeBytes, this.nodeCount),
       ...unpackElemState(elemBytes, this.triCount),
       chunkOf: this.tracker.chunkOf.slice(),
-      balls,
+      balls: unpackBalls(ballBytes, this.params.ballCount),
       time: this.time,
     };
   }

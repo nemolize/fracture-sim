@@ -11,10 +11,10 @@ import App from "./App";
 vi.mock("@/FractureCanvas", () => ({
   FractureCanvas: ({
     onStats,
-    onFatal,
+    onContextUnavailable,
   }: {
     onStats: (stats: WorldStats) => void;
-    onFatal: (message: string) => void;
+    onContextUnavailable: (message: string) => void;
   }) => (
     <div aria-label="Fracture simulation">
       <button
@@ -28,7 +28,7 @@ vi.mock("@/FractureCanvas", () => ({
       <button
         type="button"
         onClick={() => {
-          onFatal("no context");
+          onContextUnavailable("no context");
         }}
       >
         report failure
@@ -129,14 +129,16 @@ describe("with WebGPU", () => {
     expect(screen.getByLabelText("Fracture simulation")).toBeVisible();
   });
 
-  it("stops when the canvas reports it cannot use WebGPU", async () => {
+  it("says WebGPU is required when the canvas cannot use it", async () => {
     setGpu(fakeGpu().gpu);
     const user = userEvent.setup();
     render(<App />);
     await user.click(
       await screen.findByRole("button", { name: "report failure" }),
     );
+    expect(screen.getByRole("alert")).toHaveTextContent("WebGPU is required");
     expect(screen.getByRole("alert")).toHaveTextContent("no context");
+    expect(screen.queryByLabelText("Fracture simulation")).toBeNull();
   });
 
   it("releases a device that arrives after the page is gone", async () => {

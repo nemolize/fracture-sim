@@ -21,7 +21,7 @@ interface Props {
   resetToken: number;
   onStats: (stats: WorldStats) => void;
   /** The canvas cannot be configured for WebGPU. */
-  onFatal: (message: string) => void;
+  onContextUnavailable: (message: string) => void;
 }
 
 export const FractureCanvas = ({
@@ -30,19 +30,19 @@ export const FractureCanvas = ({
   paused,
   resetToken,
   onStats,
-  onFatal,
+  onContextUnavailable,
 }: Props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Read inside the frame loop through refs so a slider move does not rebuild the solver.
   const settingsRef = useRef(settings);
   const pausedRef = useRef(paused);
   const onStatsRef = useRef(onStats);
-  const onFatalRef = useRef(onFatal);
+  const onContextUnavailableRef = useRef(onContextUnavailable);
   useEffect(() => {
     settingsRef.current = settings;
     pausedRef.current = paused;
     onStatsRef.current = onStats;
-    onFatalRef.current = onFatal;
+    onContextUnavailableRef.current = onContextUnavailable;
   });
 
   const { scene, material, resolution } = settings;
@@ -51,7 +51,9 @@ export const FractureCanvas = ({
     if (canvas === null) return;
     const context = gpuContext(canvas);
     if (context === null) {
-      onFatalRef.current("the canvas could not create a WebGPU context");
+      onContextUnavailableRef.current(
+        "the canvas could not create a WebGPU context",
+      );
       return;
     }
     const format = navigator.gpu.getPreferredCanvasFormat();

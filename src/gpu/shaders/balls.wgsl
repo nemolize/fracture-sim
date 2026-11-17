@@ -5,22 +5,21 @@
 @group(0) @binding(1) var<storage, read> ballPush: array<vec2<f32>>;
 @group(0) @binding(2) var<storage, read_write> balls: array<Ball>;
 
-const GROUP: u32 = 256u;
-var<workgroup> partial: array<vec2<f32>, 256>;
+var<workgroup> partial: array<vec2<f32>, BALL_WORKGROUP_SIZE>;
 
-@compute @workgroup_size(256)
+@compute @workgroup_size(BALL_WORKGROUP_SIZE)
 fn ballStep(
   @builtin(workgroup_id) workgroup: vec3<u32>,
   @builtin(local_invocation_index) lane: u32,
 ) {
   let b = workgroup.x;
   var sum = vec2<f32>(0.0);
-  for (var n = lane; n < params.nodeCount; n += GROUP) {
+  for (var n = lane; n < params.nodeCount; n += BALL_WORKGROUP_SIZE) {
     sum += ballPush[n * MAX_BALLS + b];
   }
   partial[lane] = sum;
   workgroupBarrier();
-  for (var stride = GROUP / 2u; stride > 0u; stride >>= 1u) {
+  for (var stride = BALL_WORKGROUP_SIZE / 2u; stride > 0u; stride >>= 1u) {
     if (lane < stride) { partial[lane] += partial[lane + stride]; }
     workgroupBarrier();
   }
@@ -33,7 +32,7 @@ fn ballStep(
   if (ball.pos.y < ball.radius) {
     ball.pos.y = ball.radius;
     if (ball.vel.y < 0.0) { ball.vel.y *= -BALL_RESTITUTION; }
-    ball.vel.x *= 1.0 - 2.0 * params.dt;
+    ball.vel.x *= 1.0 - BALL_FLOOR_DRAG * params.dt;
   }
   if (ball.pos.x < ball.radius) {
     ball.pos.x = ball.radius;

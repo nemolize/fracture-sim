@@ -2,7 +2,7 @@ import type { WorldStats } from "@/sim/stats";
 import type { ViewMode } from "@/sim/view";
 
 import { type Aim } from "./frame";
-import { planFrame } from "./pacing";
+import { planFrame, SkippedTime } from "./pacing";
 import type { Renderer } from "./renderer";
 import type { GpuSolver } from "./solver";
 
@@ -44,6 +44,7 @@ export class FrameLoop {
   private last = 0;
   private clock = 0;
   private busy = false;
+  private readonly skipped = new SkippedTime();
   private stopped = false;
 
   constructor(options: {
@@ -80,13 +81,14 @@ export class FrameLoop {
     });
     const elapsed = (now - this.last) / 1000;
     this.last = now;
-    if (this.busy) {
+    const owedSeconds = this.skipped.take(elapsed, this.busy);
+    if (owedSeconds === null) {
       this.counters.skippedFrames++;
       return;
     }
     const { speed, paused, view, aim } = this.input();
     if (!paused) {
-      const plan = planFrame(this.clock, elapsed, speed, this.solver.dt);
+      const plan = planFrame(this.clock, owedSeconds, speed, this.solver.dt);
       this.clock = plan.clock;
       if (plan.capped) this.counters.cappedFrames++;
       this.counters.steps += plan.steps;

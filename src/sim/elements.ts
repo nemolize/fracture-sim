@@ -1,5 +1,10 @@
 import { at, atByte, atInt } from "./array";
-import { type Material, MIN_STRETCH, VISCOSITY_PER_YOUNGS } from "./materials";
+import {
+  type Material,
+  MIN_DEFORMATION_DET,
+  MIN_STRETCH,
+  VISCOSITY_PER_YOUNGS,
+} from "./materials";
 import type { Solid } from "./solid";
 import { svd2 } from "./svd";
 
@@ -93,7 +98,7 @@ export const addElementForces = (
       solid.plasticStrain[e] = at(solid.plasticStrain, e) + plasticStep;
       // Fp^-1 <- F^-1 Fe', so the next step sees the relaxed elastic part.
       const det = f00 * f11 - f01 * f10;
-      if (Math.abs(det) > 1e-9) {
+      if (Math.abs(det) > MIN_DEFORMATION_DET) {
         const e1 = Math.exp(l1);
         const e2 = Math.exp(l2);
         const n00 = e1 * cu * cv + e2 * su * sv;

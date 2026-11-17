@@ -10,14 +10,17 @@ renderer live in `src/gpu` (WGSL under `src/gpu/shaders`, run by `solver.ts` and
 `ControlPanel`, `FractureCanvas`) only owns settings, the unavailable and
 device-lost notices, and the pointer tools. `src/sim` holds what both solvers
 share (meshes, materials, constants) plus the CPU `World`, which exists only as
-the f64 reference for tests and is never imported by the app. Every number the
-shaders use comes from a TypeScript constant through `src/gpu/constants.ts`;
-never copy one into WGSL.
+the f64 reference for tests and is never imported by the app. Every model, tuning
+or size constant the shaders use (physics, contact, material, workgroup sizes)
+comes from a TypeScript constant through `src/gpu/constants.ts`; never copy one
+into WGSL. Palette colours and structural literals such as a clip-space `2.0`
+stay in the shader.
 
 Coverage is 100% for pure TypeScript. Modules that need a WebGPU device
-(`solver.ts`, `renderer.ts`, `loop.ts`, `FractureCanvas.tsx`, `src/harness`) are
-excluded one by one in `vitest.config.ts`, each with a comment naming the e2e
-test that drives it; a new GPU-coupled file needs the same entry. Pure code reads
+(`solver.ts`, `renderer.ts`, `loop.ts`, `FractureCanvas.tsx`) are excluded one by
+one in `vitest.config.ts`, each with a comment naming the e2e test that drives
+it; a new GPU-coupled file needs the same entry. The two other exclusions are the
+test double `src/gpu/fakes.ts` and the e2e page under `src/harness`. Pure code reads
 typed arrays through the helpers in `src/sim/array.ts` (one per array type, so V8
 keeps the loads monomorphic). Run the CPU reference outside vitest when timing
 it: vitest's transform makes a step about six times slower.

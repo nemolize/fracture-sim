@@ -1,6 +1,11 @@
-import { expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { MAX_FRAME_SECONDS, MAX_STEPS_PER_FRAME, planFrame } from "./pacing";
+import {
+  MAX_FRAME_SECONDS,
+  MAX_SIM_SECONDS_PER_FRAME,
+  planFrame,
+  SkippedTime,
+} from "./pacing";
 
 const DT = 0.0003;
 
@@ -21,13 +26,42 @@ it("does not accept a frame longer than the limit", () => {
 it("cuts a frame that owes more than the cap and drops the backlog", () => {
   const plan = planFrame(0, MAX_FRAME_SECONDS, 1, 0.00005);
   expect(plan).toEqual({
-    steps: MAX_STEPS_PER_FRAME,
+    steps: Math.floor(MAX_SIM_SECONDS_PER_FRAME / 0.00005),
     clock: 0,
     capped: true,
   });
 });
 
-it("keeps default speed on the finest mesh under the cap at 60 frames per second", () => {
-  const plan = planFrame(0, 1 / 60, 0.5, 0.00009);
-  expect(plan.capped).toBe(false);
+it("caps the standard mesh at 120 steps, the cap's simulated time over its step", () => {
+  expect(planFrame(0, MAX_FRAME_SECONDS, 1, 0.0003).steps).toBe(120);
+});
+
+it.each([0.5, 1])(
+  "does not cap speed %s on the finest mesh at 60 frames per second",
+  (speed) => {
+    expect(planFrame(0, 1 / 60, speed, 0.00009).capped).toBe(false);
+  },
+);
+
+describe("SkippedTime", () => {
+  it("passes a frame's time through when the GPU is idle", () => {
+    expect(new SkippedTime().take(0.016, false)).toBe(0.016);
+  });
+
+  it("keeps a skipped frame's time and owes it to the next frame that runs", () => {
+    const skipped = new SkippedTime();
+    expect(skipped.take(0.016, true)).toBeNull();
+    expect(skipped.take(0.017, true)).toBeNull();
+    expect(skipped.take(0.016, false)).toBeCloseTo(0.049, 12);
+    expect(skipped.take(0.016, false)).toBe(0.016);
+  });
+
+  it("leaves the clamp on the total to planFrame, so a long stall cannot burst", () => {
+    const skipped = new SkippedTime();
+    skipped.take(10, true);
+    const owed = skipped.take(0.016, false) ?? 0;
+    expect(planFrame(0, owed, 0.5, DT).steps).toBe(
+      Math.floor((MAX_FRAME_SECONDS * 0.5) / DT),
+    );
+  });
 });

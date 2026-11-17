@@ -78,7 +78,7 @@ const harness = {
         state.damage,
         state.plasticStrain,
         state.stressRatio,
-        ...state.balls,
+        ...state.balls.map(({ x, y, vx, vy, mass }) => [x, y, vx, vy, mass]),
       ]);
     }
     solver.dispose();

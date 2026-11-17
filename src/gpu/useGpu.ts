@@ -12,10 +12,14 @@ export type GpuStatus =
 export const useGpu = (): {
   gpu: GpuStatus;
   fail: (message: string) => void;
+  unsupported: (reason: string) => void;
 } => {
   const [gpu, setGpu] = useState<GpuStatus>({ status: "checking" });
   const fail = useCallback((message: string) => {
     setGpu({ status: "lost", message });
+  }, []);
+  const unsupported = useCallback((reason: string) => {
+    setGpu({ status: "unavailable", reason });
   }, []);
 
   useEffect(() => {
@@ -33,5 +37,5 @@ export const useGpu = (): {
     };
   }, [fail]);
 
-  return { gpu, fail };
+  return { gpu, fail, unsupported };
 };

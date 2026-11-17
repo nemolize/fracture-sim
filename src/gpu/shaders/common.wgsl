@@ -1,4 +1,4 @@
-// Records shared by every pass. Their byte layout is packed in `layout.ts`.
+// Records shared by every pass. `layout.ts` packs the records and `params.ts` packs `Params`.
 struct Params {
   dt: f32,
   drag: f32,
@@ -53,4 +53,6 @@ struct Ball {
   vel: vec2<f32>,
   radius: f32,
   mass: f32,
+  // Pads the record to 32 bytes, the stride `packBall` and `RECORD_BYTES` use.
+  pad: vec2<f32>,
 }

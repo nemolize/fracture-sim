@@ -4,7 +4,7 @@
 @group(0) @binding(1) var<storage, read_write> nodes: array<Node>;
 
 // Marks the live nodes under the pointer and remembers where each sits relative to it.
-@compute @workgroup_size(64)
+@compute @workgroup_size(WORKGROUP_SIZE)
 fn grabStart(@builtin(global_invocation_id) gid: vec3<u32>) {
   let n = gid.x;
   if (n >= params.nodeCount) { return; }
@@ -16,7 +16,7 @@ fn grabStart(@builtin(global_invocation_id) gid: vec3<u32>) {
 }
 
 // Radial velocity kick with quadratic falloff.
-@compute @workgroup_size(64)
+@compute @workgroup_size(WORKGROUP_SIZE)
 fn blast(@builtin(global_invocation_id) gid: vec3<u32>) {
   let n = gid.x;
   if (n >= params.nodeCount) { return; }
