@@ -90,9 +90,7 @@ jobs:
 
   E2ETests:
     runs-on: ubuntu-26.04
-    # The 10-second stability sweep over every scene, material and resolution
-    # runs on a software GPU with one worker.
-    timeout-minutes: 45
+    timeout-minutes: 20
     container:
       image: mcr.microsoft.com/playwright:v1.65.0-noble@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe
       # Without --ipc=host chromium can run out of memory and crash.
@@ -116,7 +114,8 @@ jobs:
             exit 1
           fi
       - id: e2e
-        run: pnpm run test:e2e -g "measure"
+        # The stability sweep runs in its own job.
+        run: pnpm run test:e2e --grep-invert "stay finite"
       - if: ${{ !cancelled() && (steps.e2e.outcome == 'success' || steps.e2e.outcome == 'failure') }}
         name: Upload the Playwright test results
         uses: actions/upload-artifact@v7.0.2
@@ -129,3 +128,45 @@ jobs:
           # Uploading a name that already exists fails, which a re-run would hit.
           overwrite: true
           retention-days: 7
+
+  # The 10-second no-NaN sweep over every scene, material and resolution runs on
+  # a software GPU; one finest-mesh case alone takes several minutes, so the
+  # combinations are split across jobs that run in parallel.
+  StabilitySweep:
+    name: StabilitySweep (${{ matrix.shard }})
+    runs-on: ubuntu-26.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: standard
+            grep: "stay finite for 10 s: .*, standard"
+          - shard: fine-wall
+            grep: "stay finite for 10 s: wall, .*, fine"
+          - shard: fine-tower
+            grep: "stay finite for 10 s: tower, .*, fine"
+          - shard: finest-tower
+            grep: "stay finite for 10 s: tower, .*, finest"
+          - shard: finest-wall-glass
+            grep: "stay finite for 10 s: wall, glass, finest"
+          - shard: finest-wall-concrete
+            grep: "stay finite for 10 s: wall, concrete, finest"
+          - shard: finest-wall-steel
+            grep: "stay finite for 10 s: wall, steel, finest"
+          - shard: finest-wall-clay
+            grep: "stay finite for 10 s: wall, clay, finest"
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-noble@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe
+      options: --init --ipc=host
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - run: git config --global --add safe.directory "$(pwd)"
+      - uses: nemolize/actions/setup@v1.4.1
+      # A sweep is deterministic, so a retry would only repeat minutes of work.
+      - run: pnpm run test:e2e --retries=0 -g "$GREP"
+        env:
+          GREP: ${{ matrix.grep }}

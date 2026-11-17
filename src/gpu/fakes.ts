@@ -4,6 +4,7 @@ import { vi } from "vitest";
 export interface FakeGpu {
   gpu: GPU;
   device: GPUDevice;
+  adapter: GPUAdapter;
   destroy: ReturnType<typeof vi.fn>;
   loseDevice: (reason: GPUDeviceLostReason, message: string) => void;
   requestAdapter: ReturnType<typeof vi.fn>;
@@ -48,6 +49,7 @@ export const fakeGpu = (
   return {
     gpu: { requestAdapter } as unknown as GPU,
     device: device as unknown as GPUDevice,
+    adapter: adapter as unknown as GPUAdapter,
     destroy: device.destroy,
     loseDevice: (reason, message) => {
       lose({ reason, message });

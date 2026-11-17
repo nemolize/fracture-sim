@@ -11,7 +11,13 @@ interface AdapterSummary {
 }
 
 export type GpuState =
-  | { status: "ready"; device: GPUDevice; adapter: AdapterSummary }
+  | {
+      status: "ready";
+      device: GPUDevice;
+      adapter: AdapterSummary;
+      /** Held so the adapter and the instance behind it outlive the device; a collected one aborted `mapAsync` on Linux. */
+      handle: GPUAdapter;
+    }
   | { status: "unavailable"; reason: string };
 
 const unavailable = (reason: string): GpuState => ({
@@ -51,6 +57,7 @@ export const acquireGpu = async (host: {
         description,
         isFallback: isFallbackAdapter,
       },
+      handle: adapter,
     };
   } catch (error) {
     return unavailable(`requestDevice failed: ${describe(error)}`);

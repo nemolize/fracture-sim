@@ -45,14 +45,15 @@ test("should have a WebGPU adapter that can compute and render", async ({
   expect(result.canvasCentre).toEqual([255, 0, 0, 255]);
 });
 
-// Limits are the worst f32-vs-f64 error measured over mesh seeds 1-8, rounded up.
+// Limits are the worst f32-vs-f64 error measured over mesh seeds 1-8, on macOS
+// and on the CI image's Linux SwiftShader (centre of mass up to 0.146 there), rounded up.
 const REST_POSITION = { atol: 1e-4, rtol: 1e-5 };
 const REST_VELOCITY = { atol: 1e-2, rtol: 1e-2 };
 const FRACTURE = {
   erodedFraction: 0.02,
   chunks: 2,
   maxPlasticStrain: 0.05,
-  centreOfMass: 0.1,
+  centreOfMass: 0.2,
 };
 
 const withinTolerance = (
@@ -126,10 +127,10 @@ test.describe("GPU solver against the CPU reference", () => {
     expect(got).toHaveLength(8);
     byX(got).forEach((ball, i) => {
       const ref = byX(want)[i];
-      // Bouncing amplifies f32 rounding; the worst difference measured was 0.007.
+      // Bouncing amplifies f32 rounding; the worst difference measured was 0.007 on macOS and 0.036 on CI.
       for (const key of ["x", "y", "vx", "vy"] as const) {
         expect(Math.abs(ball[key] - (ref?.[key] ?? Number.NaN))).toBeLessThan(
-          0.02,
+          0.05,
         );
       }
     });

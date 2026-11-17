@@ -49,7 +49,7 @@ describe("acquireGpu", () => {
   });
 
   it("returns the device and a summary of the adapter", async () => {
-    const { gpu, device, requestAdapter } = fakeGpu();
+    const { gpu, device, adapter, requestAdapter } = fakeGpu();
     const state = await acquireGpu({ gpu });
     expect(requestAdapter).toHaveBeenCalledWith(ADAPTER_OPTIONS);
     expect(state).toEqual({
@@ -61,6 +61,7 @@ describe("acquireGpu", () => {
         description: "Fake GPU",
         isFallback: false,
       },
+      handle: adapter,
     });
   });
 });
