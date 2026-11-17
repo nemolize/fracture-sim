@@ -24,6 +24,17 @@ describe("World", () => {
     expect(Number.isFinite(at(world.x, 5))).toBe(true);
   });
 
+  it("slides toward the side gravity points to", () => {
+    const world = new World({ scene: "wall", material: "concrete" });
+    run(world, 1500);
+    const centre = (): number => at(world.x, 5);
+    const before = centre();
+    world.setGravity(9.8, 0);
+    run(world, 300);
+    expect(world.gravity).toEqual({ x: 9.8, y: 0 });
+    expect(centre()).toBeGreaterThan(before);
+  });
+
   it("is deterministic for a given seed", () => {
     const a = new World({ scene: "tower", material: "steel", seed: 7 });
     const b = new World({ scene: "tower", material: "steel", seed: 7 });

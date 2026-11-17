@@ -5,6 +5,7 @@ import { FractureCanvas } from "@/FractureCanvas";
 import { useGpu } from "@/gpu/useGpu";
 import { DEFAULT_SETTINGS, type Settings } from "@/settings";
 import type { WorldStats } from "@/sim/stats";
+import { useMotion } from "@/useMotion";
 
 const INITIAL_STATS: WorldStats = {
   erodedFraction: 0,
@@ -34,6 +35,7 @@ const App = () => {
   const [resetToken, setResetToken] = useState(0);
   const [stats, setStats] = useState<WorldStats>(INITIAL_STATS);
   const { gpu, unsupported } = useGpu();
+  const motion = useMotion(settings);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-4 bg-gray-50 p-4 md:flex-row md:items-start">
@@ -43,6 +45,7 @@ const App = () => {
           <FractureCanvas
             device={gpu.device}
             settings={settings}
+            tracker={motion.tracker}
             paused={paused}
             resetToken={resetToken}
             onStats={setStats}
@@ -66,6 +69,7 @@ const App = () => {
         stats={stats}
         paused={paused}
         locked={gpu.status !== "ready"}
+        motion={motion}
         onChange={setSettings}
         onPausedChange={setPaused}
         onReset={() => {

@@ -5,9 +5,9 @@ import { SHADERS } from "./shaders";
 
 it("gives every module the shared constants and records ahead of its own code", () => {
   for (const code of Object.values(SHADERS)) {
-    expect(code).toContain("const GRAVITY: f32 = 9.8;");
+    expect(code).toContain("const CONTACT_STIFFNESS: f32 = 20000.0;");
     expect(code.indexOf("struct Node")).toBeGreaterThan(
-      code.indexOf("const GRAVITY"),
+      code.indexOf("const CONTACT_STIFFNESS"),
     );
   }
 });

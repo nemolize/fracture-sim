@@ -27,7 +27,7 @@ fn ballStep(
 
   var ball = balls[b];
   ball.vel -= partial[0] * params.dt / ball.mass;
-  ball.vel.y -= GRAVITY * params.dt;
+  ball.vel += params.gravity * params.dt;
   ball.pos += ball.vel * params.dt;
   if (ball.pos.y < ball.radius) {
     ball.pos.y = ball.radius;

@@ -49,7 +49,7 @@ fn nodeStep(@builtin(global_invocation_id) gid: vec3<u32>) {
     return;
   }
 
-  force.y -= mass * GRAVITY;
+  force += mass * params.gravity;
 
   // Penalty contact against every ball, at the ball's start-of-step state.
   for (var b = 0u; b < params.ballCount; b++) {

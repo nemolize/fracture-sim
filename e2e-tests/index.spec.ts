@@ -121,6 +121,120 @@ test("should rebuild the body when Reset is pressed", async ({ page }) => {
   await expect(page.getByLabel("Simulation statistics")).toContainText("0.0%");
 });
 
+/** A `devicemotion` event for a device whose gravity points along (gx, gy) of the screen, in m/s². */
+const sendMotion = (
+  page: Page,
+  gravity: { x: number; y: number },
+  acceleration = { x: 0, y: 0 },
+) =>
+  page.evaluate(
+    ([g, a]) => {
+      window.dispatchEvent(
+        new DeviceMotionEvent("devicemotion", {
+          accelerationIncludingGravity: { x: -g.x, y: -g.y, z: 0 },
+          acceleration: { x: a.x, y: a.y, z: 0 },
+        }),
+      );
+    },
+    [gravity, acceleration] as const,
+  );
+
+/** Mean x, as a share of the canvas width, of the pixels that are neither background nor floor. */
+const bodyCentre = async (page: Page): Promise<number> => {
+  const png = await page.getByLabel("Fracture simulation").screenshot();
+  return page.evaluate(async (base64) => {
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    const bitmap = await createImageBitmap(new Blob([bytes]));
+    const surface = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const context = surface.getContext("2d");
+    if (context === null) throw new Error("no 2d context");
+    context.drawImage(bitmap, 0, 0);
+    const { data } = context.getImageData(0, 0, bitmap.width, bitmap.height);
+    const near = (i: number, rgb: number[]) =>
+      rgb.every((channel, k) => Math.abs((data[i + k] ?? 0) - channel) < 12);
+    let sum = 0;
+    let count = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (near(i, [243, 244, 246]) || near(i, [209, 213, 219])) continue;
+      sum += (i / 4) % bitmap.width;
+      count++;
+    }
+    return count === 0 ? Number.NaN : sum / count / bitmap.width;
+  }, png.toString("base64"));
+};
+
+test.describe("gyro tilt", () => {
+  const SIDEWAYS = { x: 9.8, y: 0 };
+  const UPRIGHT = { x: 0, y: -9.8 };
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel(/^Speed/).fill("1");
+    await sendMotion(page, UPRIGHT);
+  });
+
+  test("should slide the body toward the tilted side once the toggle is on", async ({
+    page,
+  }) => {
+    const toggle = page.getByLabel("Gyro tilt");
+    await expect(toggle).toBeEnabled();
+    await expect(toggle).not.toBeChecked();
+    await toggle.check();
+    const before = await bodyCentre(page);
+
+    await sendMotion(page, SIDEWAYS);
+    await expect
+      .poll(
+        async () => {
+          await sendMotion(page, SIDEWAYS);
+          return bodyCentre(page);
+        },
+        { timeout: 60_000 },
+      )
+      .toBeGreaterThan(before + 0.05);
+  });
+
+  test("should leave gravity straight down while the toggle is off", async ({
+    page,
+  }) => {
+    await expect(page.getByLabel("Gyro tilt")).toBeEnabled();
+    const before = await bodyCentre(page);
+    for (let i = 0; i < 60; i++) {
+      await sendMotion(page, SIDEWAYS, { x: 30, y: 0 });
+      await page.evaluate(() => new Promise(requestAnimationFrame));
+    }
+    expect(Math.abs((await bodyCentre(page)) - before)).toBeLessThan(0.005);
+  });
+
+  test("should push the body against a shake, and stop pushing when the shake ends", async ({
+    page,
+  }) => {
+    await page.getByLabel("Gyro tilt").check();
+    await page.getByLabel(/^Tilt smoothing/).fill("0");
+    const before = await bodyCentre(page);
+    await expect
+      .poll(
+        async () => {
+          await sendMotion(page, UPRIGHT, { x: -20, y: 0 });
+          return bodyCentre(page);
+        },
+        { timeout: 60_000 },
+      )
+      .toBeGreaterThan(before + 0.05);
+  });
+
+  test("should keep running after Reset with the toggle still on", async ({
+    page,
+  }) => {
+    await page.getByLabel("Gyro tilt").check();
+    await page.getByRole("button", { name: "Reset" }).click();
+    await expect(page.getByLabel("Gyro tilt")).toBeChecked();
+    await expect(page.getByLabel("Simulation statistics")).toContainText(
+      "0.0%",
+    );
+  });
+});
+
 test.describe("without a usable WebGPU", () => {
   const expectNoSimulation = async (page: Page) => {
     await expect(

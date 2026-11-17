@@ -1,7 +1,12 @@
 /** One scripted interaction, applied just before step number `at`. */
 export type Op =
   | { at: number; kind: "throw"; x: number; y: number; vx: number; vy: number }
-  | { at: number; kind: "blast" | "grab" | "move"; x: number; y: number }
+  | {
+      at: number;
+      kind: "blast" | "grab" | "move" | "gravity";
+      x: number;
+      y: number;
+    }
   | { at: number; kind: "release" };
 
 /** What a solver offers a script: the CPU reference and the GPU solver both fit. */
@@ -12,6 +17,7 @@ export interface Steppable {
   startGrab: (x: number, y: number) => void;
   moveGrab: (x: number, y: number) => void;
   endGrab: () => void;
+  setGravity: (x: number, y: number) => void;
 }
 
 const apply = (target: Steppable, op: Op): void => {
@@ -27,6 +33,9 @@ const apply = (target: Steppable, op: Op): void => {
       break;
     case "move":
       target.moveGrab(op.x, op.y);
+      break;
+    case "gravity":
+      target.setGravity(op.x, op.y);
       break;
     case "release":
       target.endGrab();

@@ -11,6 +11,7 @@ struct Params {
   grabTarget: vec2<f32>,
   blastCenter: vec2<f32>,
   blastSpeed: f32,
+  gravity: vec2<f32>,
 }
 
 struct Material {

@@ -18,12 +18,15 @@ describe("wgslConstants", () => {
   const source = wgslConstants();
 
   it("takes its numbers from the TypeScript constants", () => {
-    expect(source).toContain("const GRAVITY: f32 = 9.8;");
     expect(source).toContain("const CONTACT_STIFFNESS: f32 = 20000.0;");
     expect(source).toContain("const MAX_BALLS: u32 = 8u;");
     expect(source).toContain("const WORKGROUP_SIZE: u32 = 64u;");
     expect(source).toContain("const BALL_WORKGROUP_SIZE: u32 = 256u;");
     expect(source).toContain("const BALL_FLOOR_DRAG: f32 = 2.0;");
+  });
+
+  it("leaves gravity to the solver, which sets it every frame", () => {
+    expect(source).not.toContain("GRAVITY");
   });
 
   it("numbers the view modes in list order", () => {

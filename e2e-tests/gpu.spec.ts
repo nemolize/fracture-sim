@@ -136,6 +136,36 @@ test.describe("GPU solver against the CPU reference", () => {
     });
   });
 
+  test("should match the reference while gravity tilts and a shake pushes", async ({
+    page,
+  }) => {
+    const c: Case = {
+      scene: "wall",
+      material: "steel",
+      resolution: "standard",
+      steps: 5000,
+      ops: [
+        throwAt(500, 1),
+        // 20° from straight down, then the same tilt with a 6 m/s² push to the left.
+        { at: 1500, kind: "gravity", x: 3.35, y: -9.21 },
+        { at: 3000, kind: "gravity", x: -2.65, y: -9.21 },
+      ],
+    };
+    const want = runReference(c);
+    const got = await page.evaluate((config) => window.harness.run(config), c);
+
+    expect(want.metrics.erodedFraction).toBe(0);
+    expect(gpuMetrics(c, got).erodedFraction).toBe(0);
+    expect(withinTolerance(got.x, want.x, REST_POSITION)).toBeNull();
+    expect(withinTolerance(got.y, want.y, REST_POSITION)).toBeNull();
+    expect(withinTolerance(got.vx, want.vx, REST_VELOCITY)).toBeNull();
+    expect(withinTolerance(got.vy, want.vy, REST_VELOCITY)).toBeNull();
+    const upright = runReference({ ...c, ops: [throwAt(500, 1)] });
+    expect(
+      Math.max(...want.x.map((x, i) => Math.abs(x - (upright.x[i] ?? 0)))),
+    ).toBeGreaterThan(0.001);
+  });
+
   for (const [name, c] of Object.entries({
     blast: {
       scene: "tower" as const,
