@@ -1,4 +1,5 @@
 import { MATERIAL_NAMES, type MaterialName } from "@/sim/materials";
+import { RESOLUTION_NAMES, type ResolutionName } from "@/sim/resolution";
 import { SCENE_NAMES, type SceneName } from "@/sim/scenes";
 import { VIEW_MODES, type ViewMode } from "@/sim/view";
 
@@ -22,6 +23,7 @@ export const TOOL_HINTS: Record<Tool, string> = {
 export interface Settings {
   scene: SceneName;
   material: MaterialName;
+  resolution: ResolutionName;
   view: ViewMode;
   tool: Tool;
   /** Simulated seconds per real second. */
@@ -31,6 +33,7 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   scene: "wall",
   material: "concrete",
+  resolution: "standard",
   view: "material",
   tool: "throw",
   speed: 0.5,
@@ -41,5 +44,7 @@ export const asScene = (value: string): SceneName | undefined =>
   SCENE_NAMES.find((name) => name === value);
 export const asMaterial = (value: string): MaterialName | undefined =>
   MATERIAL_NAMES.find((name) => name === value);
+export const asResolution = (value: string): ResolutionName | undefined =>
+  RESOLUTION_NAMES.find((name) => name === value);
 export const asView = (value: string): ViewMode | undefined =>
   VIEW_MODES.find((name) => name === value);

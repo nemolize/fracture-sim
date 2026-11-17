@@ -25,6 +25,13 @@ describe("buildMesh", () => {
     expect(buildMesh("wall", 3).x).not.toEqual(buildMesh("wall", 4).x);
   });
 
+  it("builds a finer mesh for a smaller cell and keeps the body size", () => {
+    const coarse = buildMesh("tower");
+    const fine = buildMesh("tower", 1, 0.05);
+    expect(fine.tri.length).toBe(4 * coarse.tri.length);
+    expect(Math.max(...fine.y)).toBeCloseTo(Math.max(...coarse.y), 12);
+  });
+
   it("keeps the boundary on the grid so the body stays rectangular", () => {
     const mesh = buildMesh("wall");
     expect(Math.min(...mesh.x)).toBeCloseTo(3, 12);

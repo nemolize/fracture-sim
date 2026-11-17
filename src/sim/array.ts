@@ -10,3 +10,7 @@ export const atInt = (array: Int32Array, index: number): number =>
   array[index] ?? 0;
 export const atByte = (array: Uint8Array, index: number): number =>
   array[index] ?? 0;
+export const atF32 = (array: Float32Array, index: number): number =>
+  array[index] ?? 0;
+export const atU32 = (array: Uint32Array, index: number): number =>
+  array[index] ?? 0;

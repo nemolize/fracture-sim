@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { at } from "./array";
-import { DT, World } from "./world";
+import { World } from "./world";
 
 const run = (world: World, steps: number): void => {
   for (let s = 0; s < steps; s++) world.step();
@@ -133,6 +133,13 @@ describe("World", () => {
   it("advances the clock by the fixed step", () => {
     const world = new World({ scene: "wall", material: "glass" });
     run(world, 10);
-    expect(world.time).toBeCloseTo(10 * DT, 12);
+    expect(world.time).toBeCloseTo(10 * world.dt, 12);
+  });
+
+  it("uses the time step of its mesh resolution", () => {
+    const fine = new World({ scene: "tower", material: "glass", cell: 0.05 });
+    const standard = new World({ scene: "tower", material: "glass" });
+    expect(fine.dt).toBeCloseTo(standard.dt / 2, 15);
+    expect(fine.triCount).toBe(4 * standard.triCount);
   });
 });

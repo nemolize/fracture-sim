@@ -2,36 +2,34 @@ import { at, atInt } from "./array";
 import { labelChunks } from "./chunks";
 import {
   addGrabForce,
+  AIR_DRAG,
   applyBlast,
   type Ball,
+  BLAST_RADIUS,
+  BLAST_SPEED,
   collideBall,
   collideBounds,
   type Grab,
   GRAB_RADIUS,
   GRAVITY,
+  makeBall,
+  MAX_BALLS,
   stepBall,
 } from "./contact";
 import { addElementForces } from "./elements";
 import { type MaterialName, MATERIALS } from "./materials";
-import { buildMesh, type SceneName, WORLD_WIDTH } from "./scenes";
+import { timeStep } from "./resolution";
+import { restShape } from "./rest";
+import { buildMesh, CELL, type SceneName, WORLD_WIDTH } from "./scenes";
 import type { Solid } from "./solid";
-
-/** Fixed explicit time step: stable for the stiffest material on the finest mesh. */
-export const DT = 0.0003;
-const AIR_DRAG = 0.5;
-const MAX_BALLS = 8;
-const BALL_DENSITY = 10;
-
-export interface WorldStats {
-  erodedFraction: number;
-  chunks: number;
-  maxPlasticStrain: number;
-}
+import type { WorldStats } from "./stats";
 
 export interface WorldOptions {
   scene: SceneName;
   material: MaterialName;
   seed?: number;
+  /** Mesh cell size in metres; also fixes the default time step. */
+  cell?: number;
 }
 
 export class World implements Solid {
@@ -58,14 +56,17 @@ export class World implements Solid {
   /** Piece id per triangle, -1 once eroded; refreshed by `refreshChunks`. */
   readonly chunkOf: Int32Array;
   readonly balls: Ball[] = [];
+  /** Explicit time step used by `step` when none is given. */
+  readonly dt: number;
   chunkCount = 1;
   time = 0;
   private erodedCount = 0;
   private grab: Grab | null = null;
 
-  constructor({ scene, material, seed = 1 }: WorldOptions) {
+  constructor({ scene, material, seed = 1, cell = CELL }: WorldOptions) {
     this.material = MATERIALS[material];
-    const mesh = buildMesh(scene, seed);
+    this.dt = timeStep(cell);
+    const mesh = buildMesh(scene, seed, cell);
     this.x = mesh.x;
     this.y = mesh.y;
     this.tri = mesh.tri;
@@ -90,30 +91,21 @@ export class World implements Solid {
   }
 
   private initElements(): void {
+    const rest = restShape({ x: this.x, y: this.y, tri: this.tri });
+    this.restInverse.set(rest.inverse);
+    this.restArea.set(rest.area);
     for (let e = 0; e < this.triCount; e++) {
-      const i = atInt(this.tri, 3 * e);
-      const j = atInt(this.tri, 3 * e + 1);
-      const k = atInt(this.tri, 3 * e + 2);
-      const d00 = at(this.x, j) - at(this.x, i);
-      const d10 = at(this.y, j) - at(this.y, i);
-      const d01 = at(this.x, k) - at(this.x, i);
-      const d11 = at(this.y, k) - at(this.y, i);
-      const det = d00 * d11 - d01 * d10;
-      this.restInverse.set(
-        [d11 / det, -d01 / det, -d10 / det, d00 / det],
-        4 * e,
-      );
       this.plasticInverse.set([1, 0, 0, 1], 4 * e);
-      this.restArea[e] = Math.abs(det) / 2;
-      for (const n of [i, j, k]) {
+      for (let k = 0; k < 3; k++) {
+        const n = atInt(this.tri, 3 * e + k);
         this.mass[n] =
-          at(this.mass, n) + (this.material.density * Math.abs(det)) / 6;
+          at(this.mass, n) + (this.material.density * at(rest.area, e)) / 3;
         this.nodeRefs[n] = atInt(this.nodeRefs, n) + 1;
       }
     }
   }
 
-  step(dt = DT): void {
+  step(dt = this.dt): void {
     this.fx.fill(0);
     this.fy.fill(0);
     const eroded = addElementForces(this, this.material, dt);
@@ -140,20 +132,12 @@ export class World implements Solid {
 
   /** Adds a ball, dropping the oldest once there are too many. */
   throwBall(x: number, y: number, vx: number, vy: number): void {
-    const radius = 0.25;
-    this.balls.push({
-      x,
-      y,
-      vx,
-      vy,
-      radius,
-      mass: BALL_DENSITY * Math.PI * radius * radius,
-    });
+    this.balls.push(makeBall(x, y, vx, vy));
     if (this.balls.length > MAX_BALLS) this.balls.shift();
   }
 
   blast(x: number, y: number): void {
-    applyBlast(this, x, y, 1.2, 30);
+    applyBlast(this, x, y, BLAST_RADIUS, BLAST_SPEED);
   }
 
   startGrab(x: number, y: number): boolean {

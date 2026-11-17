@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 import { isPreviewTarget } from "./e2e-tests/target";
+import { webgpuArgs, webgpuEnv } from "./e2e-tests/webgpu";
 import { localServerURL } from "./port";
 
 const isCI = Boolean(process.env["CI"]);
@@ -19,7 +20,13 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions: {
+          args: webgpuArgs,
+          env: { ...process.env, ...webgpuEnv },
+        },
+      },
     },
   ],
   webServer: {
