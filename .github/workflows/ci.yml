@@ -90,7 +90,9 @@ jobs:
 
   E2ETests:
     runs-on: ubuntu-26.04
-    timeout-minutes: 20
+    # The 10-second stability sweep over every scene, material and resolution
+    # runs on a software GPU with one worker.
+    timeout-minutes: 45
     container:
       image: mcr.microsoft.com/playwright:v1.65.0-noble@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe
       # Without --ipc=host chromium can run out of memory and crash.

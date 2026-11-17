@@ -1,12 +1,7 @@
 import { at, atByte, atInt } from "./array";
-import type { Material } from "./materials";
+import { type Material, MIN_STRETCH, VISCOSITY_PER_YOUNGS } from "./materials";
 import type { Solid } from "./solid";
 import { svd2 } from "./svd";
-
-/** Smallest principal stretch fed to the constitutive law; keeps ln and 1/s finite when an element collapses. */
-const MIN_STRETCH = 0.2;
-/** Stiffness-proportional damping, so impacts ring down instead of ringing forever. */
-const VISCOSITY_PER_YOUNGS = 1e-4;
 
 const scratch = new Float64Array(6);
 

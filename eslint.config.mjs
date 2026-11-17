@@ -82,6 +82,11 @@ export default defineConfig(
     rules: {
       // `test.skip(cond, reason)` stays allowed: it selects a target at run time.
       "playwright/no-skipped-test": ["error", { allowConditional: true }],
+      // The spec's own helper asserts for the tests that call it.
+      "playwright/expect-expect": [
+        "warn",
+        { assertFunctionNames: ["expect", "expectNoSimulation"] },
+      ],
     },
   },
 );

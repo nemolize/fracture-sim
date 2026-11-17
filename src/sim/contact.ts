@@ -3,14 +3,23 @@ import type { Solid } from "./solid";
 
 export const GRAVITY = 9.8;
 
-const FLOOR_FRICTION = 0.6;
-const FLOOR_RESTITUTION = 0.1;
-const CONTACT_STIFFNESS = 2e4;
-const CONTACT_DAMPING = 14;
-const BALL_RESTITUTION = 0.3;
-const GRAB_STIFFNESS = 1500;
-const GRAB_DAMPING = 54;
+export const FLOOR_FRICTION = 0.6;
+export const FLOOR_RESTITUTION = 0.1;
+export const CONTACT_STIFFNESS = 2e4;
+export const CONTACT_DAMPING = 14;
+export const BALL_RESTITUTION = 0.3;
+export const GRAB_STIFFNESS = 1500;
+export const GRAB_DAMPING = 54;
 export const GRAB_RADIUS = 0.3;
+
+export const AIR_DRAG = 0.5;
+/** Balls on screen at once; throwing another drops the oldest. */
+export const MAX_BALLS = 8;
+const BALL_RADIUS = 0.25;
+const BALL_DENSITY = 10;
+/** Blast parameters of the Blast tool. */
+export const BLAST_RADIUS = 1.2;
+export const BLAST_SPEED = 30;
 
 export interface Ball {
   x: number;
@@ -20,6 +29,20 @@ export interface Ball {
   radius: number;
   mass: number;
 }
+
+export const makeBall = (
+  x: number,
+  y: number,
+  vx: number,
+  vy: number,
+): Ball => ({
+  x,
+  y,
+  vx,
+  vy,
+  radius: BALL_RADIUS,
+  mass: BALL_DENSITY * Math.PI * BALL_RADIUS * BALL_RADIUS,
+});
 
 export interface Grab {
   /** Each node with its position minus the pointer at the moment of the grab. */
@@ -52,9 +75,15 @@ export const collideBounds = (solid: Solid, width: number): void => {
   }
 };
 
-/** Penalty contact between a ball and the nodes; the reaction goes to the ball. */
+/**
+ * Penalty contact between a ball and the nodes; the reaction goes to the ball.
+ * Every node sees the ball velocity from the start of the step, so the result
+ * does not depend on the order of the nodes.
+ */
 export const collideBall = (solid: Solid, ball: Ball, dt: number): void => {
   const { x, y, vx, vy, fx, fy, mass } = solid;
+  const ballVx = ball.vx;
+  const ballVy = ball.vy;
   for (let n = 0; n < solid.nodeCount; n++) {
     if (atInt(solid.nodeRefs, n) === 0) continue;
     const dx = at(x, n) - ball.x;
@@ -63,7 +92,7 @@ export const collideBall = (solid: Solid, ball: Ball, dt: number): void => {
     if (distance >= ball.radius || distance === 0) continue;
     const nx = dx / distance;
     const ny = dy / distance;
-    const closing = -((at(vx, n) - ball.vx) * nx + (at(vy, n) - ball.vy) * ny);
+    const closing = -((at(vx, n) - ballVx) * nx + (at(vy, n) - ballVy) * ny);
     const push =
       CONTACT_STIFFNESS * (ball.radius - distance) +
       (closing > 0 ? CONTACT_DAMPING * closing * Math.sqrt(at(mass, n)) : 0);

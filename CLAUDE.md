@@ -4,11 +4,28 @@ Guidance for Claude Code (claude.ai/code) working in this repository.
 
 ## Architecture
 
-The solver lives in `src/sim` and knows nothing about React; the React layer
-(`App`, `ControlPanel`, `FractureCanvas`) only owns settings and the frame loop.
-Solver hot loops read typed arrays through the helpers in `src/sim/array.ts`
-(one per array type, so V8 keeps the loads monomorphic). Run the solver outside
-vitest when timing it: vitest's transform makes a step about six times slower.
+WebGPU is required: the app has no CPU fallback and no Canvas 2D. The solver and
+renderer live in `src/gpu` (WGSL under `src/gpu/shaders`, run by `solver.ts` and
+`renderer.ts`) and know nothing about React; the React layer (`App`,
+`ControlPanel`, `FractureCanvas`) only owns settings, the unavailable and
+device-lost notices, and the pointer tools. `src/sim` holds what both solvers
+share (meshes, materials, constants) plus the CPU `World`, which exists only as
+the f64 reference for tests and is never imported by the app. Every number the
+shaders use comes from a TypeScript constant through `src/gpu/constants.ts`;
+never copy one into WGSL.
+
+Coverage is 100% for pure TypeScript. Modules that need a WebGPU device
+(`solver.ts`, `renderer.ts`, `loop.ts`, `FractureCanvas.tsx`, `src/harness`) are
+excluded one by one in `vitest.config.ts`, each with a comment naming the e2e
+test that drives it; a new GPU-coupled file needs the same entry. Pure code reads
+typed arrays through the helpers in `src/sim/array.ts` (one per array type, so V8
+keeps the loads monomorphic). Run the CPU reference outside vitest when timing
+it: vitest's transform makes a step about six times slower.
+
+The e2e tests run Chromium with SwiftShader WebGPU flags (`e2e-tests/webgpu.ts`).
+Edit nothing under `src` while a Playwright run is in progress against the dev
+server: Vite reloads the page and the running test fails with "Execution context
+was destroyed".
 
 ## Design principle: built for large-project scale
 
@@ -65,8 +82,8 @@ data loss is `high`, and a week-long refactor that changes no behaviour is `low`
 | `priority:medium` | Do soon. Default for something that works but is wrong or degrading |
 | `priority:low`    | When convenient. Default for friction, cosmetics and nice-to-haves  |
 
-**Core functionality here is that the simulation runs.** The page loads, the body
-stands on the floor, a thrown ball, pull or blast reaches it, and it deforms or
+**Core functionality here is that the simulation runs.** The page loads and finds
+WebGPU, the body stands on the floor, a thrown ball, pull or blast reaches it, and it deforms or
 breaks without the solver diverging into NaN; `pnpm run build`, the checks CI
 runs and `pnpm run deploy` still succeed. Anything that stops one of those for
 every user is `high`.

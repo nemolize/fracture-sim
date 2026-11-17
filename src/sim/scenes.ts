@@ -13,6 +13,7 @@ const SCENE_SIZE: Record<
   tower: { x0: 4.5, width: 1, height: 3.5 },
 };
 
+/** Cell size of the default mesh; finer levels are listed in `resolution.ts`. */
 export const CELL = 0.1;
 
 export interface Mesh {
@@ -37,10 +38,10 @@ const mulberry32 = (seed: number): (() => number) => {
  * A rectangle of triangles standing on the floor. Interior nodes are jittered
  * and each cell's diagonal is random, so cracks are not locked to a lattice.
  */
-export const buildMesh = (scene: SceneName, seed = 1): Mesh => {
+export const buildMesh = (scene: SceneName, seed = 1, cell = CELL): Mesh => {
   const { x0, width, height } = SCENE_SIZE[scene];
-  const nx = Math.round(width / CELL);
-  const ny = Math.round(height / CELL);
+  const nx = Math.round(width / cell);
+  const ny = Math.round(height / cell);
   const random = mulberry32(seed);
   const stride = nx + 1;
   const x = new Float64Array(stride * (ny + 1));
@@ -48,9 +49,9 @@ export const buildMesh = (scene: SceneName, seed = 1): Mesh => {
   for (let j = 0; j <= ny; j++) {
     for (let i = 0; i <= nx; i++) {
       const interior = i > 0 && i < nx && j > 0 && j < ny;
-      const jitter = interior ? 0.12 * CELL : 0;
-      x[j * stride + i] = x0 + i * CELL + (random() - 0.5) * 2 * jitter;
-      y[j * stride + i] = j * CELL + (random() - 0.5) * 2 * jitter;
+      const jitter = interior ? 0.12 * cell : 0;
+      x[j * stride + i] = x0 + i * cell + (random() - 0.5) * 2 * jitter;
+      y[j * stride + i] = j * cell + (random() - 0.5) * 2 * jitter;
     }
   }
   const tri = new Int32Array(nx * ny * 6);

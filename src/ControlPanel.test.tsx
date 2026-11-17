@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -7,7 +7,7 @@ import { DEFAULT_SETTINGS } from "./settings";
 
 const stats = { erodedFraction: 0.123, chunks: 4, maxPlasticStrain: 0.5 };
 
-const setup = (paused = false) => {
+const setup = (paused = false, locked = false) => {
   const onChange = vi.fn();
   const onPausedChange = vi.fn();
   const onReset = vi.fn();
@@ -16,6 +16,7 @@ const setup = (paused = false) => {
       settings={DEFAULT_SETTINGS}
       stats={stats}
       paused={paused}
+      locked={locked}
       onChange={onChange}
       onPausedChange={onPausedChange}
       onReset={onReset}
@@ -36,6 +37,7 @@ describe("ControlPanel", () => {
   it.each([
     ["Scene", "tower", { scene: "tower" }],
     ["Material", "glass", { material: "glass" }],
+    ["Mesh resolution", "finest", { resolution: "finest" }],
     ["View", "damage", { view: "damage" }],
   ])("changes %s from the select", async (label, value, patch) => {
     const { onChange, user } = setup();
@@ -43,7 +45,7 @@ describe("ControlPanel", () => {
     expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_SETTINGS, ...patch });
   });
 
-  it.each(["Scene", "Material", "View"])(
+  it.each(["Scene", "Material", "Mesh resolution", "View"])(
     "ignores an unknown value in %s",
     (label) => {
       const { onChange } = setup();
@@ -87,5 +89,22 @@ describe("ControlPanel", () => {
   it("offers to resume while paused", () => {
     setup(true);
     expect(screen.getByRole("button", { name: "Resume" })).toBeVisible();
+  });
+
+  it("lists at least three mesh resolutions", () => {
+    setup();
+    expect(
+      within(screen.getByLabelText("Mesh resolution")).getAllByRole("option")
+        .length,
+    ).toBeGreaterThanOrEqual(3);
+  });
+
+  it("locks Reset and the settings that rebuild the solver, not Pause", () => {
+    setup(false, true);
+    for (const label of ["Scene", "Material", "Mesh resolution"]) {
+      expect(screen.getByLabelText(label)).toBeDisabled();
+    }
+    expect(screen.getByRole("button", { name: "Reset" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Pause" })).toBeEnabled();
   });
 });

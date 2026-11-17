@@ -6,6 +6,14 @@ apart, and you can throw a ball at it, pull it, or blast it.
 
 This is the 2D version; a 3D one is the plan once the 2D model feels right.
 
+## Requirements
+
+**WebGPU is required.** The solver runs in WGSL compute shaders and the picture
+is drawn by a WebGPU render pipeline. There is no CPU fallback and no Canvas 2D
+path: in a browser without WebGPU (no `navigator.gpu`, no adapter, or no device)
+the page shows a "WebGPU is required" notice and starts no simulation. A lost
+GPU device stops the simulation with a message; reload the page to start again.
+
 ## What it models
 
 - **Finite deformation** — Hencky hyperelasticity on a triangle mesh, solved with
@@ -26,8 +34,11 @@ pass through each other.
 
 ## Using it
 
-Pick a scene, a material and a view (damage, plastic strain, tensile stress, or
-one colour per piece), then choose a tool:
+Pick a scene, a material, a mesh resolution and a view (damage, plastic strain,
+tensile stress, or one colour per piece), then choose a tool. The finest
+resolution has about eleven times the triangles of the standard one; the time
+step shrinks with the cell size, so finer meshes run more steps per second of
+simulated time, which is where the GPU pays off.
 
 - **Throw ball** — drag on the canvas; the ball flies the way you drag.
 - **Pull** — press on the body and drag.
@@ -52,8 +63,24 @@ pnpm dev
 | `pnpm run test:e2e`               | Playwright against the dev server           |
 | `E2E_PREVIEW=1 pnpm run test:e2e` | Playwright against the production build     |
 
-The solver is in `src/sim`; the React layer around it is `src/App.tsx`,
-`src/ControlPanel.tsx` and `src/FractureCanvas.tsx`.
+The e2e tests run Chromium with SwiftShader, a software WebGPU adapter, so they
+need no GPU; `E2E_WEBGPU=hardware pnpm run test:e2e` uses the machine's own GPU,
+which the speed test in `e2e-tests/gpu.spec.ts` requires (it skips on a software
+adapter).
+
+### Layout
+
+- `src/sim` — the model that is shared: meshes, materials, scenes, contact
+  constants, and the CPU `World`. `World` is the f64 reference the GPU solver is
+  tested against; the app never imports it.
+- `src/gpu` — the app's solver and renderer. `shaders/*.wgsl` hold the compute
+  and render passes, `solver.ts` and `renderer.ts` run them, and the pure modules
+  (`layout.ts`, `params.ts`, `stats.ts`, `frame.ts`, `camera.ts`, `pacing.ts`,
+  `device.ts`) pack buffers and decide what to dispatch, so they are unit tested.
+- `src/harness` and `harness.html` — a page the e2e tests drive to run the solver
+  at an exact step, read pixels back and compare against `World`.
+- `src/App.tsx`, `src/ControlPanel.tsx`, `src/FractureCanvas.tsx` — the React
+  layer: settings, the unavailable and device-lost notices, and the frame loop.
 
 ## Deployment
 

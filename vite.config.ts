@@ -10,6 +10,12 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  build: {
+    rolldownOptions: {
+      // The e2e tests drive the solver through the second page.
+      input: { index: "index.html", harness: "harness.html" },
+    },
+  },
   server: {
     port: localServerPort,
     strictPort: true,

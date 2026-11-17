@@ -24,6 +24,11 @@ export interface Material {
   color: readonly [number, number, number];
 }
 
+/** Smallest principal stretch fed to the constitutive law; keeps ln and 1/s finite when an element collapses. */
+export const MIN_STRETCH = 0.2;
+/** Stiffness-proportional damping, so impacts ring down instead of ringing forever. */
+export const VISCOSITY_PER_YOUNGS = 1e-4;
+
 export const MATERIALS = {
   glass: {
     label: "Glass (brittle)",

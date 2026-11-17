@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import {
   asMaterial,
+  asResolution,
   asScene,
   asView,
   type Settings,
@@ -10,15 +11,18 @@ import {
   TOOLS,
 } from "@/settings";
 import { MATERIAL_NAMES, MATERIALS } from "@/sim/materials";
+import { RESOLUTION_NAMES, RESOLUTIONS } from "@/sim/resolution";
 import { SCENE_NAMES } from "@/sim/scenes";
+import type { WorldStats } from "@/sim/stats";
 import { VIEW_LABELS, VIEW_MODES } from "@/sim/view";
-import type { WorldStats } from "@/sim/world";
 import { cn } from "@/utils/cn";
 
 interface Props {
   settings: Settings;
   stats: WorldStats;
   paused: boolean;
+  /** Reset and the settings that rebuild the solver stay off once WebGPU is gone. */
+  locked: boolean;
   onChange: (next: Settings) => void;
   onPausedChange: (paused: boolean) => void;
   onReset: () => void;
@@ -38,6 +42,7 @@ export const ControlPanel = ({
   settings,
   stats,
   paused,
+  locked,
   onChange,
   onPausedChange,
   onReset,
@@ -47,6 +52,7 @@ export const ControlPanel = ({
       <Field label="Scene">
         <select
           className={SELECT_CLASS}
+          disabled={locked}
           value={settings.scene}
           onChange={(event) => {
             const scene = asScene(event.target.value);
@@ -63,6 +69,7 @@ export const ControlPanel = ({
       <Field label="Material">
         <select
           className={SELECT_CLASS}
+          disabled={locked}
           value={settings.material}
           onChange={(event) => {
             const material = asMaterial(event.target.value);
@@ -72,6 +79,23 @@ export const ControlPanel = ({
           {MATERIAL_NAMES.map((name) => (
             <option key={name} value={name}>
               {MATERIALS[name].label}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Mesh resolution">
+        <select
+          className={SELECT_CLASS}
+          disabled={locked}
+          value={settings.resolution}
+          onChange={(event) => {
+            const resolution = asResolution(event.target.value);
+            if (resolution !== undefined) onChange({ ...settings, resolution });
+          }}
+        >
+          {RESOLUTION_NAMES.map((name) => (
+            <option key={name} value={name}>
+              {RESOLUTIONS[name].label}
             </option>
           ))}
         </select>
@@ -149,7 +173,8 @@ export const ControlPanel = ({
       </button>
       <button
         type="button"
-        className="grow rounded border border-gray-300 p-1.5"
+        className="grow rounded border border-gray-300 p-1.5 disabled:opacity-50"
+        disabled={locked}
         onClick={onReset}
       >
         Reset

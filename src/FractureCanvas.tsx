@@ -1,166 +1,158 @@
 import { useEffect, useRef } from "react";
 
+import { canvasSize, pointerToWorld, VIEW_HEIGHT } from "@/gpu/camera";
+import { gpuContext } from "@/gpu/device";
+import type { Aim } from "@/gpu/frame";
+import { FrameLoop, type LoopInput } from "@/gpu/loop";
+import { Renderer } from "@/gpu/renderer";
+import { GpuSolver } from "@/gpu/solver";
 import type { Settings } from "@/settings";
-import { drawWorld, type Overlay, VIEW_HEIGHT } from "@/sim/draw";
 import { WORLD_WIDTH } from "@/sim/scenes";
-import { DT, World, type WorldStats } from "@/sim/world";
+import type { WorldStats } from "@/sim/stats";
 
-/** Cap the backing store on high-DPI displays: past 2x the extra pixels are not visible. */
-const MAX_PIXEL_RATIO = 2;
-/** Longest real frame the clock accepts, so a background tab does not trigger a burst of steps. */
-const MAX_FRAME_SECONDS = 0.05;
-/** Upper bound on solver steps per frame; the simulation slows down rather than freezing the page. */
-const MAX_STEPS_PER_FRAME = 120;
 const THROW_SPEED_PER_METRE = 4;
 const MAX_THROW_SPEED = 25;
-/** Distance of the floor below the lowest visible world coordinate, in metres. */
-const FLOOR_MARGIN = 0.4;
 
 interface Props {
+  device: GPUDevice;
   settings: Settings;
   paused: boolean;
-  /** Bumped by the Reset button to rebuild the world with unchanged settings. */
+  /** Bumped by the Reset button to rebuild the solver with unchanged settings. */
   resetToken: number;
   onStats: (stats: WorldStats) => void;
+  /** The canvas cannot be configured for WebGPU. */
+  onFatal: (message: string) => void;
 }
 
 export const FractureCanvas = ({
+  device,
   settings,
   paused,
   resetToken,
   onStats,
+  onFatal,
 }: Props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // Read inside the frame loop through refs so a slider move does not rebuild the world.
+  // Read inside the frame loop through refs so a slider move does not rebuild the solver.
   const settingsRef = useRef(settings);
   const pausedRef = useRef(paused);
   const onStatsRef = useRef(onStats);
+  const onFatalRef = useRef(onFatal);
   useEffect(() => {
     settingsRef.current = settings;
     pausedRef.current = paused;
     onStatsRef.current = onStats;
+    onFatalRef.current = onFatal;
   });
 
-  const { scene, material } = settings;
+  const { scene, material, resolution } = settings;
   useEffect(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (canvas === null || !ctx) return;
+    if (canvas === null) return;
+    const context = gpuContext(canvas);
+    if (context === null) {
+      onFatalRef.current("the canvas could not create a WebGPU context");
+      return;
+    }
+    const format = navigator.gpu.getPreferredCanvasFormat();
+    context.configure({ device, format, alphaMode: "opaque" });
 
-    const world = new World({ scene, material });
-    const overlay: Overlay = { aim: null };
-    let frameId = 0;
-    let last = 0;
-    let clock = 0;
-    let frame = 0;
-    let erodedAtChunks = 0;
+    const solver = new GpuSolver(device, { scene, material, resolution });
+    const renderer = new Renderer(
+      device,
+      solver.buffers,
+      material,
+      format,
+      solver.triCount,
+    );
+    let aim: Aim | null = null;
 
     const resize = (): void => {
-      const ratio = Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO);
-      const width = canvas.clientWidth;
-      canvas.width = Math.round(width * ratio);
-      canvas.height = Math.round((width * VIEW_HEIGHT * ratio) / WORLD_WIDTH);
+      const size = canvasSize(canvas.clientWidth, window.devicePixelRatio);
+      canvas.width = size.width;
+      canvas.height = size.height;
     };
     resize();
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
 
-    const toWorld = (event: PointerEvent): { x: number; y: number } => {
-      const rect = canvas.getBoundingClientRect();
-      const scale = rect.width / WORLD_WIDTH;
-      return {
-        x: (event.clientX - rect.left) / scale,
-        y:
-          (rect.height - FLOOR_MARGIN * scale - (event.clientY - rect.top)) /
-          scale,
-      };
-    };
-
+    const toWorld = (event: PointerEvent) =>
+      pointerToWorld(
+        canvas.getBoundingClientRect(),
+        event.clientX,
+        event.clientY,
+      );
     const onPointerDown = (event: PointerEvent): void => {
       const point = toWorld(event);
       const { tool } = settingsRef.current;
       canvas.setPointerCapture(event.pointerId);
       if (tool === "throw") {
-        overlay.aim = { x0: point.x, y0: point.y, x1: point.x, y1: point.y };
+        aim = { x0: point.x, y0: point.y, x1: point.x, y1: point.y };
       } else if (tool === "pull") {
-        world.startGrab(point.x, point.y);
+        solver.startGrab(point.x, point.y);
       } else {
-        world.blast(point.x, point.y);
+        solver.blast(point.x, point.y);
       }
     };
     const onPointerMove = (event: PointerEvent): void => {
       const point = toWorld(event);
-      if (overlay.aim !== null) {
-        overlay.aim.x1 = point.x;
-        overlay.aim.y1 = point.y;
+      if (aim !== null) {
+        aim.x1 = point.x;
+        aim.y1 = point.y;
       }
-      world.moveGrab(point.x, point.y);
+      solver.moveGrab(point.x, point.y);
     };
     const onPointerUp = (): void => {
-      const { aim } = overlay;
       if (aim !== null) {
         const dx = (aim.x1 - aim.x0) * THROW_SPEED_PER_METRE;
         const dy = (aim.y1 - aim.y0) * THROW_SPEED_PER_METRE;
         const length = Math.hypot(dx, dy);
         const limit = length > MAX_THROW_SPEED ? MAX_THROW_SPEED / length : 1;
-        world.throwBall(aim.x0, aim.y0, dx * limit, dy * limit);
-        overlay.aim = null;
+        solver.throwBall(aim.x0, aim.y0, dx * limit, dy * limit);
+        aim = null;
       }
-      world.endGrab();
+      solver.endGrab();
     };
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
     canvas.addEventListener("pointercancel", onPointerUp);
 
-    const tick = (now: number): void => {
-      frameId = requestAnimationFrame(tick);
-      const elapsed = Math.min((now - last) / 1000, MAX_FRAME_SECONDS);
-      last = now;
-      if (!pausedRef.current) {
-        clock += elapsed * settingsRef.current.speed;
-        const steps = Math.min(Math.floor(clock / DT), MAX_STEPS_PER_FRAME);
-        for (let s = 0; s < steps; s++) world.step();
-        clock = steps === MAX_STEPS_PER_FRAME ? 0 : clock - steps * DT;
-      }
-      frame++;
-      // Piece labelling walks every triangle, so run it a few times a second and only after a break.
-      if (frame % 10 === 0) {
-        const eroded = world.stats().erodedFraction;
-        if (eroded !== erodedAtChunks) {
-          erodedAtChunks = eroded;
-          world.refreshChunks();
-        }
-        onStatsRef.current(world.stats());
-      }
-      drawWorld(
-        ctx,
-        world,
-        settingsRef.current.view,
-        canvas.width,
-        canvas.height,
-        overlay,
-      );
-    };
-    frameId = requestAnimationFrame((now) => {
-      last = now;
-      tick(now);
+    const loop = new FrameLoop({
+      solver,
+      renderer,
+      context,
+      canvas,
+      input: (): LoopInput => ({
+        speed: settingsRef.current.speed,
+        paused: pausedRef.current,
+        view: settingsRef.current.view,
+        aim,
+      }),
+      onStats: (stats) => {
+        onStatsRef.current(stats);
+      },
     });
+    loop.start();
 
     return () => {
-      cancelAnimationFrame(frameId);
+      loop.stop();
       observer.disconnect();
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);
       canvas.removeEventListener("pointercancel", onPointerUp);
+      renderer.dispose();
+      solver.dispose();
     };
-  }, [scene, material, resetToken]);
+  }, [device, scene, material, resolution, resetToken]);
 
   return (
     <canvas
       ref={canvasRef}
       aria-label="Fracture simulation"
+      width={WORLD_WIDTH * 100}
+      height={VIEW_HEIGHT * 100}
       className="aspect-[10/5.6] w-full touch-none rounded-lg bg-gray-100 shadow"
     />
   );
