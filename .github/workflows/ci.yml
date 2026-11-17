@@ -9,7 +9,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # A queued run replaces a pending one, and a main run left unrun would hide its
+  # commit from the next run's changed-file range, so a main run gets its own group.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   # Cancelling an in-progress main run would leave that commit with no CI verdict.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
@@ -88,12 +90,47 @@ jobs:
       - if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm run build
 
+  SweepFilter:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.filter.outputs.run }}
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          # The base commit of a pull request or a push is not in a shallow clone.
+          fetch-depth: 0
+          persist-credentials: false
+      - id: filter
+        run: |
+          changed="$(mktemp)"
+          if ! git diff --no-renames --name-only -z "$BASE_SHA" HEAD >"$changed"; then
+            echo "::error::could not list the files changed since ${BASE_SHA}, so the stability sweep runs"
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          sweep=false
+          # No changed file means the range says nothing, which never skips the sweep.
+          [ -s "$changed" ] || sweep=true
+          while IFS= read -r -d '' name; do
+            case "$name" in
+              src/sim/* | src/gpu/* | src/harness/* | e2e-tests/* | playwright.config.ts | port.ts | harness.html | .github/workflows/ci.yml)
+                sweep=true
+                break
+                ;;
+            esac
+          done <"$changed"
+          echo "run=${sweep}" >> "$GITHUB_OUTPUT"
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+
   E2ETests:
     runs-on: ubuntu-26.04
     timeout-minutes: 20
     # The merge ruleset requires this job, not the sweep shards, so it waits for
-    # the sweep and fails when it did not pass.
-    needs: StabilitySweep
+    # the sweep: it passes when the sweep passed, or when the filter skipped it.
+    needs: [SweepFilter, StabilitySweep]
     if: ${{ !cancelled() }}
     container:
       image: mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579
@@ -101,12 +138,23 @@ jobs:
       options: --init --ipc=host
 
     steps:
-      - name: Require the stability sweep to have passed
-        if: ${{ needs.StabilitySweep.result != 'success' }}
+      - id: sweep-gate
+        name: Require the stability sweep to have passed, or to have been skipped for a change it cannot affect
         run: |
-          echo "::error::the stability sweep finished as ${SWEEP_RESULT}"
-          exit 1
+          if [ "$FILTER_RESULT" != success ]; then
+            echo "::error::the sweep filter finished as ${FILTER_RESULT}"
+            exit 1
+          fi
+          case "${SWEEP_RUN}:${SWEEP_RESULT}" in
+            true:success | false:skipped) ;;
+            *)
+              echo "::error::the filter's run output was '${SWEEP_RUN}' and the stability sweep finished as ${SWEEP_RESULT}"
+              exit 1
+              ;;
+          esac
         env:
+          FILTER_RESULT: ${{ needs.SweepFilter.result }}
+          SWEEP_RUN: ${{ needs.SweepFilter.outputs.run }}
           SWEEP_RESULT: ${{ needs.StabilitySweep.result }}
       - uses: actions/checkout@v7.0.1
         with:
@@ -145,6 +193,8 @@ jobs:
   # combinations are split across jobs that run in parallel.
   StabilitySweep:
     name: StabilitySweep (${{ matrix.shard }})
+    needs: SweepFilter
+    if: ${{ needs.SweepFilter.outputs.run == 'true' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 25
     strategy:
