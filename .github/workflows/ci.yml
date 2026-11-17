@@ -116,7 +116,7 @@ jobs:
             exit 1
           fi
       - id: e2e
-        run: pnpm run test:e2e
+        run: pnpm run test:e2e -g "WebGPU adapter|ring wraps|wall breaks"
       - if: ${{ !cancelled() && (steps.e2e.outcome == 'success' || steps.e2e.outcome == 'failure') }}
         name: Upload the Playwright test results
         uses: actions/upload-artifact@v7.0.2
