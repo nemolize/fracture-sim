@@ -43,6 +43,9 @@ const asSteppable = (world: World): Steppable => ({
   endGrab: () => {
     world.endGrab();
   },
+  setGravity: (x, y) => {
+    world.setGravity(x, y);
+  },
 });
 
 /** The f64 CPU reference run of a case. */

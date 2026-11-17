@@ -25,6 +25,9 @@ const recorder = () => {
       endGrab: () => {
         log.push("release");
       },
+      setGravity: (x: number, y: number) => {
+        log.push(`gravity ${String(x)},${String(y)}`);
+      },
     },
   };
 };
@@ -37,6 +40,7 @@ it("applies each op between the steps its position names, in order", () => {
     { at: 10, kind: "blast", x: 5, y: 6 },
     { at: 20, kind: "grab", x: 7, y: 8 },
     { at: 25, kind: "move", x: 9, y: 0 },
+    { at: 27, kind: "gravity", x: 2, y: -3 },
   ];
   runScript(target, ops, 40);
   expect(log).toEqual([
@@ -47,7 +51,9 @@ it("applies each op between the steps its position names, in order", () => {
     "grab 7,8",
     "step 5",
     "move 9,0",
-    "step 5",
+    "step 2",
+    "gravity 2,-3",
+    "step 3",
     "release",
     "step 10",
   ]);

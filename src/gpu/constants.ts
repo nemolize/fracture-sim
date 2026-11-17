@@ -8,7 +8,6 @@ import {
   GRAB_DAMPING,
   GRAB_RADIUS,
   GRAB_STIFFNESS,
-  GRAVITY,
   MAX_BALLS,
 } from "@/sim/contact";
 import {
@@ -28,7 +27,6 @@ export const f32Literal = (value: number): string => {
 };
 
 const FLOAT_CONSTANTS: Record<string, number> = {
-  GRAVITY,
   FLOOR_FRICTION,
   FLOOR_RESTITUTION,
   CONTACT_STIFFNESS,

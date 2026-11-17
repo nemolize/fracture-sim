@@ -2,7 +2,12 @@ import { expect, test } from "@playwright/test";
 
 import type { Harness } from "../src/harness/main";
 import { MATERIAL_NAMES, MATERIALS } from "../src/sim/materials";
-import { RESOLUTION_NAMES, RESOLUTIONS } from "../src/sim/resolution";
+import {
+  RESOLUTION_NAMES,
+  type ResolutionName,
+  RESOLUTIONS,
+  timeStep,
+} from "../src/sim/resolution";
 import { SCENE_NAMES } from "../src/sim/scenes";
 import type { Op } from "../src/sim/script";
 import { VIEW_MODES } from "../src/sim/view";
@@ -134,6 +139,36 @@ test.describe("GPU solver against the CPU reference", () => {
         );
       }
     });
+  });
+
+  test("should match the reference while gravity tilts and a shake pushes", async ({
+    page,
+  }) => {
+    const c: Case = {
+      scene: "wall",
+      material: "steel",
+      resolution: "standard",
+      steps: 5000,
+      ops: [
+        throwAt(500, 1),
+        // 20° from straight down, then the same tilt with a 6 m/s² push to the left.
+        { at: 1500, kind: "gravity", x: 3.35, y: -9.21 },
+        { at: 3000, kind: "gravity", x: -2.65, y: -9.21 },
+      ],
+    };
+    const want = runReference(c);
+    const got = await page.evaluate((config) => window.harness.run(config), c);
+
+    expect(want.metrics.erodedFraction).toBe(0);
+    expect(gpuMetrics(c, got).erodedFraction).toBe(0);
+    expect(withinTolerance(got.x, want.x, REST_POSITION)).toBeNull();
+    expect(withinTolerance(got.y, want.y, REST_POSITION)).toBeNull();
+    expect(withinTolerance(got.vx, want.vx, REST_VELOCITY)).toBeNull();
+    expect(withinTolerance(got.vy, want.vy, REST_VELOCITY)).toBeNull();
+    const upright = runReference({ ...c, ops: [throwAt(500, 1)] });
+    expect(
+      Math.max(...want.x.map((x, i) => Math.abs(x - (upright.x[i] ?? 0)))),
+    ).toBeGreaterThan(0.001);
   });
 
   for (const [name, c] of Object.entries({
@@ -287,13 +322,21 @@ test.describe("mesh resolution", () => {
   });
 
   // Worst loading the tools can apply at once: the fastest ball, a blast and a pull.
-  const stress: Op[] = [
-    { at: 0, kind: "throw", x: 1, y: 2, vx: 25, vy: 0 },
-    { at: 200, kind: "blast", x: 5, y: 1 },
-    { at: 400, kind: "grab", x: 5, y: 1 },
-    { at: 500, kind: "move", x: 5, y: 3 },
-    { at: 2000, kind: "release" },
-  ];
+  const stressFor = (resolution: ResolutionName): Op[] => {
+    const dt = timeStep(RESOLUTIONS[resolution].cell);
+    const atSeconds = (seconds: number) => Math.round(seconds / dt);
+    return [
+      { at: 0, kind: "throw", x: 1, y: 2, vx: 25, vy: 0 },
+      { at: 200, kind: "blast", x: 5, y: 1 },
+      { at: 400, kind: "grab", x: 5, y: 1 },
+      { at: 500, kind: "move", x: 5, y: 3 },
+      { at: 2000, kind: "release" },
+      // The strongest net gravity the sliders allow: a 40 m/s² push on a quarter-turn tilt, then straight up.
+      { at: atSeconds(0.75), kind: "gravity", x: 49.8, y: 0 },
+      { at: atSeconds(1.2), kind: "gravity", x: 0, y: 30 },
+      { at: atSeconds(1.65), kind: "gravity", x: 0, y: -9.8 },
+    ];
+  };
 
   for (const resolution of RESOLUTION_NAMES) {
     for (const scene of SCENE_NAMES) {
@@ -305,7 +348,13 @@ test.describe("mesh resolution", () => {
           test.setTimeout(resolution === "finest" ? 1_200_000 : 600_000);
           const result = await page.evaluate(
             (config) => window.harness.sweep(config),
-            { scene, material, resolution, seconds: 10, ops: stress },
+            {
+              scene,
+              material,
+              resolution,
+              seconds: 10,
+              ops: stressFor(resolution),
+            },
           );
 
           expect(result.allFinite).toBe(true);

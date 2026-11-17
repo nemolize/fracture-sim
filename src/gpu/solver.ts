@@ -3,6 +3,7 @@ import {
   type Ball,
   BLAST_RADIUS,
   BLAST_SPEED,
+  DEFAULT_GRAVITY,
   makeBall,
   MAX_BALLS,
 } from "@/sim/contact";
@@ -149,6 +150,7 @@ export class GpuSolver {
       grabTarget: { x: 0, y: 0 },
       blastCenter: { x: 0, y: 0 },
       blastSpeed: BLAST_SPEED,
+      gravity: DEFAULT_GRAVITY,
     };
     this.writeParams();
 
@@ -213,6 +215,13 @@ export class GpuSolver {
       packBall(makeBall(x, y, vx, vy)),
     );
     this.params.ballCount = Math.min(this.thrown, MAX_BALLS);
+    this.writeParams();
+  }
+
+  setGravity(x: number, y: number): void {
+    const { gravity } = this.params;
+    if (gravity.x === x && gravity.y === y) return;
+    this.params.gravity = { x, y };
     this.writeParams();
   }
 

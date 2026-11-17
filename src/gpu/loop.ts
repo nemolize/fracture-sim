@@ -1,4 +1,5 @@
 import type { WorldStats } from "@/sim/stats";
+import type { Vec2 } from "@/sim/vec2";
 import type { ViewMode } from "@/sim/view";
 
 import { type Aim } from "./frame";
@@ -14,6 +15,7 @@ export interface LoopInput {
   paused: boolean;
   view: ViewMode;
   aim: Aim | null;
+  gravity: Vec2;
 }
 
 export interface LoopCounters {
@@ -86,7 +88,8 @@ export class FrameLoop {
       this.counters.skippedFrames++;
       return;
     }
-    const { speed, paused, view, aim } = this.input();
+    const { speed, paused, view, aim, gravity } = this.input();
+    this.solver.setGravity(gravity.x, gravity.y);
     if (!paused) {
       const plan = planFrame(this.clock, owedSeconds, speed, this.solver.dt);
       this.clock = plan.clock;

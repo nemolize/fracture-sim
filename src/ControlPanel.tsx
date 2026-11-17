@@ -5,6 +5,7 @@ import {
   asResolution,
   asScene,
   asView,
+  MOTION_RANGES,
   type Settings,
   TOOL_HINTS,
   TOOL_LABELS,
@@ -15,6 +16,7 @@ import { RESOLUTION_NAMES, RESOLUTIONS } from "@/sim/resolution";
 import { SCENE_NAMES } from "@/sim/scenes";
 import type { WorldStats } from "@/sim/stats";
 import { VIEW_LABELS, VIEW_MODES } from "@/sim/view";
+import type { MotionControl } from "@/useMotion";
 import { cn } from "@/utils/cn";
 
 interface Props {
@@ -23,6 +25,7 @@ interface Props {
   paused: boolean;
   /** Reset and the settings that rebuild the solver stay off once WebGPU is gone. */
   locked: boolean;
+  motion: Pick<MotionControl, "support" | "enabled" | "notice" | "setEnabled">;
   onChange: (next: Settings) => void;
   onPausedChange: (paused: boolean) => void;
   onReset: () => void;
@@ -35,6 +38,43 @@ const Field = ({ label, children }: { label: string; children: ReactNode }) => (
   </label>
 );
 
+const MOTION_NOTICES: Record<MotionControl["support"], string | null> = {
+  checking: "Checking for a motion sensor…",
+  unsupported: "This device or browser has no motion sensor.",
+  supported: null,
+};
+
+const MOTION_HINT =
+  "Tilt the device to tilt gravity, and shake it to push the body.";
+
+const MotionSlider = ({
+  label,
+  format,
+  range,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  format: (value: number) => string;
+  range: { min: number; max: number; step: number };
+  value: number;
+  disabled: boolean;
+  onChange: (value: number) => void;
+}) => (
+  <Field label={`${label} ${format(value)}`}>
+    <input
+      type="range"
+      {...range}
+      value={value}
+      disabled={disabled}
+      onChange={(event) => {
+        onChange(Number(event.target.value));
+      }}
+    />
+  </Field>
+);
+
 const SELECT_CLASS =
   "rounded border border-gray-300 bg-white p-1.5 font-normal";
 
@@ -43,6 +83,7 @@ export const ControlPanel = ({
   stats,
   paused,
   locked,
+  motion,
   onChange,
   onPausedChange,
   onReset,
@@ -160,6 +201,54 @@ export const ControlPanel = ({
         }}
       />
     </Field>
+
+    <fieldset className="flex flex-col gap-2">
+      <legend className="mb-1 text-sm font-medium text-gray-700">Motion</legend>
+      <label className="flex items-center gap-2 text-sm text-gray-800">
+        <input
+          type="checkbox"
+          checked={motion.enabled}
+          disabled={motion.support !== "supported"}
+          onChange={(event) => {
+            motion.setEnabled(event.target.checked);
+          }}
+        />
+        Gyro tilt
+      </label>
+      <p className="text-xs text-gray-600">
+        {MOTION_NOTICES[motion.support] ?? motion.notice ?? MOTION_HINT}
+      </p>
+      <MotionSlider
+        label="Shake strength"
+        format={(value) => `×${value.toFixed(1)}`}
+        range={MOTION_RANGES.inertiaScale}
+        value={settings.inertiaScale}
+        disabled={!motion.enabled}
+        onChange={(inertiaScale) => {
+          onChange({ ...settings, inertiaScale });
+        }}
+      />
+      <MotionSlider
+        label="Shake limit"
+        format={(value) => `${value.toFixed(0)} m/s²`}
+        range={MOTION_RANGES.inertiaCap}
+        value={settings.inertiaCap}
+        disabled={!motion.enabled}
+        onChange={(inertiaCap) => {
+          onChange({ ...settings, inertiaCap });
+        }}
+      />
+      <MotionSlider
+        label="Tilt smoothing"
+        format={(value) => `${value.toFixed(2)} s`}
+        range={MOTION_RANGES.tiltSmoothing}
+        value={settings.tiltSmoothing}
+        disabled={!motion.enabled}
+        onChange={(tiltSmoothing) => {
+          onChange({ ...settings, tiltSmoothing });
+        }}
+      />
+    </fieldset>
 
     <div className="flex gap-2">
       <button

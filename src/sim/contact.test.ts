@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { applyBlast, collideBounds, stepBall } from "./contact";
+import {
+  applyBlast,
+  collideBounds,
+  DEFAULT_GRAVITY,
+  stepBall,
+} from "./contact";
 import type { Solid } from "./solid";
 
 /** Three free nodes, enough for the contact helpers; the triangle arrays are unused. */
@@ -62,28 +67,35 @@ describe("collideBounds", () => {
 describe("stepBall", () => {
   it("bounces off the floor and both walls", () => {
     const floor = { x: 5, y: 0.1, vx: 3, vy: -5, radius: 0.25, mass: 1 };
-    stepBall(floor, 10, 0.001);
+    stepBall(floor, 10, 0.001, DEFAULT_GRAVITY);
     expect(floor.y).toBe(0.25);
     expect(floor.vy).toBeGreaterThan(0);
 
     const left = { x: 0.1, y: 3, vx: -5, vy: 0, radius: 0.25, mass: 1 };
-    stepBall(left, 10, 0.001);
+    stepBall(left, 10, 0.001, DEFAULT_GRAVITY);
     expect(left.vx).toBeGreaterThan(0);
 
     const right = { x: 9.9, y: 3, vx: 5, vy: 0, radius: 0.25, mass: 1 };
-    stepBall(right, 10, 0.001);
+    stepBall(right, 10, 0.001, DEFAULT_GRAVITY);
     expect(right.vx).toBeLessThan(0);
   });
 
   it("keeps its upward speed when it touches the floor while rising", () => {
     const ball = { x: 5, y: 0.1, vx: 0, vy: 2, radius: 0.25, mass: 1 };
-    stepBall(ball, 10, 0.001);
+    stepBall(ball, 10, 0.001, DEFAULT_GRAVITY);
     expect(ball.vy).toBeGreaterThan(0);
+  });
+
+  it("accelerates along a sideways gravity", () => {
+    const ball = { x: 5, y: 3, vx: 0, vy: 0, radius: 0.25, mass: 1 };
+    stepBall(ball, 10, 0.01, { x: 9.8, y: 0 });
+    expect(ball.vx).toBeCloseTo(0.098);
+    expect(ball.vy).toBe(0);
   });
 
   it("falls freely in the air", () => {
     const ball = { x: 5, y: 3, vx: 1, vy: 0, radius: 0.25, mass: 1 };
-    stepBall(ball, 10, 0.01);
+    stepBall(ball, 10, 0.01, DEFAULT_GRAVITY);
     expect(ball.vy).toBeLessThan(0);
     expect(ball.x).toBeGreaterThan(5);
   });

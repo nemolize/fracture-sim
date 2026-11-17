@@ -14,6 +14,7 @@ const params: SolverParams = {
   grabTarget: { x: 2, y: 4 },
   blastCenter: { x: 6, y: 8 },
   blastSpeed: 30,
+  gravity: { x: 1.5, y: -9.5 },
 };
 
 it("writes every field at the offset the WGSL struct reads it from", () => {
@@ -33,6 +34,8 @@ it("writes every field at the offset the WGSL struct reads it from", () => {
   expect(view.getFloat32(40, true)).toBe(6);
   expect(view.getFloat32(44, true)).toBe(8);
   expect(view.getFloat32(48, true)).toBe(30);
+  expect(view.getFloat32(56, true)).toBe(1.5);
+  expect(view.getFloat32(60, true)).toBe(-9.5);
 });
 
 it("writes an inactive grab as 0", () => {

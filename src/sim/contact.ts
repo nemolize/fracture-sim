@@ -1,7 +1,9 @@
 import { at, atInt } from "./array";
 import type { Solid } from "./solid";
+import type { Vec2 } from "./vec2";
 
 export const GRAVITY = 9.8;
+export const DEFAULT_GRAVITY: Vec2 = { x: 0, y: -GRAVITY };
 
 export const FLOOR_FRICTION = 0.6;
 export const FLOOR_RESTITUTION = 0.1;
@@ -105,8 +107,14 @@ export const collideBall = (solid: Solid, ball: Ball, dt: number): void => {
   }
 };
 
-export const stepBall = (ball: Ball, width: number, dt: number): void => {
-  ball.vy -= GRAVITY * dt;
+export const stepBall = (
+  ball: Ball,
+  width: number,
+  dt: number,
+  gravity: Vec2,
+): void => {
+  ball.vx += gravity.x * dt;
+  ball.vy += gravity.y * dt;
   ball.x += ball.vx * dt;
   ball.y += ball.vy * dt;
   if (ball.y < ball.radius) {

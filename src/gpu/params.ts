@@ -11,9 +11,10 @@ export interface SolverParams {
   grabTarget: { x: number; y: number };
   blastCenter: { x: number; y: number };
   blastSpeed: number;
+  gravity: { x: number; y: number };
 }
 
-/** Bytes the uniform buffer needs: the struct is 56 bytes, rounded up to 16. */
+/** Bytes the uniform buffer needs: the struct is 64 bytes, a multiple of 16. */
 export const PARAMS_BYTES = 64;
 
 export const encodeParams = (params: SolverParams): ArrayBuffer => {
@@ -32,5 +33,7 @@ export const encodeParams = (params: SolverParams): ArrayBuffer => {
   view.setFloat32(40, params.blastCenter.x, true);
   view.setFloat32(44, params.blastCenter.y, true);
   view.setFloat32(48, params.blastSpeed, true);
+  view.setFloat32(56, params.gravity.x, true);
+  view.setFloat32(60, params.gravity.y, true);
   return buffer;
 };

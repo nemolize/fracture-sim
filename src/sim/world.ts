@@ -9,9 +9,9 @@ import {
   BLAST_SPEED,
   collideBall,
   collideBounds,
+  DEFAULT_GRAVITY,
   type Grab,
   GRAB_RADIUS,
-  GRAVITY,
   makeBall,
   MAX_BALLS,
   stepBall,
@@ -23,6 +23,7 @@ import { restShape } from "./rest";
 import { buildMesh, CELL, type SceneName, WORLD_WIDTH } from "./scenes";
 import type { Solid } from "./solid";
 import type { WorldStats } from "./stats";
+import type { Vec2 } from "./vec2";
 
 export interface WorldOptions {
   scene: SceneName;
@@ -56,6 +57,7 @@ export class World implements Solid {
   /** Piece id per triangle, -1 once eroded; refreshed by `refreshChunks`. */
   readonly chunkOf: Int32Array;
   readonly balls: Ball[] = [];
+  gravity: Vec2 = DEFAULT_GRAVITY;
   /** Explicit time step used by `step` when none is given. */
   readonly dt: number;
   chunkCount = 1;
@@ -111,7 +113,8 @@ export class World implements Solid {
     const eroded = addElementForces(this, this.material, dt);
     this.erodedCount += eroded;
     for (let n = 0; n < this.nodeCount; n++) {
-      this.fy[n] = at(this.fy, n) - at(this.mass, n) * GRAVITY;
+      this.fx[n] = at(this.fx, n) + at(this.mass, n) * this.gravity.x;
+      this.fy[n] = at(this.fy, n) + at(this.mass, n) * this.gravity.y;
     }
     for (const ball of this.balls) collideBall(this, ball, dt);
     if (this.grab !== null) addGrabForce(this, this.grab);
@@ -126,7 +129,7 @@ export class World implements Solid {
       this.y[n] = at(this.y, n) + dt * at(this.vy, n);
     }
     collideBounds(this, this.width);
-    for (const ball of this.balls) stepBall(ball, this.width, dt);
+    for (const ball of this.balls) stepBall(ball, this.width, dt, this.gravity);
     this.time += dt;
   }
 
@@ -134,6 +137,10 @@ export class World implements Solid {
   throwBall(x: number, y: number, vx: number, vy: number): void {
     this.balls.push(makeBall(x, y, vx, vy));
     if (this.balls.length > MAX_BALLS) this.balls.shift();
+  }
+
+  setGravity(x: number, y: number): void {
+    this.gravity = { x, y };
   }
 
   blast(x: number, y: number): void {

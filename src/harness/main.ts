@@ -6,6 +6,7 @@ import { FrameLoop } from "@/gpu/loop";
 import { Renderer } from "@/gpu/renderer";
 import { GpuSolver, type SolverOptions } from "@/gpu/solver";
 import { TextureUsage } from "@/gpu/usage";
+import { DEFAULT_GRAVITY } from "@/sim/contact";
 import { type Op, runScript } from "@/sim/script";
 import type { ViewMode } from "@/sim/view";
 
@@ -140,6 +141,7 @@ const harness = {
         paused: false,
         view: "material",
         aim: null,
+        gravity: DEFAULT_GRAVITY,
       }),
       onStats: () => undefined,
     });

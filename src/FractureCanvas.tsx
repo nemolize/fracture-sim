@@ -7,6 +7,7 @@ import { FrameLoop, type LoopInput } from "@/gpu/loop";
 import { Renderer } from "@/gpu/renderer";
 import { GpuSolver } from "@/gpu/solver";
 import type { Settings } from "@/settings";
+import type { MotionTracker } from "@/sim/motion";
 import { WORLD_WIDTH } from "@/sim/scenes";
 import type { WorldStats } from "@/sim/stats";
 
@@ -16,6 +17,7 @@ const MAX_THROW_SPEED = 25;
 interface Props {
   device: GPUDevice;
   settings: Settings;
+  tracker: MotionTracker;
   paused: boolean;
   /** Bumped by the Reset button to rebuild the solver with unchanged settings. */
   resetToken: number;
@@ -27,6 +29,7 @@ interface Props {
 export const FractureCanvas = ({
   device,
   settings,
+  tracker,
   paused,
   resetToken,
   onStats,
@@ -130,6 +133,7 @@ export const FractureCanvas = ({
         paused: pausedRef.current,
         view: settingsRef.current.view,
         aim,
+        gravity: tracker.gravity(settingsRef.current, performance.now()),
       }),
       onStats: (stats) => {
         onStatsRef.current(stats);
@@ -147,7 +151,7 @@ export const FractureCanvas = ({
       renderer.dispose();
       solver.dispose();
     };
-  }, [device, scene, material, resolution, resetToken]);
+  }, [device, tracker, scene, material, resolution, resetToken]);
 
   return (
     <canvas
