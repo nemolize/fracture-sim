@@ -301,7 +301,8 @@ test.describe("mesh resolution", () => {
         test(`should stay finite for 10 s: ${scene}, ${material}, ${resolution}`, async ({
           page,
         }) => {
-          test.setTimeout(600_000);
+          // The finest wall alone takes about ten minutes on a software GPU.
+          test.setTimeout(resolution === "finest" ? 1_200_000 : 600_000);
           const result = await page.evaluate(
             (config) => window.harness.sweep(config),
             { scene, material, resolution, seconds: 10, ops: stress },

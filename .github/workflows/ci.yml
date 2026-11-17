@@ -141,21 +141,21 @@ jobs:
       matrix:
         include:
           - shard: standard
-            grep: "stay finite for 10 s: .*, standard"
+            grep: "stay finite for 10 s: .*, standard$"
           - shard: fine-wall
-            grep: "stay finite for 10 s: wall, .*, fine"
+            grep: "stay finite for 10 s: wall, .*, fine$"
           - shard: fine-tower
-            grep: "stay finite for 10 s: tower, .*, fine"
+            grep: "stay finite for 10 s: tower, .*, fine$"
           - shard: finest-tower
-            grep: "stay finite for 10 s: tower, .*, finest"
+            grep: "stay finite for 10 s: tower, .*, finest$"
           - shard: finest-wall-glass
-            grep: "stay finite for 10 s: wall, glass, finest"
+            grep: "stay finite for 10 s: wall, glass, finest$"
           - shard: finest-wall-concrete
-            grep: "stay finite for 10 s: wall, concrete, finest"
+            grep: "stay finite for 10 s: wall, concrete, finest$"
           - shard: finest-wall-steel
-            grep: "stay finite for 10 s: wall, steel, finest"
+            grep: "stay finite for 10 s: wall, steel, finest$"
           - shard: finest-wall-clay
-            grep: "stay finite for 10 s: wall, clay, finest"
+            grep: "stay finite for 10 s: wall, clay, finest$"
     container:
       image: mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579
       options: --init --ipc=host
