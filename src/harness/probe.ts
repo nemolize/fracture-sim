@@ -155,8 +155,6 @@ export const probe = async (): Promise<ProbeResult> => {
   const canvasCentre =
     format === "bgra8unorm" ? [r0, g, b0, a] : centre(canvasPixels);
 
-  const computeOutput = await computeProbe(device);
-  // Read last, so the adapter stays referenced until every read-back is done.
   const { vendor, architecture, description, isFallbackAdapter } = adapter.info;
   return {
     adapter: {
@@ -165,7 +163,7 @@ export const probe = async (): Promise<ProbeResult> => {
       description,
       isFallback: isFallbackAdapter,
     },
-    computeOutput,
+    computeOutput: await computeProbe(device),
     triangleCentre,
     canvasCentre,
   };

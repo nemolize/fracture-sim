@@ -91,12 +91,23 @@ jobs:
   E2ETests:
     runs-on: ubuntu-26.04
     timeout-minutes: 20
+    # The merge ruleset requires this job, not the sweep shards, so it waits for
+    # the sweep and fails when it did not pass.
+    needs: StabilitySweep
+    if: ${{ !cancelled() }}
     container:
       image: mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579
       # Without --ipc=host chromium can run out of memory and crash.
       options: --init --ipc=host
 
     steps:
+      - name: Require the stability sweep to have passed
+        if: ${{ needs.StabilitySweep.result != 'success' }}
+        run: |
+          echo "::error::the stability sweep finished as ${SWEEP_RESULT}"
+          exit 1
+        env:
+          SWEEP_RESULT: ${{ needs.StabilitySweep.result }}
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
@@ -146,8 +157,10 @@ jobs:
             grep: "stay finite for 10 s: wall, .*, fine$"
           - shard: fine-tower
             grep: "stay finite for 10 s: tower, .*, fine$"
-          - shard: finest-tower
-            grep: "stay finite for 10 s: tower, .*, finest$"
+          - shard: finest-tower-glass-concrete
+            grep: "stay finite for 10 s: tower, (glass|concrete), finest$"
+          - shard: finest-tower-steel-clay
+            grep: "stay finite for 10 s: tower, (steel|clay), finest$"
           - shard: finest-wall-glass
             grep: "stay finite for 10 s: wall, glass, finest$"
           - shard: finest-wall-concrete

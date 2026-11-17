@@ -13,12 +13,9 @@ import { probe } from "./probe";
 import { readTexture } from "./readback";
 
 let devicePromise: Promise<GPUDevice> | null = null;
-/** Keeps the adapter referenced for the page's lifetime. */
-const held: { adapter: GPUAdapter | null } = { adapter: null };
 const getDevice = (): Promise<GPUDevice> => {
   devicePromise ??= acquireGpu(navigator).then((state) => {
     if (state.status !== "ready") throw new Error(state.reason);
-    held.adapter = state.handle;
     return state.device;
   });
   return devicePromise;
