@@ -128,6 +128,39 @@ describe("where events arrive without asking", () => {
     expect(result.current.support).toBe("unsupported");
   });
 
+  it("starts on once a usable reading arrives", () => {
+    const { result } = renderHook(() =>
+      useMotion({ ...DEFAULT_SETTINGS, tiltSmoothing: 0 }),
+    );
+    expect(result.current.enabled).toBe(false);
+    act(() => {
+      window.dispatchEvent(motionEvent(upright, null, 0));
+    });
+    expect(result.current.enabled).toBe(true);
+    act(() => {
+      window.dispatchEvent(motionEvent(rightEdgeDown, null, 10));
+    });
+    expect(result.current.tracker.gravity(TUNING, 10).x).toBeCloseTo(GRAVITY);
+  });
+
+  it("stays off when the user turned it off before the sensor answered", () => {
+    const { result } = renderHook(() => useMotion(DEFAULT_SETTINGS));
+    act(() => {
+      result.current.setEnabled(false);
+      window.dispatchEvent(motionEvent(upright, null, 0));
+    });
+    expect(result.current.support).toBe("supported");
+    expect(result.current.enabled).toBe(false);
+  });
+
+  it("stays off when no reading comes", () => {
+    const { result } = renderHook(() => useMotion(DEFAULT_SETTINGS));
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(result.current.enabled).toBe(false);
+  });
+
   it("feeds tilt and shake into the tracker only while enabled", () => {
     const { result } = renderHook(() =>
       useMotion({ ...DEFAULT_SETTINGS, tiltSmoothing: 0 }),
@@ -135,6 +168,10 @@ describe("where events arrive without asking", () => {
     act(() => {
       window.dispatchEvent(motionEvent(upright, null, 0));
     });
+    act(() => {
+      result.current.setEnabled(false);
+    });
+    expect(result.current.enabled).toBe(false);
     act(() => {
       result.current.setEnabled(true);
     });
@@ -275,6 +312,12 @@ describe("where the browser asks permission", () => {
     stubPermission(() => Promise.resolve("granted"));
     const { result } = renderHook(() => useMotion(DEFAULT_SETTINGS));
     expect(result.current.support).toBe("supported");
+  });
+
+  it("starts off until the user turns it on", () => {
+    stubPermission(() => Promise.resolve("granted"));
+    const { result } = renderHook(() => useMotion(DEFAULT_SETTINGS));
+    expect(result.current.enabled).toBe(false);
   });
 
   it("turns on after the user grants access", async () => {

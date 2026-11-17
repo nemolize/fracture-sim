@@ -173,13 +173,12 @@ test.describe("gyro tilt", () => {
     await sendMotion(page, UPRIGHT);
   });
 
-  test("should slide the body toward the tilted side once the toggle is on", async ({
+  test("should slide the body toward the tilted side with the toggle on from the start", async ({
     page,
   }) => {
     const toggle = page.getByLabel("Gyro tilt");
     await expect(toggle).toBeEnabled();
-    await expect(toggle).not.toBeChecked();
-    await toggle.check();
+    await expect(toggle).toBeChecked();
     const before = await bodyCentre(page);
 
     await sendMotion(page, SIDEWAYS);
@@ -197,7 +196,9 @@ test.describe("gyro tilt", () => {
   test("should leave gravity straight down while the toggle is off", async ({
     page,
   }) => {
-    await expect(page.getByLabel("Gyro tilt")).toBeEnabled();
+    const toggle = page.getByLabel("Gyro tilt");
+    await expect(toggle).toBeEnabled();
+    await toggle.uncheck();
     const before = await bodyCentre(page);
     for (let i = 0; i < 60; i++) {
       await sendMotion(page, SIDEWAYS, { x: 30, y: 0 });
@@ -207,7 +208,7 @@ test.describe("gyro tilt", () => {
   });
 
   test("should push the body against a shake", async ({ page }) => {
-    await page.getByLabel("Gyro tilt").check();
+    await expect(page.getByLabel("Gyro tilt")).toBeChecked();
     await page.getByLabel(/^Tilt smoothing/).fill("0");
     const before = await bodyCentre(page);
     await expect
@@ -224,7 +225,7 @@ test.describe("gyro tilt", () => {
   test("should keep running after Reset with the toggle still on", async ({
     page,
   }) => {
-    await page.getByLabel("Gyro tilt").check();
+    await expect(page.getByLabel("Gyro tilt")).toBeChecked();
     await page.getByRole("button", { name: "Reset" }).click();
     await expect(page.getByLabel("Gyro tilt")).toBeChecked();
     await expect(page.getByLabel("Simulation statistics")).toContainText(

@@ -49,13 +49,15 @@ const detectSupport = (): MotionSupport => {
 export const useMotion = (settings: Settings): MotionControl => {
   const [tracker] = useState(() => new MotionTracker());
   const [support, setSupport] = useState(detectSupport);
-  const [enabled, setEnabledState] = useState(false);
+  // iOS asks permission only from a user gesture, so there the toggle starts off.
+  const [wanted, setWanted] = useState(() => detectSupport() === "checking");
   const [notice, setNotice] = useState<string | null>(null);
   const smoothingRef = useRef(settings.tiltSmoothing);
   useEffect(() => {
     smoothingRef.current = settings.tiltSmoothing;
   });
 
+  const enabled = wanted && support === "supported";
   const probing = support === "checking";
   useEffect(() => {
     if (!probing) return;
@@ -100,21 +102,21 @@ export const useMotion = (settings: Settings): MotionControl => {
 
   const setEnabled = useCallback((on: boolean) => {
     if (!on) {
-      setEnabledState(false);
+      setWanted(false);
       setNotice(null);
       return;
     }
     const request = permissionRequest();
     if (request === null) {
       setNotice(null);
-      setEnabledState(true);
+      setWanted(true);
       return;
     }
     request().then(
       (answer) => {
         if (answer === "granted") {
           setNotice(null);
-          setEnabledState(true);
+          setWanted(true);
         } else {
           setNotice("Motion access was denied, so tilt stays off.");
         }
