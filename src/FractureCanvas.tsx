@@ -1,29 +1,22 @@
 import { useEffect, useRef } from "react";
 
-import { canvasSize, pointerToWorld, VIEW_HEIGHT } from "@/gpu/camera";
+import { canvasSize, VIEW_HEIGHT } from "@/gpu/camera";
 import { gpuContext } from "@/gpu/device";
-import type { Aim } from "@/gpu/frame";
-import { FrameLoop, type LoopInput } from "@/gpu/loop";
-import { Renderer } from "@/gpu/renderer";
-import { GpuSolver } from "@/gpu/solver";
+import { WORLD_WIDTH } from "@/rigid/constants";
+import { RigidRenderer } from "@/rigid/renderer";
+import type { WorkerRequest, WorkerResponse, WorldStats } from "@/rigid/types";
 import type { Settings } from "@/settings";
 import type { MotionTracker } from "@/sim/motion";
-import { WORLD_WIDTH } from "@/sim/scenes";
-import type { WorldStats } from "@/sim/stats";
-
-const THROW_SPEED_PER_METRE = 4;
-const MAX_THROW_SPEED = 25;
 
 interface Props {
   device: GPUDevice;
   settings: Settings;
   tracker: MotionTracker;
   paused: boolean;
-  /** Bumped by the Reset button to rebuild the solver with unchanged settings. */
   resetToken: number;
   onStats: (stats: WorldStats) => void;
-  /** The canvas cannot be configured for WebGPU. */
   onContextUnavailable: (message: string) => void;
+  onPhysicsError: (message: string) => void;
 }
 
 export const FractureCanvas = ({
@@ -34,124 +27,134 @@ export const FractureCanvas = ({
   resetToken,
   onStats,
   onContextUnavailable,
+  onPhysicsError,
 }: Props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // Read inside the frame loop through refs so a slider move does not rebuild the solver.
-  const settingsRef = useRef(settings);
-  const pausedRef = useRef(paused);
-  const onStatsRef = useRef(onStats);
-  const onContextUnavailableRef = useRef(onContextUnavailable);
-  useEffect(() => {
-    settingsRef.current = settings;
-    pausedRef.current = paused;
-    onStatsRef.current = onStats;
-    onContextUnavailableRef.current = onContextUnavailable;
+  const latest = useRef({
+    settings,
+    paused,
+    onStats,
+    onContextUnavailable,
+    onPhysicsError,
   });
+  useEffect(() => {
+    latest.current = {
+      settings,
+      paused,
+      onStats,
+      onContextUnavailable,
+      onPhysicsError,
+    };
+  });
+  const { scene } = settings;
 
-  const { scene, material, resolution } = settings;
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas === null) return;
     const context = gpuContext(canvas);
     if (context === null) {
-      onContextUnavailableRef.current(
+      latest.current.onContextUnavailable(
         "the canvas could not create a WebGPU context",
       );
       return;
     }
     const format = navigator.gpu.getPreferredCanvasFormat();
     context.configure({ device, format, alphaMode: "opaque" });
+    const worker = new Worker(new URL("./rigid/worker.ts", import.meta.url), {
+      type: "module",
+    });
+    const send = (request: WorkerRequest): void => {
+      worker.postMessage(request);
+    };
+    let renderer: RigidRenderer | undefined;
+    let poses: Float32Array<ArrayBuffer> | undefined;
+    let stopped = false;
+    let pending = false;
+    let previous: number | null = null;
+    let animation = 0;
 
-    const solver = new GpuSolver(device, { scene, material, resolution });
-    const renderer = new Renderer(
-      device,
-      solver.buffers,
-      material,
-      format,
-      solver.triCount,
-    );
-    let aim: Aim | null = null;
-
+    const fail = (message: string): void => {
+      stopped = true;
+      cancelAnimationFrame(animation);
+      latest.current.onPhysicsError(message);
+    };
+    worker.onerror = (event) => {
+      fail(event.message);
+    };
+    worker.onmessageerror = () => {
+      fail("Could not read the physics worker response");
+    };
+    worker.onmessage = (event: MessageEvent<WorkerResponse>): void => {
+      if (stopped) return;
+      const response = event.data;
+      if (response.type === "error") {
+        fail(response.message);
+        return;
+      }
+      if (response.type === "ready") {
+        renderer = new RigidRenderer(
+          device,
+          format,
+          response.vertices,
+          response.snapshot.poses,
+        );
+      }
+      pending = false;
+      poses = response.snapshot.poses;
+      latest.current.onStats(response.snapshot.stats);
+    };
     const resize = (): void => {
       const size = canvasSize(canvas.clientWidth, window.devicePixelRatio);
-      canvas.width = size.width;
-      canvas.height = size.height;
+      if (canvas.width !== size.width) canvas.width = size.width;
+      if (canvas.height !== size.height) canvas.height = size.height;
     };
     resize();
-    const observer = new ResizeObserver(resize);
+    let resizeFrame = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(resize);
+    });
     observer.observe(canvas);
 
-    const toWorld = (event: PointerEvent) =>
-      pointerToWorld(
-        canvas.getBoundingClientRect(),
-        event.clientX,
-        event.clientY,
-      );
-    const onPointerDown = (event: PointerEvent): void => {
-      const point = toWorld(event);
-      const { tool } = settingsRef.current;
-      canvas.setPointerCapture(event.pointerId);
-      if (tool === "throw") {
-        aim = { x0: point.x, y0: point.y, x1: point.x, y1: point.y };
-      } else if (tool === "pull") {
-        solver.startGrab(point.x, point.y);
-      } else {
-        solver.blast(point.x, point.y);
-      }
+    const resetClock = (): void => {
+      previous = null;
     };
-    const onPointerMove = (event: PointerEvent): void => {
-      const point = toWorld(event);
-      if (aim !== null) {
-        aim.x1 = point.x;
-        aim.y1 = point.y;
-      }
-      solver.moveGrab(point.x, point.y);
-    };
-    const onPointerUp = (): void => {
-      if (aim !== null) {
-        const dx = (aim.x1 - aim.x0) * THROW_SPEED_PER_METRE;
-        const dy = (aim.y1 - aim.y0) * THROW_SPEED_PER_METRE;
-        const length = Math.hypot(dx, dy);
-        const limit = length > MAX_THROW_SPEED ? MAX_THROW_SPEED / length : 1;
-        solver.throwBall(aim.x0, aim.y0, dx * limit, dy * limit);
-        aim = null;
-      }
-      solver.endGrab();
-    };
-    canvas.addEventListener("pointerdown", onPointerDown);
-    canvas.addEventListener("pointermove", onPointerMove);
-    canvas.addEventListener("pointerup", onPointerUp);
-    canvas.addEventListener("pointercancel", onPointerUp);
+    document.addEventListener("visibilitychange", resetClock);
 
-    const loop = new FrameLoop({
-      solver,
-      renderer,
-      context,
-      canvas,
-      input: (): LoopInput => ({
-        speed: settingsRef.current.speed,
-        paused: pausedRef.current,
-        view: settingsRef.current.view,
-        aim,
-        gravity: tracker.gravity(settingsRef.current, performance.now()),
-      }),
-      onStats: (stats) => {
-        onStatsRef.current(stats);
-      },
-    });
-    loop.start();
-
+    const frame = (now: number): void => {
+      if (stopped) return;
+      const seconds =
+        previous === null || document.hidden
+          ? 0
+          : Math.min((now - previous) / 1000, 0.1);
+      if (renderer !== undefined && !pending) {
+        const input = latest.current;
+        send({
+          type: "advance",
+          seconds: input.paused ? 0 : seconds * input.settings.speed,
+          gravity: tracker.gravity(input.settings, now),
+        });
+        previous = now;
+        pending = true;
+      }
+      if (renderer !== undefined && poses !== undefined) {
+        renderer.draw(context.getCurrentTexture().createView(), poses);
+      }
+      animation = requestAnimationFrame(frame);
+    };
+    send({ type: "init", scene });
+    animation = requestAnimationFrame(frame);
     return () => {
-      loop.stop();
+      stopped = true;
+      cancelAnimationFrame(animation);
+      worker.terminate();
       observer.disconnect();
-      canvas.removeEventListener("pointerdown", onPointerDown);
-      canvas.removeEventListener("pointermove", onPointerMove);
-      canvas.removeEventListener("pointerup", onPointerUp);
-      canvas.removeEventListener("pointercancel", onPointerUp);
-      renderer.dispose();
-      solver.dispose();
+      cancelAnimationFrame(resizeFrame);
+      renderer?.dispose();
+      context.unconfigure();
+      document.removeEventListener("visibilitychange", resetClock);
     };
-  }, [device, tracker, scene, material, resolution, resetToken]);
+  }, [device, tracker, scene, resetToken]);
 
   return (
     <canvas

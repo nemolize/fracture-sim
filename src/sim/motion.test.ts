@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { GRAVITY } from "./contact";
+import { GRAVITY } from "@/rigid/constants";
+
 import {
   type Axes,
   hasReading,

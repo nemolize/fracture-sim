@@ -4,31 +4,20 @@ Guidance for Claude Code (claude.ai/code) working in this repository.
 
 ## Architecture
 
-WebGPU is required: the app has no CPU fallback and no Canvas 2D. The solver and
-renderer live in `src/gpu` (WGSL under `src/gpu/shaders`, run by `solver.ts` and
-`renderer.ts`) and know nothing about React; the React layer (`App`,
-`ControlPanel`, `FractureCanvas`) only owns settings, the unavailable and
-device-lost notices, and the pointer tools. `src/sim` holds what both solvers
-share (meshes, materials, constants) plus the CPU `World`, which exists only as
-the f64 reference for tests and is never imported by the app. Every model, tuning
-or size constant the shaders use (physics, contact, material, workgroup sizes)
-comes from a TypeScript constant through `src/gpu/constants.ts`; never copy one
-into WGSL. Palette colours and structural literals such as a clip-space `2.0`
-stay in the shader.
+The app requires WebGPU for rendering. Rapier2D runs in a browser Web Worker at
+60 Hz; `src/rigid/world.ts` owns physics and `types.ts` defines the transferable
+geometry and pose messages. The React canvas owns worker lifecycle, resize,
+pause, and motion input. GPU and worker failures stop the app with a notice.
+`src/sim/motion.ts` handles device sensors independently of the physics engine.
+The old FEM solver, erosion model, material controls and mesh settings are gone.
 
-Coverage is 100% for pure TypeScript. Modules that need a WebGPU device
-(`solver.ts`, `renderer.ts`, `loop.ts`, `FractureCanvas.tsx`) are excluded one by
-one in `vitest.config.ts`, each with a comment naming the e2e test that drives
-it; a new GPU-coupled file needs the same entry. The two other exclusions are the
-test double `src/gpu/fakes.ts` and the e2e page under `src/harness`. Pure code reads
-typed arrays through the helpers in `src/sim/array.ts` (one per array type, so V8
-keeps the loads monomorphic). Run the CPU reference outside vitest when timing
-it: vitest's transform makes a step about six times slower.
+Coverage is 100% for pure TypeScript, including the real Rapier world. Browser
+and GPU entry points are individually excluded in `vitest.config.ts` with their
+corresponding e2e test named. `e2e-tests/rigid.spec.ts` exercises the actual worker
+and renderer; `index.spec.ts` verifies device failure and hosting behaviour.
 
-The e2e tests run Chromium with SwiftShader WebGPU flags (`e2e-tests/webgpu.ts`).
-Edit nothing under `src` while a Playwright run is in progress against the dev
-server: Vite reloads the page and the running test fails with "Execution context
-was destroyed".
+The e2e tests use Chromium with SwiftShader WebGPU (`e2e-tests/webgpu.ts`). Do
+not edit `src` during an active Playwright run: Vite reloads the test page.
 
 ## Design principle: built for large-project scale
 
@@ -86,8 +75,7 @@ data loss is `high`, and a week-long refactor that changes no behaviour is `low`
 | `priority:low`    | When convenient. Default for friction, cosmetics and nice-to-haves  |
 
 **Core functionality here is that the simulation runs.** The page loads and finds
-WebGPU, the body stands on the floor, a thrown ball, pull or blast reaches it, and it deforms or
-breaks without the solver diverging into NaN; `pnpm run build`, the checks CI
+WebGPU, the body stands on the floor, rigid bodies collide and settle without non-finite state; `pnpm run build`, the checks CI
 runs and `pnpm run deploy` still succeed. Anything that stops one of those for
 every user is `high`.
 
@@ -100,14 +88,14 @@ issue the answer produces, not to the question.
 layers; a project that grows different ones updates its labels and the Area
 dropdown in each form together.
 
-| Label        | Covers                                            |
-| ------------ | ------------------------------------------------- |
-| `area:ui`    | Screens, components, styles                       |
-| `area:sim`   | The solver, materials and contact under `src/sim` |
-| `area:build` | Build, compile, lint/format config, dependencies  |
-| `area:ci`    | CI pipelines and git hooks                        |
-| `area:test`  | Test suites and coverage config                   |
-| `area:infra` | Deployment target and runtime environment         |
+| Label        | Covers                                                                 |
+| ------------ | ---------------------------------------------------------------------- |
+| `area:ui`    | Screens, components, styles                                            |
+| `area:sim`   | Rigid-body physics under `src/rigid` and device motion under `src/sim` |
+| `area:build` | Build, compile, lint/format config, dependencies                       |
+| `area:ci`    | CI pipelines and git hooks                                             |
+| `area:test`  | Test suites and coverage config                                        |
+| `area:infra` | Deployment target and runtime environment                              |
 
 When a change spans layers, label the one a fix starts in rather than every one
 it touches.

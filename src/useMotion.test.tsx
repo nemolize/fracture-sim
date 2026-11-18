@@ -1,8 +1,8 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { GRAVITY } from "@/rigid/constants";
 import { DEFAULT_SETTINGS } from "@/settings";
-import { GRAVITY } from "@/sim/contact";
 
 import { useMotion } from "./useMotion";
 

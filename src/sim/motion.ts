@@ -1,4 +1,5 @@
-import { GRAVITY } from "./contact";
+import { GRAVITY } from "@/rigid/constants";
+
 import type { Vec2 } from "./vec2";
 
 export interface Axes {

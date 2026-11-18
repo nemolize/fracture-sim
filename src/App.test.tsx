@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { fakeGpu } from "@/gpu/fakes";
-import type { WorldStats } from "@/sim/stats";
+import type { WorldStats } from "@/rigid/types";
 
 import App from "./App";
 
@@ -12,15 +12,25 @@ vi.mock("@/FractureCanvas", () => ({
   FractureCanvas: ({
     onStats,
     onContextUnavailable,
+    onPhysicsError,
   }: {
     onStats: (stats: WorldStats) => void;
     onContextUnavailable: (message: string) => void;
+    onPhysicsError: (message: string) => void;
   }) => (
     <div aria-label="Fracture simulation">
       <button
         type="button"
         onClick={() => {
-          onStats({ erodedFraction: 0.5, chunks: 3, maxPlasticStrain: 0.1 });
+          onPhysicsError("WASM failed");
+        }}
+      >
+        report physics failure
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          onStats({ bodies: 3, sleeping: 2, stepMs: 0.1, time: 1 });
         }}
       >
         report stats
@@ -60,11 +70,11 @@ describe("without WebGPU", () => {
     expect(screen.queryByLabelText("Fracture simulation")).toBeNull();
   });
 
-  it("locks Reset, scene, material and resolution but not Pause", async () => {
+  it("locks Reset and scene but not Pause", async () => {
     setGpu(undefined);
     render(<App />);
     await screen.findByRole("alert");
-    for (const label of ["Scene", "Material", "Mesh resolution"]) {
+    for (const label of ["Scene"]) {
       expect(screen.getByLabelText(label)).toBeDisabled();
     }
     expect(screen.getByRole("button", { name: "Reset" })).toBeDisabled();
@@ -80,11 +90,11 @@ describe("with WebGPU", () => {
     expect(screen.getByRole("heading", { name: "Fracture Sim" })).toBeVisible();
     expect(await screen.findByLabelText("Fracture simulation")).toBeVisible();
     expect(screen.getByLabelText("Simulation statistics")).toHaveTextContent(
-      "0.0%",
+      "Bodies0",
     );
     await user.click(screen.getByRole("button", { name: "report stats" }));
     expect(screen.getByLabelText("Simulation statistics")).toHaveTextContent(
-      "50.0%",
+      "Bodies3",
     );
   });
 
@@ -93,8 +103,8 @@ describe("with WebGPU", () => {
     const user = userEvent.setup();
     render(<App />);
     await screen.findByLabelText("Fracture simulation");
-    await user.selectOptions(screen.getByLabelText("Material"), "glass");
-    expect(screen.getByLabelText("Material")).toHaveValue("glass");
+    await user.selectOptions(screen.getByLabelText("Scene"), "pile");
+    expect(screen.getByLabelText("Scene")).toHaveValue("pile");
     await user.click(screen.getByRole("button", { name: "Pause" }));
     expect(screen.getByRole("button", { name: "Resume" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Reset" }));
@@ -139,6 +149,18 @@ describe("with WebGPU", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("WebGPU is required");
     expect(screen.getByRole("alert")).toHaveTextContent("no context");
     expect(screen.queryByLabelText("Fracture simulation")).toBeNull();
+  });
+
+  it("stops and explains a physics worker failure", async () => {
+    setGpu(fakeGpu().gpu);
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(
+      await screen.findByRole("button", { name: "report physics failure" }),
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent("The physics stopped");
+    expect(screen.getByRole("alert")).toHaveTextContent("WASM failed");
+    expect(screen.getByRole("button", { name: "Reset" })).toBeDisabled();
   });
 
   it("releases a device that arrives after the page is gone", async () => {
