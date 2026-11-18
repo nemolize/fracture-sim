@@ -59,6 +59,27 @@ failure notices. The old FEM stability sweep is replaced by these tests.
 Rapier2D is Apache-2.0 licensed; the compat distribution embeds its WASM so the
 browser worker loads without a separate WASM URL or server-side instantiation.
 
+## Fracture geometry
+
+`src/sim/split.ts` exports `splitConvex(parent, seeds)`, a pure Voronoi split
+for convex polygons. Seeds use the parent vertex frame. Each result contains
+a true `domain` and a collision `polygon` with at most eight vertices, both
+relative to the piece centroid, plus its offset from the parent centroid,
+area and centroidal polar area moment at density 1. Repeated splits must use
+`domain` so collision simplification cannot discard mass or momentum.
+Invalid polygons, non-interior or duplicate seeds, degenerate cells, and
+nonrepresentable area or polar moments throw.
+This module is a building block; impact-triggered fracture is still tracked in #21.
+
+Run the local 32-seed benchmark without coverage:
+
+```bash
+pnpm exec vitest run split.bench.test.ts --disableConsoleIntercept
+```
+
+It warms up 100 splits, then reports mean and p95 for 1,000 different inputs.
+The performance test is skipped when `CI` is set.
+
 ## Deployment
 
 `.github/workflows/deploy.yml` deploys `main` to a Cloudflare Worker named
