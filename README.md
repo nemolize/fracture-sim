@@ -2,8 +2,8 @@
 
 A browser-based 2D rigid-body sandbox. Rapier2D runs at a fixed 60 Hz in a Web
 Worker; WebGPU renders the convex polygons. This replaces the previous
-soft-body FEM simulator. Pointer tools and on-demand glass fracture are tracked
-in #20 and #21 and are not part of the rigid-world foundation.
+soft-body FEM simulator. Grab bodies directly, throw balls, or apply a local blast. On-demand glass
+fracture is tracked in #21.
 
 ## Requirements
 
@@ -16,7 +16,9 @@ stops the simulation with an explanation; reload to restart.
 Choose `plate` to drop a single glass plate from 2 m above the floor, `pile` for
 1,000 small bodies, or `stress` for 2,000. Pause freezes physics; Reset rebuilds
 the selected scene. Bodies collide with each other and the container and sleep
-when they settle. Speed controls simulated seconds per real second. On devices
+when they settle. `Grab` lifts a body and releases it with the pointer velocity;
+`Throw ball` launches from the start of a drag toward its end; `Blast` pushes
+bodies within 2 m of a click. Pausing disables pointer tools. Speed controls simulated seconds per real second. On devices
 with motion sensors, Gyro tilt changes gravity and shaking pushes bodies.
 
 ## Development
@@ -45,6 +47,7 @@ failure notices. The old FEM stability sweep is replaced by these tests.
 
 ### Layout
 
+- `src/rigid/gesture.ts`, `tools.ts`, and `interactions.ts` — pointer gestures, tool messages, and Rapier joints/impulses.
 - `src/rigid/world.ts` — Rapier world, convex shapes, fixed stepping and snapshots.
 - `src/rigid/worker.ts` and `types.ts` — worker entry point and message contract.
 - `src/rigid/renderer.ts` — WebGPU polygon rendering from worker transforms.

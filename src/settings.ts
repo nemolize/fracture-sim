@@ -1,7 +1,9 @@
+import type { Tool } from "@/rigid/tools";
 import { type Scene, SCENES } from "@/rigid/types";
 
 export interface Settings {
   scene: Scene;
+  tool: Tool;
   /** Simulated seconds per real second. */
   speed: number;
   inertiaScale: number;
@@ -18,6 +20,7 @@ export const MOTION_RANGES = {
 
 export const DEFAULT_SETTINGS: Settings = {
   scene: "plate",
+  tool: "grab",
   speed: 1,
   inertiaScale: 1,
   inertiaCap: 20,

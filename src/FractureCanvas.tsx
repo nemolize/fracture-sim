@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
 
-import { canvasSize, VIEW_HEIGHT } from "@/gpu/camera";
+import { canvasSize, pointerToWorld, VIEW_HEIGHT } from "@/gpu/camera";
 import { gpuContext } from "@/gpu/device";
 import { WORLD_WIDTH } from "@/rigid/constants";
+import { PointerGesture } from "@/rigid/gesture";
 import { RigidRenderer } from "@/rigid/renderer";
 import type { WorkerRequest, WorkerResponse, WorldStats } from "@/rigid/types";
 import type { Settings } from "@/settings";
@@ -29,6 +30,10 @@ export const FractureCanvas = ({
   onContextUnavailable,
   onPhysicsError,
 }: Props) => {
+  const cancelGesture = useRef<() => void>(() => undefined);
+  useEffect(() => {
+    cancelGesture.current();
+  }, [settings.tool, paused]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const latest = useRef({
     settings,
@@ -91,18 +96,67 @@ export const FractureCanvas = ({
         fail(response.message);
         return;
       }
-      if (response.type === "ready") {
+      const vertices =
+        response.type === "frame" ? undefined : response.vertices;
+      if (vertices !== undefined) {
+        renderer?.dispose();
         renderer = new RigidRenderer(
           device,
           format,
-          response.vertices,
+          vertices,
           response.snapshot.poses,
         );
       }
-      pending = false;
+      if (response.type !== "edited") pending = false;
       poses = response.snapshot.poses;
       latest.current.onStats(response.snapshot.stats);
     };
+    const gesture = new PointerGesture((action) => {
+      send({ type: "action", action });
+    });
+    cancelGesture.current = () => {
+      gesture.cancel();
+    };
+    const sample = (event: PointerEvent) => ({
+      id: event.pointerId,
+      point: pointerToWorld(
+        canvas.getBoundingClientRect(),
+        event.clientX,
+        event.clientY,
+      ),
+      time: event.timeStamp,
+    });
+    const down = (event: PointerEvent): void => {
+      if (
+        renderer === undefined ||
+        stopped ||
+        latest.current.paused ||
+        event.button !== 0 ||
+        !event.isPrimary
+      )
+        return;
+      if (gesture.down(latest.current.settings.tool, sample(event)))
+        canvas.setPointerCapture(event.pointerId);
+    };
+    const move = (event: PointerEvent): void => {
+      gesture.move(sample(event));
+    };
+    const up = (event: PointerEvent): void => {
+      gesture.up(sample(event));
+    };
+    const cancel = (event: PointerEvent): void => {
+      gesture.cancel(event.pointerId);
+    };
+    const blur = (): void => {
+      gesture.cancel();
+    };
+    canvas.addEventListener("pointerdown", down);
+    canvas.addEventListener("pointermove", move);
+    canvas.addEventListener("pointerup", up);
+    canvas.addEventListener("pointercancel", cancel);
+    canvas.addEventListener("lostpointercapture", cancel);
+    window.addEventListener("blur", blur);
+
     const resize = (): void => {
       const size = canvasSize(canvas.clientWidth, window.devicePixelRatio);
       if (canvas.width !== size.width) canvas.width = size.width;
@@ -118,6 +172,7 @@ export const FractureCanvas = ({
 
     const resetClock = (): void => {
       previous = null;
+      gesture.cancel();
     };
     document.addEventListener("visibilitychange", resetClock);
 
@@ -147,6 +202,13 @@ export const FractureCanvas = ({
     return () => {
       stopped = true;
       cancelAnimationFrame(animation);
+      cancelGesture.current = () => undefined;
+      canvas.removeEventListener("pointerdown", down);
+      canvas.removeEventListener("pointermove", move);
+      canvas.removeEventListener("pointerup", up);
+      canvas.removeEventListener("pointercancel", cancel);
+      canvas.removeEventListener("lostpointercapture", cancel);
+      window.removeEventListener("blur", blur);
       worker.terminate();
       observer.disconnect();
       cancelAnimationFrame(resizeFrame);
