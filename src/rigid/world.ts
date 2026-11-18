@@ -107,23 +107,24 @@ export class RigidWorld {
         this.tools.blast(action.point);
         break;
       case "throw": {
+        const radius = 0.12;
         const velocity = limitVelocity(action.velocity);
         const body = this.world.createRigidBody(
           RAPIER.RigidBodyDesc.dynamic()
             .setTranslation(
-              Math.max(0.12, Math.min(WORLD_WIDTH - 0.12, action.point.x)),
-              Math.max(0.12, Math.min(WORLD_HEIGHT - 0.12, action.point.y)),
+              Math.max(radius, Math.min(WORLD_WIDTH - radius, action.point.x)),
+              Math.max(radius, Math.min(WORLD_HEIGHT - radius, action.point.y)),
             )
             .setLinvel(velocity.x, velocity.y)
             .setCcdEnabled(true),
         );
         this.world.createCollider(
-          RAPIER.ColliderDesc.ball(0.12).setMass(2),
+          RAPIER.ColliderDesc.ball(radius).setMass(2),
           body,
         );
         const point = (i: number): readonly [number, number] => [
-          0.12 * Math.cos((i * Math.PI) / 4),
-          0.12 * Math.sin((i * Math.PI) / 4),
+          radius * Math.cos((i * Math.PI) / 4),
+          radius * Math.sin((i * Math.PI) / 4),
         ];
         const polygon: BodyShape["polygon"] = [
           point(0),
