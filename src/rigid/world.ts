@@ -7,6 +7,8 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "./constants";
+import { RigidTools } from "./interactions";
+import { limitVelocity, type ToolAction } from "./tools";
 import type { Scene, Snapshot } from "./types";
 
 let initialization: Promise<void> | undefined;
@@ -19,14 +21,18 @@ interface BodyShape {
     readonly [number, number],
     readonly [number, number],
     readonly [number, number],
-    readonly [number, number],
+    ...(readonly [number, number])[],
   ];
   fixed: boolean;
+  ball: boolean;
 }
 
 export class RigidWorld {
   private readonly world = new RAPIER.World({ x: 0, y: -GRAVITY });
   private readonly shapes: BodyShape[] = [];
+  private readonly tools = new RigidTools(this.world, () =>
+    this.shapes.filter((shape) => !shape.fixed),
+  );
   private elapsed = 0;
   private remainder = 0;
   private stepMs = 0;
@@ -83,22 +89,69 @@ export class RigidWorld {
       collider.setDensity(GLASS_DENSITY).setFriction(0.5),
       body,
     );
-    this.shapes.push({ body, polygon, fixed });
+    this.shapes.push({ body, polygon, fixed, ball: false });
+  }
+
+  apply(action: ToolAction): boolean {
+    switch (action.type) {
+      case "grab":
+        this.tools.start(action.point);
+        break;
+      case "move":
+        this.tools.move(action.point);
+        break;
+      case "release":
+        this.tools.release(action.velocity);
+        break;
+      case "blast":
+        this.tools.blast(action.point);
+        break;
+      case "throw": {
+        const radius = 0.12;
+        const velocity = limitVelocity(action.velocity);
+        const body = this.world.createRigidBody(
+          RAPIER.RigidBodyDesc.dynamic()
+            .setTranslation(
+              Math.max(radius, Math.min(WORLD_WIDTH - radius, action.point.x)),
+              Math.max(radius, Math.min(WORLD_HEIGHT - radius, action.point.y)),
+            )
+            .setLinvel(velocity.x, velocity.y)
+            .setCcdEnabled(true),
+        );
+        this.world.createCollider(
+          RAPIER.ColliderDesc.ball(radius).setMass(2),
+          body,
+        );
+        const point = (i: number): readonly [number, number] => [
+          radius * Math.cos((i * Math.PI) / 4),
+          radius * Math.sin((i * Math.PI) / 4),
+        ];
+        const polygon: BodyShape["polygon"] = [
+          point(0),
+          point(1),
+          point(2),
+          ...Array.from({ length: 5 }, (_, i) => point(i + 3)),
+        ];
+        this.shapes.push({ body, polygon, fixed: false, ball: true });
+        return true;
+      }
+    }
+    return false;
   }
 
   vertices(): Float32Array<ArrayBuffer> {
     const vertices: number[] = [];
-    this.shapes.forEach(({ polygon, fixed }, index) => {
-      const color = fixed ? [0.82, 0.84, 0.86] : [0.16, 0.63, 0.76];
-      for (const [x, y] of [
-        polygon[0],
-        polygon[1],
-        polygon[2],
-        polygon[0],
-        polygon[2],
-        polygon[3],
-      ]) {
-        vertices.push(x, y, index, ...color);
+    this.shapes.forEach(({ polygon, fixed, ball }, index) => {
+      const color = fixed
+        ? [0.82, 0.84, 0.86]
+        : ball
+          ? [0.95, 0.47, 0.16]
+          : [0.16, 0.63, 0.76];
+      let previous = polygon[1];
+      for (const point of polygon.slice(2)) {
+        for (const [x, y] of [polygon[0], previous, point])
+          vertices.push(x, y, index, ...color);
+        previous = point;
       }
     });
     return new Float32Array(vertices);
@@ -118,6 +171,7 @@ export class RigidWorld {
     const start = performance.now();
     let steps = 0;
     while (this.remainder + 1e-10 >= TIME_STEP) {
+      this.tools.update();
       this.world.step();
       this.elapsed += TIME_STEP;
       this.remainder -= TIME_STEP;

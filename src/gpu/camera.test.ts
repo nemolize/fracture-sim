@@ -16,3 +16,10 @@ describe("canvasSize", () => {
     expect(canvasSize(0, 1)).toEqual({ width: 1, height: 1 });
   });
 });
+
+it("maps client coordinates to world metres using the floor margin", async () => {
+  const { pointerToWorld } = await import("./camera");
+  expect(
+    pointerToWorld({ left: 10, top: 20, width: 1000, height: 560 }, 510, 530),
+  ).toEqual({ x: 5, y: 0.1 });
+});

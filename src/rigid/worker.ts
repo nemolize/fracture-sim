@@ -22,8 +22,20 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
         ]);
       } else {
         if (world === undefined) throw new Error("Physics worker is not ready");
-        const snapshot = world.advance(request.seconds, request.gravity);
-        send({ type: "frame", snapshot }, [snapshot.poses.buffer]);
+        if (request.type === "action") {
+          const changed = world.apply(request.action);
+          const snapshot = world.snapshot();
+          if (changed) {
+            const vertices = world.vertices();
+            send({ type: "edited", snapshot, vertices }, [
+              vertices.buffer,
+              snapshot.poses.buffer,
+            ]);
+          } else send({ type: "edited", snapshot }, [snapshot.poses.buffer]);
+        } else {
+          const snapshot = world.advance(request.seconds, request.gravity);
+          send({ type: "frame", snapshot }, [snapshot.poses.buffer]);
+        }
       }
     } catch (error) {
       send({

@@ -164,3 +164,9 @@ describe("ControlPanel", () => {
     expect(screen.getByRole("button", { name: "Pause" })).toBeEnabled();
   });
 });
+
+it("selects the pointer tool", async () => {
+  const { user, onChange } = setup();
+  await user.click(screen.getByLabelText("Throw ball"));
+  expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_SETTINGS, tool: "throw" });
+});

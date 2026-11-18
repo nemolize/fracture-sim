@@ -21,3 +21,15 @@ export const canvasSize = (
     ),
   };
 };
+
+export const pointerToWorld = (
+  rect: { left: number; top: number; width: number; height: number },
+  clientX: number,
+  clientY: number,
+): { x: number; y: number } => {
+  const scale = rect.width / WORLD_WIDTH;
+  return {
+    x: (clientX - rect.left) / scale,
+    y: (rect.height - FLOOR_MARGIN * scale - (clientY - rect.top)) / scale,
+  };
+};

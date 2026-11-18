@@ -76,3 +76,59 @@ it("reports a non-finite engine state", () => {
   vi.spyOn(RAPIER.RigidBody.prototype, "rotation").mockReturnValueOnce(NaN);
   expect(() => world?.snapshot()).toThrow("Non-finite rigid-body state");
 });
+
+it("routes pointer actions and appends a ball with matching geometry and poses", () => {
+  world = new RigidWorld("plate");
+  expect(world.apply({ type: "grab", point: { x: 5, y: 2.5 } })).toBe(false);
+  world.apply({ type: "move", point: { x: 5, y: 3.5 } });
+  for (let i = 0; i < 60; i++) world.advance(TIME_STEP, gravity);
+  expect(world.snapshot().poses[17]).toBeGreaterThan(3.3);
+  world.apply({ type: "release", velocity: { x: 2, y: 0 } });
+  world.apply({ type: "blast", point: { x: 4, y: 3.5 } });
+  expect(
+    world.apply({
+      type: "throw",
+      point: { x: 1, y: 1 },
+      velocity: { x: 50, y: 0 },
+    }),
+  ).toBe(true);
+  const initial = world.snapshot();
+  expect(initial.stats.bodies).toBe(2);
+  expect(world.vertices()).toHaveLength(5 * 6 * 6 + 18 * 6);
+  const moved = world.advance(TIME_STEP, gravity);
+  expect(moved.poses[20]).toBeGreaterThan(initial.poses[20] ?? Infinity);
+});
+
+it("keeps thrown balls inside even when the launch starts in the floor margin", () => {
+  world = new RigidWorld("plate");
+  world.apply({
+    type: "throw",
+    point: { x: 5, y: -0.35 },
+    velocity: { x: 0, y: 0 },
+  });
+  for (let i = 0; i < 120; i++) world.advance(TIME_STEP, gravity);
+  expect(world.snapshot().poses[21]).toBeGreaterThan(0.1);
+});
+
+it("keeps a grabbed plate above the floor when capture drags below the canvas", () => {
+  world = new RigidWorld("plate");
+  for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity);
+  world.apply({ type: "grab", point: { x: 5, y: 0.5 } });
+  world.apply({ type: "move", point: { x: 5, y: -3 } });
+  for (let i = 0; i < 120; i++) world.advance(TIME_STEP, gravity);
+  expect(world.snapshot().poses[17]).toBeGreaterThan(0.45);
+});
+
+it("can grab a thrown ball and keep it in the container", () => {
+  world = new RigidWorld("plate");
+  world.apply({
+    type: "throw",
+    point: { x: 1, y: 1 },
+    velocity: { x: 0, y: 0 },
+  });
+  world.apply({ type: "grab", point: { x: 1, y: 1 } });
+  world.apply({ type: "move", point: { x: -5, y: 2 } });
+  for (let i = 0; i < 120; i++) world.advance(TIME_STEP, gravity);
+  expect(world.snapshot().poses[20]).toBeGreaterThan(0.1);
+  expect(world.snapshot().poses[21]).toBeCloseTo(2, 1);
+});

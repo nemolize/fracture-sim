@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { TOOL_HINTS, TOOL_LABELS, TOOLS } from "@/rigid/tools";
 import { SCENES, type WorldStats } from "@/rigid/types";
 import { asScene, MOTION_RANGES, type Settings } from "@/settings";
 import type { MotionControl } from "@/useMotion";
@@ -93,6 +94,26 @@ export const ControlPanel = ({
         </select>
       </Field>
     </div>
+
+    <fieldset className="flex flex-col gap-2" disabled={locked || paused}>
+      <legend className="text-sm font-medium text-gray-700">Tool</legend>
+      <div className="flex gap-2">
+        {TOOLS.map((tool) => (
+          <label key={tool} className="flex items-center gap-1 text-sm">
+            <input
+              type="radio"
+              name="tool"
+              checked={settings.tool === tool}
+              onChange={() => {
+                onChange({ ...settings, tool });
+              }}
+            />
+            {TOOL_LABELS[tool]}
+          </label>
+        ))}
+      </div>
+      <p className="text-xs text-gray-600">{TOOL_HINTS[settings.tool]}</p>
+    </fieldset>
 
     <Field label={`Speed ×${settings.speed.toFixed(2)}`}>
       <input
