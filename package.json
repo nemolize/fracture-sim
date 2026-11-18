@@ -29,10 +29,9 @@
     "prepare": "lefthook install"
   },
   "dependencies": {
-    "clsx": "^2.1.1",
+    "@dimforge/rapier2d-compat": "0.21.0",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5",
-    "tailwind-merge": "^3.5.0"
+    "react-dom": "^19.2.5"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.44.0",

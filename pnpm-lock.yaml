@@ -8,18 +8,15 @@ importers:
 
   .:
     dependencies:
-      clsx:
-        specifier: ^2.1.1
-        version: 2.1.1
+      '@dimforge/rapier2d-compat':
+        specifier: 0.21.0
+        version: 0.21.0
       react:
         specifier: ^19.2.5
         version: 19.3.1
       react-dom:
         specifier: ^19.2.5
         version: 19.3.1(react@19.3.1)
-      tailwind-merge:
-        specifier: ^3.5.0
-        version: 3.7.0
     devDependencies:
       '@cloudflare/vite-plugin':
         specifier: ^1.44.0
@@ -301,6 +298,9 @@ packages:
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
+
+  '@dimforge/rapier2d-compat@0.21.0':
+    resolution: {integrity: sha512-cMStLQZbY5D/ajAPjOwTwoYuAJAungTYB45MNFEa5B+LGaMiZfxLwjHsfpxH5B0sDa+gkmcQFJJKiHNKnlpMnA==}
 
   '@emnapi/core@1.11.2':
     resolution: {integrity: sha512-TC8MkTuZUtcTSiFeuC0ksCh9QIJ5+F21MvZ4Wn4ORfYaFJ/0dsiudv5tVkejgwZlwQ39jL9WWDe2lz8x0WglOA==}
@@ -1493,10 +1493,6 @@ packages:
     resolution: {integrity: sha512-XWAtwJ6OHO+tj0EKCs0Y2UamnyOxseZWltU4x2U2wh8g4AigdjwvtUjvLP2tqkA/avxHEtzxNaqGq/YGNwckKg==}
     engines: {node: '>=18'}
 
-  clsx@2.1.1:
-    resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
-    engines: {node: '>=6'}
-
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
 
@@ -2258,9 +2254,6 @@ packages:
     resolution: {integrity: sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g==}
     engines: {node: '>=18'}
 
-  tailwind-merge@3.7.0:
-    resolution: {integrity: sha512-XPPUyAc+cvspz3lHTcR/QgPfW2A0lv/xQNIjX3HGhLR+Nq2lHaLq5MtTesHn8GUr3W3DguT2KT5x3NVgRtYwmA==}
-
   tailwindcss@4.3.5:
     resolution: {integrity: sha512-FcQk9BuffmEHJP2G0XmB2SplU1aLTI7j07Kunk+U74Ny+XiWOtzXz9aujFZ/avntw1e2cOv/3PkgzflQ7gX2vQ==}
 
@@ -2690,6 +2683,8 @@ snapshots:
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
+
+  '@dimforge/rapier2d-compat@0.21.0': {}
 
   '@emnapi/core@1.11.2':
     dependencies:
@@ -3582,8 +3577,6 @@ snapshots:
 
   chai@6.3.0: {}
 
-  clsx@2.1.1: {}
-
   convert-source-map@2.0.0: {}
 
   cookie@1.1.1: {}
@@ -4309,8 +4302,6 @@ snapshots:
   strip-json-comments@5.0.3: {}
 
   supports-color@10.2.2: {}
-
-  tailwind-merge@3.7.0: {}
 
   tailwindcss@4.3.5: {}
 

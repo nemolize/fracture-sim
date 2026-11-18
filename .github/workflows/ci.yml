@@ -9,8 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  # A queued run replaces a pending one, and a main run left unrun would hide its
-  # commit from the next run's changed-file range, so a main run gets its own group.
+  # Each main commit gets its own run; only superseded PR runs are cancelled.
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   # Cancelling an in-progress main run would leave that commit with no CI verdict.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -90,72 +89,15 @@ jobs:
       - if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm run build
 
-  SweepFilter:
-    runs-on: ubuntu-26.04
-    timeout-minutes: 5
-    outputs:
-      run: ${{ steps.filter.outputs.run }}
-
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          # The base commit of a pull request or a push is not in a shallow clone.
-          fetch-depth: 0
-          persist-credentials: false
-      - id: filter
-        run: |
-          changed="$(mktemp)"
-          if ! git diff --no-renames --name-only -z "$BASE_SHA" HEAD >"$changed"; then
-            echo "::error::could not list the files changed since ${BASE_SHA}, so the stability sweep runs"
-            echo "run=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          sweep=false
-          # No changed file means the range says nothing, which never skips the sweep.
-          [ -s "$changed" ] || sweep=true
-          while IFS= read -r -d '' name; do
-            case "$name" in
-              src/sim/* | src/gpu/* | src/harness/* | e2e-tests/* | playwright.config.ts | port.ts | harness.html | .github/workflows/ci.yml)
-                sweep=true
-                break
-                ;;
-            esac
-          done <"$changed"
-          echo "run=${sweep}" >> "$GITHUB_OUTPUT"
-        env:
-          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-
   E2ETests:
     runs-on: ubuntu-26.04
     timeout-minutes: 20
-    # The merge ruleset requires this job, not the sweep shards, so it waits for
-    # the sweep: it passes when the sweep passed, or when the filter skipped it.
-    needs: [SweepFilter, StabilitySweep]
-    if: ${{ !cancelled() }}
     container:
       image: mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579
       # Without --ipc=host chromium can run out of memory and crash.
       options: --init --ipc=host
 
     steps:
-      - id: sweep-gate
-        name: Require the stability sweep to have passed, or to have been skipped for a change it cannot affect
-        run: |
-          if [ "$FILTER_RESULT" != success ]; then
-            echo "::error::the sweep filter finished as ${FILTER_RESULT}"
-            exit 1
-          fi
-          case "${SWEEP_RUN}:${SWEEP_RESULT}" in
-            true:success | false:skipped) ;;
-            *)
-              echo "::error::the filter's run output was '${SWEEP_RUN}' and the stability sweep finished as ${SWEEP_RESULT}"
-              exit 1
-              ;;
-          esac
-        env:
-          FILTER_RESULT: ${{ needs.SweepFilter.result }}
-          SWEEP_RUN: ${{ needs.SweepFilter.outputs.run }}
-          SWEEP_RESULT: ${{ needs.StabilitySweep.result }}
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
@@ -173,8 +115,7 @@ jobs:
             exit 1
           fi
       - id: e2e
-        # The stability sweep runs in its own job.
-        run: pnpm run test:e2e --grep-invert "stay finite"
+        run: pnpm run test:e2e
       - if: ${{ !cancelled() && (steps.e2e.outcome == 'success' || steps.e2e.outcome == 'failure') }}
         name: Upload the Playwright test results
         uses: actions/upload-artifact@v7.0.2
@@ -187,57 +128,3 @@ jobs:
           # Uploading a name that already exists fails, which a re-run would hit.
           overwrite: true
           retention-days: 7
-
-  # The 10-second no-NaN sweep over every scene, material and resolution runs on
-  # a software GPU; one finest-mesh case alone takes several minutes, so the
-  # combinations are split across jobs that run in parallel.
-  StabilitySweep:
-    name: StabilitySweep (${{ matrix.shard }})
-    needs: SweepFilter
-    if: ${{ needs.SweepFilter.outputs.run == 'true' }}
-    runs-on: ubuntu-26.04
-    timeout-minutes: 25
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - shard: standard
-            grep: "stay finite for 10 s: .*, standard$"
-          - shard: fine-wall
-            grep: "stay finite for 10 s: wall, .*, fine$"
-          - shard: fine-tower
-            grep: "stay finite for 10 s: tower, .*, fine$"
-          - shard: finest-tower-glass-concrete
-            grep: "stay finite for 10 s: tower, (glass|concrete), finest$"
-          - shard: finest-tower-steel-clay
-            grep: "stay finite for 10 s: tower, (steel|clay), finest$"
-          - shard: finest-wall-glass
-            grep: "stay finite for 10 s: wall, glass, finest$"
-          - shard: finest-wall-concrete
-            grep: "stay finite for 10 s: wall, concrete, finest$"
-          - shard: finest-wall-steel
-            grep: "stay finite for 10 s: wall, steel, finest$"
-          - shard: finest-wall-clay
-            grep: "stay finite for 10 s: wall, clay, finest$"
-    container:
-      image: mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579
-      options: --init --ipc=host
-
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-      - run: git config --global --add safe.directory "$(pwd)"
-      - uses: nemolize/actions/setup@v1.4.1
-      - name: Assert the image ships the Playwright version we depend on
-        run: |
-          img="$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('/ms-playwright/.docker-info', 'utf8')).driverVersion)")"
-          pt="$(node -p "require('@playwright/test/package.json').version")"
-          if [ "$pt" != "$img" ]; then
-            echo "::error::image ships Playwright $img, but @playwright/test is $pt; update this job's container image tag to v$pt-noble and its matching digest"
-            exit 1
-          fi
-      # A sweep is deterministic, so a retry would only repeat minutes of work.
-      - run: pnpm run test:e2e --retries=0 -g "$GREP"
-        env:
-          GREP: ${{ matrix.grep }}

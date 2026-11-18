@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -14,7 +14,7 @@ const setRange = (slider: HTMLElement, value: string): void => {
   slider.dispatchEvent(new Event("input", { bubbles: true }));
 };
 
-const stats = { erodedFraction: 0.123, chunks: 4, maxPlasticStrain: 0.5 };
+const stats = { bodies: 1000, sleeping: 987, stepMs: 0.5, time: 0 };
 
 const setup = (
   paused = false,
@@ -56,41 +56,26 @@ describe("ControlPanel", () => {
   it("shows the statistics", () => {
     setup();
     const list = screen.getByLabelText("Simulation statistics");
-    expect(list).toHaveTextContent("12.3%");
-    expect(list).toHaveTextContent("4");
-    expect(list).toHaveTextContent("0.500");
+    expect(list).toHaveTextContent("1000");
+    expect(list).toHaveTextContent("987");
+    expect(list).toHaveTextContent("0.50 ms");
   });
 
-  it.each([
-    ["Scene", "tower", { scene: "tower" }],
-    ["Material", "glass", { material: "glass" }],
-    ["Mesh resolution", "finest", { resolution: "finest" }],
-    ["View", "damage", { view: "damage" }],
-  ])("changes %s from the select", async (label, value, patch) => {
-    const { onChange, user } = setup();
-    await user.selectOptions(screen.getByLabelText(label), value);
-    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_SETTINGS, ...patch });
-  });
-
-  it.each(["Scene", "Material", "Mesh resolution", "View"])(
-    "ignores an unknown value in %s",
-    (label) => {
-      const { onChange } = setup();
-      fireEvent.change(screen.getByLabelText(label), {
-        target: { value: "unknown" },
-      });
-      expect(onChange).not.toHaveBeenCalled();
+  it.each([["Scene", "pile", { scene: "pile" }]])(
+    "changes %s from the select",
+    async (label, value, patch) => {
+      const { onChange, user } = setup();
+      await user.selectOptions(screen.getByLabelText(label), value);
+      expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_SETTINGS, ...patch });
     },
   );
 
-  it("changes the tool and describes the selected one", async () => {
-    const { onChange, user } = setup();
-    expect(screen.getByText(/ball flies the way you drag/)).toBeVisible();
-    await user.click(screen.getByLabelText("Pull"));
-    expect(onChange).toHaveBeenCalledWith({
-      ...DEFAULT_SETTINGS,
-      tool: "pull",
+  it.each(["Scene"])("ignores an unknown value in %s", (label) => {
+    const { onChange } = setup();
+    fireEvent.change(screen.getByLabelText(label), {
+      target: { value: "unknown" },
     });
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it("changes the speed", () => {
@@ -170,17 +155,9 @@ describe("ControlPanel", () => {
     expect(screen.getByRole("button", { name: "Resume" })).toBeVisible();
   });
 
-  it("lists at least three mesh resolutions", () => {
-    setup();
-    expect(
-      within(screen.getByLabelText("Mesh resolution")).getAllByRole("option")
-        .length,
-    ).toBeGreaterThanOrEqual(3);
-  });
-
   it("locks Reset and the settings that rebuild the solver, not Pause", () => {
     setup(false, true);
-    for (const label of ["Scene", "Material", "Mesh resolution"]) {
+    for (const label of ["Scene"]) {
       expect(screen.getByLabelText(label)).toBeDisabled();
     }
     expect(screen.getByRole("button", { name: "Reset" })).toBeDisabled();
