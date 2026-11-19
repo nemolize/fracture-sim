@@ -15,10 +15,10 @@ stops the simulation with an explanation; reload to restart.
 
 Choose `plate` to drop a single glass plate from 2 m above the floor, `pile` for
 1,000 small bodies, or `stress` for 2,000. Pause freezes physics; Reset rebuilds
-the selected scene. The falling plate breaks on landing. Bodies collide with each other and the container and sleep
+the selected scene. The plate survives landing with the default material. Bodies collide with each other and the container and sleep
 when they settle. `Grab` lifts a body and releases it with the pointer velocity;
 `Throw ball` launches from the start of a drag toward its end; `Blast` pushes
-bodies within 2 m of a click. Pausing disables pointer tools. Speed controls simulated seconds per real second. On devices
+bodies within 2 m of a click. Under `Material`, increase `Fracture toughness (J/m)` to resist breaking or lower it for more brittle glass. Changes apply to future impacts without rebuilding the scene; Reset restores bodies using the selected toughness. Pausing disables pointer tools. Speed controls simulated seconds per real second. On devices
 with motion sensors, Gyro tilt changes gravity and shaking pushes bodies.
 
 ## Development
@@ -69,7 +69,8 @@ area and centroidal polar area moment at density 1. Repeated splits must use
 `domain` so collision simplification cannot discard mass or momentum.
 Invalid polygons, non-interior or duplicate seeds, degenerate cells, and
 nonrepresentable area or polar moments throw.
-`src/sim/fracture.ts` spends impact energy at an empirical 12 J/m of new crack.
+`src/sim/fracture.ts` divides impact energy by the material's fracture toughness (effective 2D energy per metre of new crack).
+The default 1,200 J/m is empirical and keeps the 2 m plate drop intact; 12 J/m reproduces the earlier brittle setting. Values must be finite and at least 1 J/m. Changing toughness cancels splits queued under the previous material.
 A hit must exceed the body's narrowest width before splitting. Seeds are tried
 nearest the contact first, with spacing increasing with distance. Actual shared
 Voronoi edge length must fit the energy budget; pieces smaller than 0.005 m²

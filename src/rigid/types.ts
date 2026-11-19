@@ -19,7 +19,12 @@ export interface Snapshot {
 export type WorkerRequest =
   | { type: "init"; scene: Scene }
   | { type: "action"; action: ToolAction }
-  | { type: "advance"; seconds: number; gravity: { x: number; y: number } };
+  | {
+      type: "advance";
+      seconds: number;
+      gravity: { x: number; y: number };
+      fractureToughness?: number;
+    };
 
 export type WorkerResponse =
   | { type: "ready"; vertices: Float32Array<ArrayBuffer>; snapshot: Snapshot }

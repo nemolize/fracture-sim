@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  CRACK_ENERGY,
-  fracturePieces,
+  fracturePieces as splitWithToughness,
   MAX_HIT_PIECES,
   MIN_FRAGMENT_AREA,
   narrowestWidth,
 } from "./fracture";
 import type { Vec2 } from "./vec2";
+
+const CRACK_ENERGY = 12;
+const fracturePieces = (domain: readonly Vec2[], point: Vec2, energy: number) =>
+  splitWithToughness(domain, point, energy, CRACK_ENERGY);
 
 const plate = [
   { x: -1, y: -0.5 },

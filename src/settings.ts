@@ -1,11 +1,13 @@
 import type { Tool } from "@/rigid/tools";
 import { type Scene, SCENES } from "@/rigid/types";
+import { DEFAULT_FRACTURE_TOUGHNESS } from "@/sim/material";
 
 export interface Settings {
   scene: Scene;
   tool: Tool;
   /** Simulated seconds per real second. */
   speed: number;
+  fractureToughness: number;
   inertiaScale: number;
   inertiaCap: number;
   tiltSmoothing: number;
@@ -22,6 +24,7 @@ export const DEFAULT_SETTINGS: Settings = {
   scene: "plate",
   tool: "grab",
   speed: 1,
+  fractureToughness: DEFAULT_FRACTURE_TOUGHNESS,
   inertiaScale: 1,
   inertiaCap: 20,
   tiltSmoothing: 0.1,

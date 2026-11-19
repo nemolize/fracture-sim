@@ -17,7 +17,7 @@ test("worker fractures a plate dropped 2 m and transfers matching geometry", asy
     let frame = initial;
     let geometryChanged = false;
     for (let i = 0; i < 100; i++) {
-      frame = await window.harness.step(0.1);
+      frame = await window.harness.step(0.1, { x: 0, y: -9.8 }, 12);
       if (frame.type === "frame" && frame.vertices !== undefined) {
         geometryChanged = true;
         for (let j = 2; j < frame.vertices.length; j += 6) {
@@ -116,8 +116,8 @@ test("WebGPU renders the plate, follows motion, and rebuilds scenes without diag
   });
   await expect(page.getByLabel("Gyro tilt")).toBeEnabled();
   const stats = page.getByLabel("Simulation statistics");
-  await expect(stats).toContainText(/Bodies[2-9]/);
-  await expect(stats).toContainText(/Sleeping[2-9]/);
+  await expect(stats).toContainText("Bodies1");
+  await expect(stats).toContainText("Sleeping1");
   const canvas = page.getByLabel("Fracture simulation");
   await expect.poll(() => glassPixels(page)).toBeGreaterThan(500);
   const before = await canvas.screenshot();

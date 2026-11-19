@@ -3,7 +3,6 @@ import { polygonMoments } from "./polygon";
 import { type Piece, splitConvex } from "./split";
 import type { Vec2 } from "./vec2";
 
-export const CRACK_ENERGY = 12;
 export const MIN_FRAGMENT_AREA = 0.005;
 export const MAX_HIT_PIECES = 40;
 
@@ -29,8 +28,9 @@ export const fracturePieces = (
   domain: readonly Vec2[],
   contact: Vec2,
   energy: number,
+  fractureToughness: number,
 ): Piece[] => {
-  const budget = energy / CRACK_ENERGY;
+  const budget = energy / fractureToughness;
   const area = polygonMoments(domain).area;
   if (!(budget > narrowestWidth(domain)) || area < 2 * MIN_FRAGMENT_AREA)
     return [];

@@ -1,6 +1,10 @@
 import RAPIER from "@dimforge/rapier2d-compat";
 
 import { fracturePieces } from "@/sim/fracture";
+import {
+  DEFAULT_FRACTURE_TOUGHNESS,
+  isFractureToughness,
+} from "@/sim/material";
 import { polygonMoments } from "@/sim/polygon";
 import type { Piece } from "@/sim/split";
 
@@ -11,6 +15,16 @@ export const MAX_BODIES = 2000;
 export class ImpactFracture {
   private readonly queue = new RAPIER.EventQueue(true);
   private readonly pending = new Map<BodyShape, Piece[]>();
+  private toughness = DEFAULT_FRACTURE_TOUGHNESS;
+
+  setToughness(value: number): void {
+    if (!isFractureToughness(value))
+      throw new Error("Fracture toughness must be finite and at least 1 J/m");
+    if (value !== this.toughness) {
+      this.pending.clear();
+      this.toughness = value;
+    }
+  }
 
   step(
     world: RAPIER.World,
@@ -76,6 +90,7 @@ export class ImpactFracture {
                 y: -Math.sin(rotation) * dx + Math.cos(rotation) * dy,
               },
               energy,
+              this.toughness,
             );
             if (pieces.length > 1) this.pending.set(shape, pieces);
           }

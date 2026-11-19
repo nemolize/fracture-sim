@@ -1,10 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
-import type {
-  Snapshot,
-  WorkerRequest,
-  WorkerResponse,
-} from "../src/rigid/types";
+import type { Snapshot, WorkerResponse } from "../src/rigid/types";
 
 declare global {
   interface Window {
@@ -13,31 +9,11 @@ declare global {
   }
 }
 
-const prepareIntactPlateAndObserveWorker = (page: Page) =>
+const observeWorker = (page: Page) =>
   page.addInitScript(() => {
     window.plateMaxSpeed = 0;
     const OriginalWorker = window.Worker;
     window.Worker = class extends OriginalWorker {
-      private settled = false;
-      private fixture = window.location.pathname === "/";
-      private fixtureStep = 0;
-      override postMessage(
-        message: WorkerRequest,
-        transfer: Transferable[] | StructuredSerializeOptions = [],
-      ): void {
-        if (message.type === "init") this.settled = false;
-        // Alternate above the gravity wake threshold so gentle settling cannot sleep in midair.
-        if (message.type === "advance" && this.fixture && !this.settled)
-          message = {
-            ...message,
-            seconds: 0.1,
-            gravity: { x: 0, y: this.fixtureStep++ % 2 === 0 ? -0.102 : -0.1 },
-          };
-        super.postMessage(
-          message,
-          Array.isArray(transfer) ? { transfer } : transfer,
-        );
-      }
       constructor(url: string | URL, options?: WorkerOptions) {
         super(url, options);
         this.addEventListener(
@@ -46,7 +22,6 @@ const prepareIntactPlateAndObserveWorker = (page: Page) =>
             if (event.data.type !== "error") {
               const previous = window.observedPhysics;
               const next = event.data.snapshot;
-              if ((next.poses[17] ?? Infinity) < 0.505) this.settled = true;
               if (
                 previous !== undefined &&
                 next.stats.time > previous.stats.time
@@ -86,7 +61,7 @@ const drag = async (
 };
 
 test.beforeEach(async ({ page }) => {
-  await prepareIntactPlateAndObserveWorker(page);
+  await observeWorker(page);
   await page.goto("/");
   await expect
     .poll(() => page.evaluate(() => window.observedPhysics?.stats.sleeping))
@@ -136,7 +111,11 @@ test("throw tool launches a visible ball that hits the plate", async ({
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
   });
-  await page.screenshot({ path: "test-results/fracture-before.png" });
+  await page.getByLabel("Fracture toughness (J/m)").fill("12");
+  await page.screenshot({
+    path: "test-results/fracture-before.png",
+    fullPage: true,
+  });
   await page.getByLabel("Throw ball").check();
   await page.evaluate(() => {
     window.plateMaxSpeed = 0;
@@ -159,7 +138,7 @@ test("throw tool launches a visible ball that hits the plate", async ({
     .poll(() => page.evaluate(() => window.observedPhysics?.stats.time ?? 0))
     .toBeGreaterThan(hitTime + 0.8);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
-  await page.screenshot({ path: "test-results/throw-hit.png" });
+  await page.screenshot({ path: "test-results/throw-hit.png", fullPage: true });
   expect(errors).toEqual([]);
 });
 
@@ -250,4 +229,50 @@ test("captured drags below the canvas cannot pull the plate through the floor", 
     .toBeGreaterThan(start + 0.5);
   expect(await bodyY(page)).toBeGreaterThan(0.45);
   await page.mouse.up();
+});
+
+test("material toughness changes future impacts and persists through Reset", async ({
+  page,
+}) => {
+  const toughness = page.getByLabel("Fracture toughness (J/m)");
+  await expect(toughness).toHaveValue("1200");
+  await expect
+    .poll(() => page.evaluate(() => window.observedPhysics?.stats.bodies))
+    .toBe(1);
+  await page.screenshot({
+    path: "test-results/material-default.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  const time = await page.evaluate(
+    () => window.observedPhysics?.stats.time ?? NaN,
+  );
+  await toughness.fill("12");
+  expect(await page.evaluate(() => window.observedPhysics?.stats.time)).toBe(
+    time,
+  );
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await expect(toughness).toHaveValue("12");
+  await expect
+    .poll(() => page.evaluate(() => window.observedPhysics?.poses[17]))
+    .toBe(2.5);
+  await page.getByRole("button", { name: "Resume", exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => window.observedPhysics?.stats.bodies ?? 0))
+    .toBeGreaterThan(1);
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await toughness.fill("1200");
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await expect(toughness).toHaveValue("1200");
+  await page.getByRole("button", { name: "Resume", exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => window.observedPhysics?.stats.sleeping))
+    .toBe(1);
+  expect(await page.evaluate(() => window.observedPhysics?.stats.bodies)).toBe(
+    1,
+  );
+  await page.screenshot({
+    path: "test-results/material-restored.png",
+    fullPage: true,
+  });
 });

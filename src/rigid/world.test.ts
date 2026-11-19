@@ -18,7 +18,7 @@ afterEach(() => {
 const gravity = { x: 0, y: -GRAVITY };
 
 describe("rigid world", () => {
-  it("breaks a plate dropped from 2 m and preserves total mass", () => {
+  it("keeps the default plate intact when dropped from 2 m", () => {
     world = new RigidWorld("plate");
     const vertices = world.vertices();
     expect(vertices).toHaveLength(5 * 6 * 6);
@@ -26,10 +26,11 @@ describe("rigid world", () => {
     for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity);
     const { poses, stats } = world.snapshot();
     expect(poses.every(Number.isFinite)).toBe(true);
-    expect(stats.bodies).toBeGreaterThan(1);
+    expect(stats.bodies).toBe(1);
     expect(stats.sleeping).toBe(stats.bodies);
     expect(stats.mass).toBeCloseTo(50, 12);
-    expect(world.vertices().length).toBeGreaterThan(vertices.length);
+    expect(world.vertices()).toEqual(vertices);
+    expect(poses[17]).toBeCloseTo(0.5, 2);
   });
 
   it("advances at a fixed 60 Hz, clamps stalls and leaves paused frames unchanged", () => {

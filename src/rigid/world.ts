@@ -1,5 +1,7 @@
 import RAPIER from "@dimforge/rapier2d-compat";
 
+import { DEFAULT_FRACTURE_TOUGHNESS } from "@/sim/material";
+
 import { type BodyShape, polygonCollider } from "./body";
 import {
   GLASS_DENSITY,
@@ -171,7 +173,12 @@ export class RigidWorld {
     return new Float32Array(vertices);
   }
 
-  advance(seconds: number, gravity: { x: number; y: number }): Snapshot {
+  advance(
+    seconds: number,
+    gravity: { x: number; y: number },
+    fractureToughness = DEFAULT_FRACTURE_TOUGHNESS,
+  ): Snapshot {
+    this.fracture.setToughness(fractureToughness);
     const changed =
       Math.hypot(
         this.world.gravity.x - gravity.x,

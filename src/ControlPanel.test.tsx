@@ -170,3 +170,20 @@ it("selects the pointer tool", async () => {
   await user.click(screen.getByLabelText("Throw ball"));
   expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_SETTINGS, tool: "throw" });
 });
+
+it("changes material toughness while paused without requiring a Reset", () => {
+  const { onChange } = setup(true);
+  const input = screen.getByLabelText("Fracture toughness (J/m)");
+  expect(input).toBeEnabled();
+  expect(input).toHaveValue(1200);
+  fireEvent.change(input, { target: { value: "24" } });
+  expect(onChange).toHaveBeenCalledWith({
+    ...DEFAULT_SETTINGS,
+    fractureToughness: 24,
+  });
+});
+
+it("locks material editing when physics is unavailable", () => {
+  setup(false, true);
+  expect(screen.getByLabelText("Fracture toughness (J/m)")).toBeDisabled();
+});

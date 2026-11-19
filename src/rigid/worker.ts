@@ -34,7 +34,11 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
           } else send({ type: "edited", snapshot }, [snapshot.poses.buffer]);
         } else {
           const revision = world.geometryRevision;
-          const snapshot = world.advance(request.seconds, request.gravity);
+          const snapshot = world.advance(
+            request.seconds,
+            request.gravity,
+            request.fractureToughness,
+          );
           if (revision !== world.geometryRevision) {
             const vertices = world.vertices();
             send({ type: "frame", snapshot, vertices }, [

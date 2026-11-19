@@ -187,6 +187,7 @@ export const FractureCanvas = ({
           type: "advance",
           seconds: input.paused ? 0 : seconds * input.settings.speed,
           gravity: tracker.gravity(input.settings, now),
+          fractureToughness: input.settings.fractureToughness,
         });
         previous = now;
         pending = true;

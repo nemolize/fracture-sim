@@ -28,7 +28,8 @@ it("separates drops below and above the crack threshold using real Rapier impuls
   ] as const) {
     const world = make();
     world["shapes"][4]?.body.setTranslation({ x: 5, y: 0.5 + height }, true);
-    for (let i = 0; i < 60; i++) world.advance(TIME_STEP, { x: 0, y: -9.8 });
+    for (let i = 0; i < 60; i++)
+      world.advance(TIME_STEP, { x: 0, y: -9.8 }, 12);
     expect(world.snapshot().stats.bodies > 1).toBe(breaks);
     expect(world.snapshot().stats.mass).toBeCloseTo(50, 12);
   }
@@ -37,6 +38,7 @@ it("separates drops below and above the crack threshold using real Rapier impuls
 it("breaks two chunks colliding at 4 m/s and keeps their mass through subsequent impacts", () => {
   const engine = new RAPIER.World({ x: 0, y: 0 });
   const fracture = new ImpactFracture();
+  fracture.setToughness(12);
   const shapes: BodyShape[] = [];
   const polygon = [
     [-0.4, -0.5],
@@ -107,14 +109,14 @@ it("retains the whole parent when full and retries its queued split when room ap
   // Park the extra balls without contacts so the test isolates pool saturation.
   for (const [i, s] of shapes.slice(5).entries())
     s.body.setTranslation({ x: 100 + i, y: 100 }, true);
-  for (let i = 0; i < 50; i++) world.advance(TIME_STEP, { x: 0, y: -9.8 });
+  for (let i = 0; i < 50; i++) world.advance(TIME_STEP, { x: 0, y: -9.8 }, 12);
   expect(shapes[4]).toBe(parent);
   expect(world.snapshot().stats.bodies).toBe(MAX_BODIES);
   expect(world.snapshot().stats.mass).toBe(50 + 1999 * 2);
   const removed = shapes.splice(5, 40);
   for (const s of removed) engine.removeRigidBody(s.body);
   const remaining = world.snapshot().stats.mass;
-  world.advance(TIME_STEP, { x: 0, y: 0 });
+  world.advance(TIME_STEP, { x: 0, y: 0 }, 12);
   expect(shapes.includes(parent)).toBe(false);
   expect(world.snapshot().stats.bodies).toBeLessThanOrEqual(MAX_BODIES);
   expect(world.snapshot().stats.mass).toBeCloseTo(remaining, 11);
@@ -122,7 +124,7 @@ it("retains the whole parent when full and retries its queued split when room ap
 
 it("keeps the parent and rolls back partial children if collider creation fails", () => {
   const world = make();
-  for (let i = 0; i < 30; i++) world.advance(TIME_STEP, { x: 0, y: -9.8 });
+  for (let i = 0; i < 30; i++) world.advance(TIME_STEP, { x: 0, y: -9.8 }, 12);
   const parent = world["shapes"][4];
   const count = world["world"].bodies.len();
   const create = world["world"].createCollider.bind(world["world"]);
@@ -132,7 +134,8 @@ it("keeps the parent and rolls back partial children if collider creation fails"
     return create(...args);
   });
   expect(() => {
-    for (let i = 0; i < 20; i++) world.advance(TIME_STEP, { x: 0, y: -9.8 });
+    for (let i = 0; i < 20; i++)
+      world.advance(TIME_STEP, { x: 0, y: -9.8 }, 12);
   }).toThrow("allocation failed");
   expect(world["shapes"][4]).toBe(parent);
   expect(world["world"].bodies.len()).toBe(count);
@@ -147,7 +150,7 @@ it("detaches a grabbed parent before replacing it, leaving later pointer actions
     point: { x: 3, y: 2.5 },
     velocity: { x: 25, y: 0 },
   });
-  for (let i = 0; i < 30; i++) world.advance(TIME_STEP, { x: 0, y: 0 });
+  for (let i = 0; i < 30; i++) world.advance(TIME_STEP, { x: 0, y: 0 }, 12);
   expect(world.snapshot().stats.bodies).toBeGreaterThan(2);
   expect(world["world"].bodies.len()).toBe(world.snapshot().stats.bodies + 4);
   expect(() =>
@@ -198,6 +201,42 @@ it.each([
     if (mode === "missing-first") shapes.splice(0, 4);
     if (!collider.isValid()) throw new Error("Invalid fixture collider");
   }
-  for (let i = 0; i < 60; i++) world.advance(TIME_STEP, { x: 0, y: -9.8 });
+  for (let i = 0; i < 60; i++) world.advance(TIME_STEP, { x: 0, y: -9.8 }, 12);
   expect(world.snapshot().poses.every(Number.isFinite)).toBe(true);
+});
+
+it.each([0, -12, 0.5, NaN, Infinity, -Infinity])(
+  "rejects invalid material toughness %s before advancing physics",
+  (toughness) => {
+    const world = make();
+    const before = world.snapshot();
+    expect(() =>
+      world.advance(TIME_STEP, { x: 0, y: -9.8 }, toughness),
+    ).toThrow("Fracture toughness must be finite and at least 1 J/m");
+    expect(world.snapshot()).toEqual(before);
+  },
+);
+
+it("cancels a capacity-deferred split when the material changes", () => {
+  const world = make();
+  for (let i = 1; i < MAX_BODIES; i++)
+    world.apply({
+      type: "throw",
+      point: { x: 1, y: 4 },
+      velocity: { x: 0, y: 0 },
+    });
+  const shapes = world["shapes"];
+  const engine = world["world"];
+  const parent = shapes[4];
+  if (parent === undefined) throw new Error("Missing plate");
+  for (const [i, s] of shapes.slice(5).entries())
+    s.body.setTranslation({ x: 100 + i, y: 100 }, true);
+  for (let i = 0; i < 50; i++) world.advance(TIME_STEP, { x: 0, y: -9.8 }, 12);
+  expect(world["fracture"]["pending"].size).toBe(1);
+  world.advance(0, { x: 0, y: -9.8 }, 1200);
+  expect(world["fracture"]["pending"].size).toBe(0);
+  for (const s of shapes.splice(5, 40)) engine.removeRigidBody(s.body);
+  for (let i = 0; i < 60; i++)
+    world.advance(TIME_STEP, { x: 0, y: -9.8 }, 1200);
+  expect(shapes.includes(parent)).toBe(true);
 });

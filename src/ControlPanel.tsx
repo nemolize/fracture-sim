@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { MaterialControl } from "@/MaterialControl";
 import { TOOL_HINTS, TOOL_LABELS, TOOLS } from "@/rigid/tools";
 import { SCENES, type WorldStats } from "@/rigid/types";
 import { asScene, MOTION_RANGES, type Settings } from "@/settings";
@@ -127,6 +128,14 @@ export const ControlPanel = ({
         }}
       />
     </Field>
+
+    <MaterialControl
+      value={settings.fractureToughness}
+      disabled={locked}
+      onChange={(fractureToughness) => {
+        onChange({ ...settings, fractureToughness });
+      }}
+    />
 
     <fieldset className="flex flex-col gap-2">
       <legend className="mb-1 text-sm font-medium text-gray-700">Motion</legend>
