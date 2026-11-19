@@ -40,6 +40,17 @@ const observeWorker = (page: Page) =>
       }
     };
   });
+const setToughness = async (page: Page, value: number): Promise<void> => {
+  await page
+    .getByRole("slider", { name: "Fracture toughness (J/m)" })
+    .evaluate((input, next) => {
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set?.call(input, String(Math.log10(next)));
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    }, value);
+};
 const bodyY = (page: Page) =>
   page.evaluate(() => window.observedPhysics?.poses[17] ?? NaN);
 const bodyX = (page: Page) =>
@@ -111,7 +122,7 @@ test("throw tool launches a visible ball that hits the plate", async ({
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
   });
-  await page.getByLabel("Fracture toughness (J/m)").fill("12");
+  await setToughness(page, 12);
   await page.screenshot({
     path: "test-results/fracture-before.png",
     fullPage: true,
@@ -234,8 +245,10 @@ test("captured drags below the canvas cannot pull the plate through the floor", 
 test("material toughness changes future impacts and persists through Reset", async ({
   page,
 }) => {
-  const toughness = page.getByLabel("Fracture toughness (J/m)");
-  await expect(toughness).toHaveValue("1200");
+  const toughness = page.getByRole("slider", {
+    name: "Fracture toughness (J/m)",
+  });
+  await expect(toughness).toHaveAttribute("aria-valuetext", "1,200 J/m");
   await expect
     .poll(() => page.evaluate(() => window.observedPhysics?.stats.bodies))
     .toBe(1);
@@ -244,15 +257,19 @@ test("material toughness changes future impacts and persists through Reset", asy
     fullPage: true,
   });
   await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await toughness.press("End");
+  await expect(toughness).toHaveAttribute("aria-valuetext", "10,000 J/m");
+  await toughness.press("Home");
+  await expect(toughness).toHaveAttribute("aria-valuetext", "1 J/m");
   const time = await page.evaluate(
     () => window.observedPhysics?.stats.time ?? NaN,
   );
-  await toughness.fill("12");
+  await setToughness(page, 12);
   expect(await page.evaluate(() => window.observedPhysics?.stats.time)).toBe(
     time,
   );
   await page.getByRole("button", { name: "Reset", exact: true }).click();
-  await expect(toughness).toHaveValue("12");
+  await expect(toughness).toHaveAttribute("aria-valuetext", "12 J/m");
   await expect
     .poll(() => page.evaluate(() => window.observedPhysics?.poses[17]))
     .toBe(2.5);
@@ -261,9 +278,10 @@ test("material toughness changes future impacts and persists through Reset", asy
     .poll(() => page.evaluate(() => window.observedPhysics?.stats.bodies ?? 0))
     .toBeGreaterThan(1);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
-  await toughness.fill("1200");
+  await setToughness(page, 1200);
+  const selectedToughness = await toughness.inputValue();
   await page.getByRole("button", { name: "Reset", exact: true }).click();
-  await expect(toughness).toHaveValue("1200");
+  await expect(toughness).toHaveValue(selectedToughness);
   await page.getByRole("button", { name: "Resume", exact: true }).click();
   await expect
     .poll(() => page.evaluate(() => window.observedPhysics?.stats.sleeping))

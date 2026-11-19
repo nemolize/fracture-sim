@@ -148,7 +148,7 @@ export const ControlPanel = ({
             motion.setEnabled(event.target.checked);
           }}
         />
-        Gyro tilt
+        Device tilt
       </label>
       <p className="text-xs text-gray-600">
         {MOTION_NOTICES[motion.support] ?? motion.notice ?? MOTION_HINT}

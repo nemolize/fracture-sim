@@ -1,6 +1,4 @@
-import { useState } from "react";
-
-import { isFractureToughness, MIN_FRACTURE_TOUGHNESS } from "@/sim/material";
+import { MIN_FRACTURE_TOUGHNESS } from "@/sim/material";
 
 interface Props {
   value: number;
@@ -8,27 +6,31 @@ interface Props {
   onChange: (value: number) => void;
 }
 
+const MAX_FRACTURE_TOUGHNESS = 10_000;
+
 export const MaterialControl = ({ value, disabled, onChange }: Props) => {
-  const [draft, setDraft] = useState(String(value));
+  const display = value.toLocaleString("en-US", { maximumFractionDigits: 1 });
   return (
     <fieldset className="flex flex-col gap-2" disabled={disabled}>
       <legend className="text-sm font-medium text-gray-700">Material</legend>
       <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-        Fracture toughness (J/m)
+        <span className="flex justify-between gap-2">
+          <span>Fracture toughness (J/m)</span>
+          <span>{display}</span>
+        </span>
         <input
-          type="number"
-          min={MIN_FRACTURE_TOUGHNESS}
-          step="any"
-          className="rounded border border-gray-300 bg-white p-1.5 font-normal"
-          value={draft}
+          aria-label="Fracture toughness (J/m)"
+          aria-valuemin={MIN_FRACTURE_TOUGHNESS}
+          aria-valuemax={MAX_FRACTURE_TOUGHNESS}
+          aria-valuenow={value}
+          aria-valuetext={`${display} J/m`}
+          type="range"
+          min={Math.log10(MIN_FRACTURE_TOUGHNESS)}
+          max={Math.log10(MAX_FRACTURE_TOUGHNESS)}
+          step={0.01}
+          value={Math.log10(value)}
           onChange={(event) => {
-            const text = event.target.value;
-            setDraft(text);
-            const number = Number(text);
-            if (isFractureToughness(number)) onChange(number);
-          }}
-          onBlur={() => {
-            setDraft(String(value));
+            onChange(10 ** Number(event.target.value));
           }}
         />
       </label>

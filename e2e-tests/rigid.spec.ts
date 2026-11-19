@@ -114,7 +114,7 @@ test("WebGPU renders the plate, follows motion, and rebuilds scenes without diag
       }),
     );
   });
-  await expect(page.getByLabel("Gyro tilt")).toBeEnabled();
+  await expect(page.getByLabel("Device tilt")).toBeEnabled();
   const stats = page.getByLabel("Simulation statistics");
   await expect(stats).toContainText("Bodies1");
   await expect(stats).toContainText("Sleeping1");
@@ -130,8 +130,8 @@ test("WebGPU renders the plate, follows motion, and rebuilds scenes without diag
     );
   });
 
-  await expect(page.getByLabel("Gyro tilt")).toBeEnabled();
-  await expect(page.getByLabel("Gyro tilt")).toBeChecked();
+  await expect(page.getByLabel("Device tilt")).toBeEnabled();
+  await expect(page.getByLabel("Device tilt")).toBeChecked();
   await expect
     .poll(async () => Buffer.compare(before, await canvas.screenshot()))
     .not.toBe(0);

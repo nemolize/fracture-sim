@@ -18,8 +18,8 @@ Choose `plate` to drop a single glass plate from 2 m above the floor, `pile` for
 the selected scene. The plate survives landing with the default material. Bodies collide with each other and the container and sleep
 when they settle. `Grab` lifts a body and releases it with the pointer velocity;
 `Throw ball` launches from the start of a drag toward its end; `Blast` pushes
-bodies within 2 m of a click. Under `Material`, increase `Fracture toughness (J/m)` to resist breaking or lower it for more brittle glass. Changes apply to future impacts without rebuilding the scene; Reset restores bodies using the selected toughness. Pausing disables pointer tools. Speed controls simulated seconds per real second. On devices
-with motion sensors, Gyro tilt changes gravity and shaking pushes bodies.
+bodies within 2 m of a click. Under `Material`, use the logarithmic `Fracture toughness (J/m)` slider (1–10,000 J/m) to resist breaking or make glass more brittle. Changes apply to future impacts without rebuilding the scene; Reset restores bodies using the selected toughness. Pausing disables pointer tools. Speed controls simulated seconds per real second. On devices
+with motion sensors, `Device tilt` reads 3-axis accelerometer data, transforms it into the screen frame, and applies its XY components without normalization or a 90° clamp. Upside-down readings produce upward gravity; flat readings have little in-plane gravity. Shaking pushes bodies independently.
 
 ## Development
 

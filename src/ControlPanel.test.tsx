@@ -85,16 +85,16 @@ describe("ControlPanel", () => {
   });
 
   describe("motion", () => {
-    it("turns the gyro on and off from the checkbox", async () => {
+    it("turns the device tilt on and off from the checkbox", async () => {
       const { setEnabled, user } = setup();
-      await user.click(screen.getByLabelText("Gyro tilt"));
+      await user.click(screen.getByLabelText("Device tilt"));
       expect(setEnabled).toHaveBeenCalledWith(true);
     });
 
     it("turns it off when it is on", async () => {
       const { setEnabled, user } = setup(false, false, { enabled: true });
-      expect(screen.getByLabelText("Gyro tilt")).toBeChecked();
-      await user.click(screen.getByLabelText("Gyro tilt"));
+      expect(screen.getByLabelText("Device tilt")).toBeChecked();
+      await user.click(screen.getByLabelText("Device tilt"));
       expect(setEnabled).toHaveBeenCalledWith(false);
     });
 
@@ -105,7 +105,7 @@ describe("ControlPanel", () => {
       "disables the toggle and says why while %s",
       (support, text) => {
         setup(false, false, { support });
-        expect(screen.getByLabelText("Gyro tilt")).toBeDisabled();
+        expect(screen.getByLabelText("Device tilt")).toBeDisabled();
         expect(screen.getByText(text)).toBeVisible();
       },
     );
@@ -120,7 +120,7 @@ describe("ControlPanel", () => {
       expect(screen.getByText(/Tilt the device/)).toBeVisible();
     });
 
-    it("disables the sliders while the gyro is off and enables them when on", () => {
+    it("disables the sliders while the device tilt is off and enables them when on", () => {
       setup();
       for (const label of [
         /^Shake strength/,
@@ -135,7 +135,7 @@ describe("ControlPanel", () => {
       [/^Shake strength/, "1.5", { inertiaScale: 1.5 }],
       [/^Shake limit/, "30", { inertiaCap: 30 }],
       [/^Tilt smoothing/, "0.5", { tiltSmoothing: 0.5 }],
-    ])("changes %s while the gyro is on", (label, value, patch) => {
+    ])("changes %s while the device tilt is on", (label, value, patch) => {
       const { onChange } = setup(false, false, { enabled: true });
       setRange(screen.getByLabelText(label), value);
       expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_SETTINGS, ...patch });
@@ -173,17 +173,21 @@ it("selects the pointer tool", async () => {
 
 it("changes material toughness while paused without requiring a Reset", () => {
   const { onChange } = setup(true);
-  const input = screen.getByLabelText("Fracture toughness (J/m)");
+  const input = screen.getByRole("slider", {
+    name: "Fracture toughness (J/m)",
+  });
   expect(input).toBeEnabled();
-  expect(input).toHaveValue(1200);
-  fireEvent.change(input, { target: { value: "24" } });
+  expect(input).toHaveAttribute("aria-valuetext", "1,200 J/m");
+  setRange(input, "2");
   expect(onChange).toHaveBeenCalledWith({
     ...DEFAULT_SETTINGS,
-    fractureToughness: 24,
+    fractureToughness: 100,
   });
 });
 
 it("locks material editing when physics is unavailable", () => {
   setup(false, true);
-  expect(screen.getByLabelText("Fracture toughness (J/m)")).toBeDisabled();
+  expect(
+    screen.getByRole("slider", { name: "Fracture toughness (J/m)" }),
+  ).toBeDisabled();
 });

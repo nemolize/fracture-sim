@@ -1,36 +1,25 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { useState } from "react";
 import { expect, it, vi } from "vitest";
 
 import { MaterialControl } from "./MaterialControl";
 
-it("lets a number be cleared and replaced, retaining the last valid material on blur", () => {
+it("maps the slider position to material toughness and exposes the physical value", () => {
   const onChange = vi.fn();
-  const Fixture = () => {
-    const [value, setValue] = useState(1200);
-    return (
-      <MaterialControl
-        value={value}
-        disabled={false}
-        onChange={(next) => {
-          onChange(next);
-          setValue(next);
-        }}
-      />
-    );
-  };
-  render(<Fixture />);
-  const input = screen.getByLabelText("Fracture toughness (J/m)");
-  fireEvent.change(input, { target: { value: "" } });
-  expect(input).toHaveValue(null);
-  expect(onChange).not.toHaveBeenCalled();
-  fireEvent.blur(input);
-  expect(input).toHaveValue(1200);
-  fireEvent.change(input, { target: { value: "-1" } });
-  expect(onChange).not.toHaveBeenCalled();
-  fireEvent.change(input, { target: { value: "12.5" } });
-  expect(onChange).toHaveBeenLastCalledWith(12.5);
-  fireEvent.change(input, { target: { value: "0" } });
-  fireEvent.blur(input);
-  expect(input).toHaveValue(12.5);
+  const { rerender } = render(
+    <MaterialControl value={1200} disabled={false} onChange={onChange} />,
+  );
+  const slider = screen.getByRole("slider", {
+    name: "Fracture toughness (J/m)",
+  });
+  expect(slider).toHaveAttribute("aria-valuetext", "1,200 J/m");
+  Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    "value",
+  )?.set?.call(slider, "2");
+  fireEvent.input(slider);
+  expect(onChange).toHaveBeenLastCalledWith(100);
+  rerender(
+    <MaterialControl value={100} disabled={false} onChange={onChange} />,
+  );
+  expect(slider).toHaveAttribute("aria-valuetext", "100 J/m");
 });

@@ -180,7 +180,7 @@ describe("where events arrive without asking", () => {
 
     act(() => {
       window.dispatchEvent(
-        motionEvent(rightEdgeDown, { x: 2, y: 0, z: 0 }, 10),
+        motionEvent({ x: 2 - GRAVITY, y: 0, z: 0 }, { x: 2, y: 0, z: 0 }, 10),
       );
     });
     const tilted = result.current.tracker.gravity(TUNING, 10);
