@@ -1,6 +1,10 @@
 import { expect, type Page, test } from "@playwright/test";
 
-import type { Snapshot, WorkerResponse } from "../src/rigid/types";
+import type {
+  Snapshot,
+  WorkerRequest,
+  WorkerResponse,
+} from "../src/rigid/types";
 
 declare global {
   interface Window {
@@ -9,11 +13,31 @@ declare global {
   }
 }
 
-const observeWorker = (page: Page) =>
+const prepareIntactPlateAndObserveWorker = (page: Page) =>
   page.addInitScript(() => {
     window.plateMaxSpeed = 0;
     const OriginalWorker = window.Worker;
     window.Worker = class extends OriginalWorker {
+      private settled = false;
+      private fixture = window.location.pathname === "/";
+      private fixtureStep = 0;
+      override postMessage(
+        message: WorkerRequest,
+        transfer: Transferable[] | StructuredSerializeOptions = [],
+      ): void {
+        if (message.type === "init") this.settled = false;
+        // Alternate above the gravity wake threshold so gentle settling cannot sleep in midair.
+        if (message.type === "advance" && this.fixture && !this.settled)
+          message = {
+            ...message,
+            seconds: 0.1,
+            gravity: { x: 0, y: this.fixtureStep++ % 2 === 0 ? -0.102 : -0.1 },
+          };
+        super.postMessage(
+          message,
+          Array.isArray(transfer) ? { transfer } : transfer,
+        );
+      }
       constructor(url: string | URL, options?: WorkerOptions) {
         super(url, options);
         this.addEventListener(
@@ -22,6 +46,7 @@ const observeWorker = (page: Page) =>
             if (event.data.type !== "error") {
               const previous = window.observedPhysics;
               const next = event.data.snapshot;
+              if ((next.poses[17] ?? Infinity) < 0.505) this.settled = true;
               if (
                 previous !== undefined &&
                 next.stats.time > previous.stats.time
@@ -61,7 +86,7 @@ const drag = async (
 };
 
 test.beforeEach(async ({ page }) => {
-  await observeWorker(page);
+  await prepareIntactPlateAndObserveWorker(page);
   await page.goto("/");
   await expect
     .poll(() => page.evaluate(() => window.observedPhysics?.stats.sleeping))
@@ -111,6 +136,7 @@ test("throw tool launches a visible ball that hits the plate", async ({
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
   });
+  await page.screenshot({ path: "test-results/fracture-before.png" });
   await page.getByLabel("Throw ball").check();
   await page.evaluate(() => {
     window.plateMaxSpeed = 0;
@@ -119,11 +145,20 @@ test("throw tool launches a visible ball that hits the plate", async ({
   await page.mouse.up();
   await expect
     .poll(() => page.evaluate(() => window.observedPhysics?.stats.bodies))
-    .toBe(2);
+    .toBeGreaterThan(2);
   await expect
     .poll(() => page.evaluate(() => window.plateMaxSpeed))
     .toBeGreaterThan(0.01);
-  await expect.poll(() => bodyX(page)).toBeGreaterThan(5.001);
+  expect(
+    await page.evaluate(() => window.observedPhysics?.stats.mass),
+  ).toBeCloseTo(52, 12);
+  const hitTime = await page.evaluate(
+    () => window.observedPhysics?.stats.time ?? Infinity,
+  );
+  await expect
+    .poll(() => page.evaluate(() => window.observedPhysics?.stats.time ?? 0))
+    .toBeGreaterThan(hitTime + 0.8);
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
   await page.screenshot({ path: "test-results/throw-hit.png" });
   expect(errors).toEqual([]);
 });

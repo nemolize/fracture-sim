@@ -112,6 +112,12 @@ export class RigidTools {
     this.grab = null;
   }
 
+  detach(body: RAPIER.RigidBody): void {
+    if (this.grab?.body !== body) return;
+    this.world.removeRigidBody(this.grab.pointer);
+    this.grab = null;
+  }
+
   blast(point: Vec2): void {
     for (const { body } of this.bodies()) {
       const position = body.translation();

@@ -96,8 +96,7 @@ export const FractureCanvas = ({
         fail(response.message);
         return;
       }
-      const vertices =
-        response.type === "frame" ? undefined : response.vertices;
+      const vertices = response.vertices;
       if (vertices !== undefined) {
         renderer?.dispose();
         renderer = new RigidRenderer(

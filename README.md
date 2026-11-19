@@ -2,8 +2,8 @@
 
 A browser-based 2D rigid-body sandbox. Rapier2D runs at a fixed 60 Hz in a Web
 Worker; WebGPU renders the convex polygons. This replaces the previous
-soft-body FEM simulator. Grab bodies directly, throw balls, or apply a local blast. On-demand glass
-fracture is tracked in #21.
+soft-body FEM simulator. Grab bodies directly, throw balls, or apply a local blast. Glass fractures on
+impact, including collisions between fragments.
 
 ## Requirements
 
@@ -15,7 +15,7 @@ stops the simulation with an explanation; reload to restart.
 
 Choose `plate` to drop a single glass plate from 2 m above the floor, `pile` for
 1,000 small bodies, or `stress` for 2,000. Pause freezes physics; Reset rebuilds
-the selected scene. Bodies collide with each other and the container and sleep
+the selected scene. The falling plate breaks on landing. Bodies collide with each other and the container and sleep
 when they settle. `Grab` lifts a body and releases it with the pointer velocity;
 `Throw ball` launches from the start of a drag toward its end; `Blast` pushes
 bodies within 2 m of a click. Pausing disables pointer tools. Speed controls simulated seconds per real second. On devices
@@ -69,7 +69,22 @@ area and centroidal polar area moment at density 1. Repeated splits must use
 `domain` so collision simplification cannot discard mass or momentum.
 Invalid polygons, non-interior or duplicate seeds, degenerate cells, and
 nonrepresentable area or polar moments throw.
-This module is a building block; impact-triggered fracture is still tracked in #21.
+`src/sim/fracture.ts` spends impact energy at an empirical 12 J/m of new crack.
+A hit must exceed the body's narrowest width before splitting. Seeds are tried
+nearest the contact first, with spacing increasing with distance. Actual shared
+Voronoi edge length must fit the energy budget; pieces smaller than 0.005 m²
+are rejected. A hit creates at most 40 pieces.
+
+`src/rigid/fracture.ts` reads Rapier contact impulses after each fixed step,
+including angular effective mass, and replaces the parent with children carrying
+its post-impact rigid velocity field. True domains and explicit mass/inertia
+survive repeated splits. Mass is tracked in float64 with the final child taking
+the remainder; Rapier's physical mass/poses use float32. The live-body cap is
+2,000 including thrown balls, excluding container walls and grab anchors. A split
+that cannot fit leaves its parent intact and queues the same split until room
+appears. A throw at capacity is refused. Reset rebuilds the scene and clears the
+queue. No bodies are evicted to make room. Geometry and poses travel together
+when a split changes the render buffers.
 
 Run the local 32-seed benchmark without coverage:
 

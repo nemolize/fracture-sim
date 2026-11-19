@@ -14,7 +14,7 @@ const setRange = (slider: HTMLElement, value: string): void => {
   slider.dispatchEvent(new Event("input", { bubbles: true }));
 };
 
-const stats = { bodies: 1000, sleeping: 987, stepMs: 0.5, time: 0 };
+const stats = { mass: 360, bodies: 1000, sleeping: 987, stepMs: 0.5, time: 0 };
 
 const setup = (
   paused = false,

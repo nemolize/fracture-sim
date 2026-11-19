@@ -1,5 +1,6 @@
 import RAPIER from "@dimforge/rapier2d-compat";
 
+import { type BodyShape, polygonCollider } from "./body";
 import {
   GLASS_DENSITY,
   GRAVITY,
@@ -7,6 +8,7 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "./constants";
+import { ImpactFracture, MAX_BODIES } from "./fracture";
 import { RigidTools } from "./interactions";
 import { limitVelocity, type ToolAction } from "./tools";
 import type { Scene, Snapshot } from "./types";
@@ -15,24 +17,14 @@ let initialization: Promise<void> | undefined;
 export const initializePhysics = (): Promise<void> =>
   (initialization ??= RAPIER.init());
 
-interface BodyShape {
-  body: RAPIER.RigidBody;
-  polygon: readonly [
-    readonly [number, number],
-    readonly [number, number],
-    readonly [number, number],
-    ...(readonly [number, number])[],
-  ];
-  fixed: boolean;
-  ball: boolean;
-}
-
 export class RigidWorld {
   private readonly world = new RAPIER.World({ x: 0, y: -GRAVITY });
   private readonly shapes: BodyShape[] = [];
   private readonly tools = new RigidTools(this.world, () =>
     this.shapes.filter((shape) => !shape.fixed),
   );
+  private readonly fracture = new ImpactFracture();
+  geometryRevision = 0;
   private elapsed = 0;
   private remainder = 0;
   private stepMs = 0;
@@ -77,19 +69,26 @@ export class RigidWorld {
       [hx, hy],
       [-hx, hy],
     ];
-    const collider = RAPIER.ColliderDesc.convexHull(
-      new Float32Array(polygon.flat()),
-    );
-    if (collider === null) {
-      this.world.free();
-      throw new Error("Invalid convex body");
+    let collider: RAPIER.ColliderDesc;
+    try {
+      collider = polygonCollider(polygon);
+    } catch (error) {
+      this.dispose();
+      throw error;
     }
     const body = this.world.createRigidBody(desc.setTranslation(x, y));
     this.world.createCollider(
       collider.setDensity(GLASS_DENSITY).setFriction(0.5),
       body,
     );
-    this.shapes.push({ body, polygon, fixed, ball: false });
+    this.shapes.push({
+      body,
+      polygon,
+      domain: polygon.map(([x, y]) => ({ x, y })),
+      mass: fixed ? 0 : 4 * hx * hy * GLASS_DENSITY,
+      fixed,
+      ball: false,
+    });
   }
 
   apply(action: ToolAction): boolean {
@@ -107,6 +106,8 @@ export class RigidWorld {
         this.tools.blast(action.point);
         break;
       case "throw": {
+        if (this.shapes.filter((s) => !s.fixed).length >= MAX_BODIES)
+          return false;
         const radius = 0.12;
         const velocity = limitVelocity(action.velocity);
         const body = this.world.createRigidBody(
@@ -119,7 +120,9 @@ export class RigidWorld {
             .setCcdEnabled(true),
         );
         this.world.createCollider(
-          RAPIER.ColliderDesc.ball(radius).setMass(2),
+          RAPIER.ColliderDesc.ball(radius)
+            .setMass(2)
+            .setActiveEvents(RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS),
           body,
         );
         const point = (i: number): readonly [number, number] => [
@@ -132,7 +135,15 @@ export class RigidWorld {
           point(2),
           ...Array.from({ length: 5 }, (_, i) => point(i + 3)),
         ];
-        this.shapes.push({ body, polygon, fixed: false, ball: true });
+        this.shapes.push({
+          body,
+          polygon,
+          domain: [],
+          mass: 2,
+          fixed: false,
+          ball: true,
+        });
+        this.geometryRevision++;
         return true;
       }
     }
@@ -147,9 +158,12 @@ export class RigidWorld {
         : ball
           ? [0.95, 0.47, 0.16]
           : [0.16, 0.63, 0.76];
+      const first = polygon[0];
       let previous = polygon[1];
+      if (first === undefined || previous === undefined)
+        throw new Error("Invalid render polygon");
       for (const point of polygon.slice(2)) {
-        for (const [x, y] of [polygon[0], previous, point])
+        for (const [x, y] of [first, previous, point])
           vertices.push(x, y, index, ...color);
         previous = point;
       }
@@ -172,7 +186,12 @@ export class RigidWorld {
     let steps = 0;
     while (this.remainder + 1e-10 >= TIME_STEP) {
       this.tools.update();
-      this.world.step();
+      if (
+        this.fracture.step(this.world, this.shapes, (body) => {
+          this.tools.detach(body);
+        })
+      )
+        this.geometryRevision++;
       this.elapsed += TIME_STEP;
       this.remainder -= TIME_STEP;
       steps++;
@@ -198,11 +217,18 @@ export class RigidWorld {
     });
     return {
       poses,
-      stats: { bodies, sleeping, stepMs: this.stepMs, time: this.elapsed },
+      stats: {
+        bodies,
+        sleeping,
+        stepMs: this.stepMs,
+        time: this.elapsed,
+        mass: this.shapes.reduce((sum, s) => sum + s.mass, 0),
+      },
     };
   }
 
   dispose(): void {
+    this.fracture.dispose();
     this.world.free();
   }
 }

@@ -4,6 +4,7 @@ export const SCENES = ["plate", "pile", "stress"] as const;
 export type Scene = (typeof SCENES)[number];
 
 export interface WorldStats {
+  mass: number;
   bodies: number;
   sleeping: number;
   stepMs: number;
@@ -22,6 +23,6 @@ export type WorkerRequest =
 
 export type WorkerResponse =
   | { type: "ready"; vertices: Float32Array<ArrayBuffer>; snapshot: Snapshot }
-  | { type: "frame"; snapshot: Snapshot }
+  | { type: "frame"; snapshot: Snapshot; vertices?: Float32Array<ArrayBuffer> }
   | { type: "edited"; snapshot: Snapshot; vertices?: Float32Array<ArrayBuffer> }
   | { type: "error"; message: string };
