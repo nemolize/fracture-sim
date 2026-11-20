@@ -80,8 +80,12 @@ nearest the contact first, with spacing increasing with distance. Actual shared
 Voronoi edge length must fit the energy budget; pieces smaller than 0.005 m²
 are rejected. A hit creates at most 40 pieces.
 
-`src/rigid/fracture.ts` reads Rapier contact impulses after each fixed step,
-including angular effective mass, and replaces the parent with children carrying
+`src/rigid/fracture.ts` uses contact impulses to locate active contacts, but budgets
+fracture from the lost normal-mode kinetic energy across the step, including
+angular effective mass. Static support impulses do not become impact energy.
+The per-contact budget is shared between bodies, rather than assigned twice.
+See [Impact energy](docs/impact-energy.md) for equations and model limits.
+It replaces the parent with children carrying
 its post-impact rigid velocity field. True domains and explicit mass/inertia
 survive repeated splits. Mass is tracked in float64 with the final child taking
 the remainder; Rapier's physical mass/poses use float32. The live-body cap is

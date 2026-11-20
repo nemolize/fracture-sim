@@ -26,7 +26,7 @@ Reset retains both selections. The Gc slider spans 0.1–1,000,000 J/m² on a
 logarithmic scale; thickness spans 0.1–100 mm. These are empirical UI bounds.
 
 Presets change fracture-energy inputs. Body areal density defaults to 25 kg/m²,
-is separately adjustable under World, and is not changed with the preset or thickness. The impulse-to-crack rule and
+is separately adjustable under World, and is not changed with the preset or thickness. The normal-impact energy rule and
 minimum fragment area remain simplified; these values do not calibrate the
 simulation's full dynamic response to an actual material test. In particular,
 the real-glass default fractures more readily than the previous custom setting.

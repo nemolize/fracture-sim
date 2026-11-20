@@ -41,17 +41,6 @@ const observeWorker = (page: Page) =>
       }
     };
   });
-const setFractureEnergy = async (page: Page, value: number): Promise<void> => {
-  await page
-    .getByRole("slider", { name: "Fracture energy (J/m²)" })
-    .evaluate((input, next) => {
-      Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        "value",
-      )?.set?.call(input, String(Math.log10(next)));
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-    }, value);
-};
 const bodyY = (page: Page) =>
   page.evaluate(() => window.observedPhysics?.poses[17] ?? NaN);
 const bodyX = (page: Page) =>
@@ -126,7 +115,9 @@ test("throw tool launches a visible ball that hits the plate", async ({
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
   });
-  await setFractureEnergy(page, 1200);
+  await page
+    .getByRole("combobox", { name: "Fracture preset" })
+    .selectOption("glass");
   await page.screenshot({
     path: "test-results/fracture-before.png",
     fullPage: true,

@@ -6,6 +6,7 @@ import { polygonMoments } from "@/sim/polygon";
 import type { Piece } from "@/sim/split";
 
 import { type BodyShape, polygonCollider } from "./body";
+import { type BodyMotion, contactMotion, impactEnergy } from "./impact-energy";
 
 export const MAX_BODIES = 2000;
 
@@ -28,14 +29,23 @@ export class ImpactFracture {
     shapes: BodyShape[],
     detach: (body: RAPIER.RigidBody) => void,
   ): boolean {
-    world.step(this.queue);
+    const motion = (shape: BodyShape): BodyMotion => ({
+      velocity: shape.body.linvel(),
+      angularVelocity: shape.body.angvel(),
+    });
     const byCollider = new Map(
-      shapes.map((s) => [s.body.collider(0).handle, s]),
+      shapes.map((shape) => [
+        shape.body.collider(0).handle,
+        { shape, before: motion(shape) },
+      ]),
     );
+    world.step(this.queue);
     this.queue.drainContactForceEvents((event) => {
-      const a = byCollider.get(event.collider1());
-      const b = byCollider.get(event.collider2());
-      if (a === undefined || b === undefined) return;
+      const first = byCollider.get(event.collider1());
+      const second = byCollider.get(event.collider2());
+      if (first === undefined || second === undefined) return;
+      const a = first.shape,
+        b = second.shape;
       world.contactPair(
         a.body.collider(0),
         b.body.collider(0),
@@ -61,20 +71,31 @@ export class ImpactFracture {
             x: pos.x + Math.cos(angle) * point.x - Math.sin(angle) * point.y,
             y: pos.y + Math.sin(angle) * point.x + Math.cos(angle) * point.y,
           };
-          const normal = manifold.normal();
-          const inverseMass = (s: BodyShape): number => {
-            if (s.fixed) return 0;
-            const center = s.body.worldCom();
-            const lever =
-              (contact.x - center.x) * normal.y -
-              (contact.y - center.y) * normal.x;
-            return (
-              s.body.invMass() + lever * lever * s.body.invPrincipalInertia()
+          const rawNormal = manifold.normal();
+          const normal = {
+            x: flipped ? -rawNormal.x : rawNormal.x,
+            y: flipped ? -rawNormal.y : rawNormal.y,
+          };
+          const atContact = (shape: BodyShape, before: BodyMotion) => {
+            const center = shape.body.worldCom();
+            return contactMotion(
+              before,
+              motion(shape),
+              { x: contact.x - center.x, y: contact.y - center.y },
+              normal,
+              shape.fixed ? 0 : shape.body.invMass(),
+              shape.fixed ? 0 : shape.body.invPrincipalInertia(),
             );
           };
-          const energy =
-            (impulse * impulse * (inverseMass(a) + inverseMass(b))) / 2;
-          for (const shape of [a, b]) {
+          const shares = impactEnergy(
+            atContact(a, first.before),
+            atContact(b, second.before),
+          );
+          for (const [shape, energy] of [
+            [a, shares[0]],
+            [b, shares[1]],
+          ] as const) {
+            if (energy <= 0) continue;
             if (shape.fixed || shape.ball || this.pending.has(shape)) continue;
             const origin = shape.body.translation();
             const rotation = shape.body.rotation();

@@ -75,3 +75,21 @@ describe("impact crack budget", () => {
     ).toEqual([]);
   });
 });
+
+it("keeps cracks inside a rotated plate and conserves its area", () => {
+  const domain = plate.map(({ x, y }) => ({
+    x: (x - y) / Math.sqrt(2),
+    y: (x + y) / Math.sqrt(2),
+  }));
+  const pieces = fracturePieces(domain, { x: 0, y: 0 }, 96);
+  expect(pieces.length).toBeGreaterThan(1);
+  expect(pieces.reduce((sum, piece) => sum + piece.area, 0)).toBeCloseTo(2, 12);
+  for (const piece of pieces) {
+    for (const point of piece.domain) {
+      const x = point.x + piece.centroidOffset.x;
+      const y = point.y + piece.centroidOffset.y;
+      expect(Math.abs((x + y) / Math.sqrt(2))).toBeLessThanOrEqual(1 + 1e-12);
+      expect(Math.abs((y - x) / Math.sqrt(2))).toBeLessThanOrEqual(0.5 + 1e-12);
+    }
+  }
+});
