@@ -1,6 +1,6 @@
 import type { ToolAction } from "@/rigid/tools";
 import type { Scene, WorkerRequest, WorkerResponse } from "@/rigid/types";
-import { DEFAULT_FRACTURE_TOUGHNESS } from "@/sim/material";
+import { DEFAULT_CRACK_ENERGY } from "@/sim/material";
 
 const worker = new Worker(new URL("../rigid/worker.ts", import.meta.url), {
   type: "module",
@@ -26,8 +26,8 @@ const harness = {
   step: (
     seconds: number,
     gravity = { x: 0, y: -9.8 },
-    fractureToughness = DEFAULT_FRACTURE_TOUGHNESS,
-  ) => request({ type: "advance", seconds, gravity, fractureToughness }),
+    crackEnergy = DEFAULT_CRACK_ENERGY,
+  ) => request({ type: "advance", seconds, gravity, crackEnergy }),
 };
 Object.assign(window, { harness });
 export type Harness = typeof harness;

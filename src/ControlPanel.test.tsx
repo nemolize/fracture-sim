@@ -174,20 +174,24 @@ it("selects the pointer tool", async () => {
 it("changes material toughness while paused without requiring a Reset", () => {
   const { onChange } = setup(true);
   const input = screen.getByRole("slider", {
-    name: "Fracture toughness (J/m)",
+    name: "Fracture energy (J/m²)",
   });
   expect(input).toBeEnabled();
-  expect(input).toHaveAttribute("aria-valuetext", "10,000 J/m");
+  expect(input).toHaveAttribute("aria-valuetext", "7 J/m²");
   setRange(input, "2");
   expect(onChange).toHaveBeenCalledWith({
     ...DEFAULT_SETTINGS,
-    fractureToughness: 100,
+    material: {
+      ...DEFAULT_SETTINGS.material,
+      preset: "custom",
+      customFractureEnergy: 100,
+    },
   });
 });
 
 it("locks material editing when physics is unavailable", () => {
   setup(false, true);
   expect(
-    screen.getByRole("slider", { name: "Fracture toughness (J/m)" }),
+    screen.getByRole("slider", { name: "Fracture energy (J/m²)" }),
   ).toBeDisabled();
 });

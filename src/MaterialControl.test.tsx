@@ -1,25 +1,81 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
 import { MaterialControl } from "./MaterialControl";
+import { DEFAULT_MATERIAL } from "./sim/material";
 
-it("maps the slider position to material toughness and exposes the physical value", () => {
+const setup = () => {
   const onChange = vi.fn();
-  const { rerender } = render(
-    <MaterialControl value={1200} disabled={false} onChange={onChange} />,
+  render(
+    <MaterialControl
+      value={DEFAULT_MATERIAL}
+      disabled={false}
+      onChange={onChange}
+    />,
   );
-  const slider = screen.getByRole("slider", {
-    name: "Fracture toughness (J/m)",
-  });
-  expect(slider).toHaveAttribute("aria-valuetext", "1,200 J/m");
+  return { onChange, user: userEvent.setup() };
+};
+const moveSlider = (name: string, value: string): void => {
+  const slider = screen.getByRole("slider", { name });
   Object.getOwnPropertyDescriptor(
     HTMLInputElement.prototype,
     "value",
-  )?.set?.call(slider, "2");
+  )?.set?.call(slider, value);
   fireEvent.input(slider);
-  expect(onChange).toHaveBeenLastCalledWith(100);
-  rerender(
-    <MaterialControl value={100} disabled={false} onChange={onChange} />,
+};
+
+it("shows real glass energy, plate thickness and derived crack energy initially", () => {
+  setup();
+  expect(screen.getByRole("combobox", { name: "Fracture preset" })).toHaveValue(
+    "glass",
   );
-  expect(slider).toHaveAttribute("aria-valuetext", "100 J/m");
+  expect(
+    screen.getByRole("slider", { name: "Fracture energy (J/m²)" }),
+  ).toHaveAttribute("aria-valuetext", "7 J/m²");
+  expect(screen.getByRole("slider", { name: "Thickness (mm)" })).toHaveValue(
+    "10",
+  );
+  expect(
+    screen.getByRole("status", { name: "Crack energy" }),
+  ).toHaveTextContent("0.07 J/m");
+});
+
+it.each(["ice", "custom"])(
+  "selects %s without changing the thickness",
+  async (preset) => {
+    const { onChange, user } = setup();
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Fracture preset" }),
+      preset,
+    );
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_MATERIAL, preset });
+  },
+);
+
+it("switches to Custom when the fracture-energy slider is adjusted", () => {
+  const { onChange } = setup();
+  moveSlider("Fracture energy (J/m²)", "2");
+  expect(onChange).toHaveBeenCalledWith({
+    ...DEFAULT_MATERIAL,
+    preset: "custom",
+    customFractureEnergy: 100,
+  });
+});
+
+it("adjusts thickness while retaining the selected material", () => {
+  const { onChange } = setup();
+  moveSlider("Thickness (mm)", "20");
+  expect(onChange).toHaveBeenCalledWith({
+    ...DEFAULT_MATERIAL,
+    thicknessMm: 20,
+  });
+});
+
+it("ignores an unknown select value", () => {
+  const { onChange } = setup();
+  fireEvent.change(screen.getByRole("combobox", { name: "Fracture preset" }), {
+    target: { value: "unknown" },
+  });
+  expect(onChange).not.toHaveBeenCalled();
 });

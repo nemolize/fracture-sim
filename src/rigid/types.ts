@@ -23,7 +23,7 @@ export type WorkerRequest =
       type: "advance";
       seconds: number;
       gravity: { x: number; y: number };
-      fractureToughness?: number;
+      crackEnergy?: number;
     };
 
 export type WorkerResponse =

@@ -1,6 +1,6 @@
 import RAPIER from "@dimforge/rapier2d-compat";
 
-import { DEFAULT_FRACTURE_TOUGHNESS } from "@/sim/material";
+import { DEFAULT_CRACK_ENERGY } from "@/sim/material";
 
 import { type BodyShape, polygonCollider } from "./body";
 import {
@@ -176,9 +176,9 @@ export class RigidWorld {
   advance(
     seconds: number,
     gravity: { x: number; y: number },
-    fractureToughness = DEFAULT_FRACTURE_TOUGHNESS,
+    crackEnergy = DEFAULT_CRACK_ENERGY,
   ): Snapshot {
-    this.fracture.setToughness(fractureToughness);
+    this.fracture.setCrackEnergy(crackEnergy);
     const changed =
       Math.hypot(
         this.world.gravity.x - gravity.x,

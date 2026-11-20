@@ -130,10 +130,10 @@ export const ControlPanel = ({
     </Field>
 
     <MaterialControl
-      value={settings.fractureToughness}
+      value={settings.material}
       disabled={locked}
-      onChange={(fractureToughness) => {
-        onChange({ ...settings, fractureToughness });
+      onChange={(material) => {
+        onChange({ ...settings, material });
       }}
     />
 

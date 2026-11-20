@@ -37,7 +37,7 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
           const snapshot = world.advance(
             request.seconds,
             request.gravity,
-            request.fractureToughness,
+            request.crackEnergy,
           );
           if (revision !== world.geometryRevision) {
             const vertices = world.vertices();

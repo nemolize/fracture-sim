@@ -116,8 +116,8 @@ test("WebGPU renders the plate, follows motion, and rebuilds scenes without diag
   });
   await expect(page.getByLabel("Device tilt")).toBeEnabled();
   const stats = page.getByLabel("Simulation statistics");
-  await expect(stats).toContainText("Bodies1");
-  await expect(stats).toContainText("Sleeping1");
+  await expect(stats).toContainText(/Bodies[2-9][0-9]*/);
+  await expect(stats).toContainText(/Sleeping[1-9][0-9]*/);
   const canvas = page.getByLabel("Fracture simulation");
   await expect.poll(() => glassPixels(page)).toBeGreaterThan(500);
   const before = await canvas.screenshot();

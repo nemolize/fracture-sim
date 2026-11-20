@@ -28,9 +28,9 @@ export const fracturePieces = (
   domain: readonly Vec2[],
   contact: Vec2,
   energy: number,
-  fractureToughness: number,
+  crackEnergy: number,
 ): Piece[] => {
-  const budget = energy / fractureToughness;
+  const budget = energy / crackEnergy;
   const area = polygonMoments(domain).area;
   if (!(budget > narrowestWidth(domain)) || area < 2 * MIN_FRAGMENT_AREA)
     return [];

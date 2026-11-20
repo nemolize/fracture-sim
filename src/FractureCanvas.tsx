@@ -7,6 +7,7 @@ import { PointerGesture } from "@/rigid/gesture";
 import { RigidRenderer } from "@/rigid/renderer";
 import type { WorkerRequest, WorkerResponse, WorldStats } from "@/rigid/types";
 import type { Settings } from "@/settings";
+import { crackEnergy } from "@/sim/material";
 import type { MotionTracker } from "@/sim/motion";
 
 interface Props {
@@ -187,7 +188,7 @@ export const FractureCanvas = ({
           type: "advance",
           seconds: input.paused ? 0 : seconds * input.settings.speed,
           gravity: tracker.gravity(input.settings, now),
-          fractureToughness: input.settings.fractureToughness,
+          crackEnergy: crackEnergy(input.settings.material),
         });
         previous = now;
         pending = true;

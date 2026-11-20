@@ -38,7 +38,7 @@ it("separates drops below and above the crack threshold using real Rapier impuls
 it("breaks two chunks colliding at 4 m/s and keeps their mass through subsequent impacts", () => {
   const engine = new RAPIER.World({ x: 0, y: 0 });
   const fracture = new ImpactFracture();
-  fracture.setToughness(12);
+  fracture.setCrackEnergy(12);
   const shapes: BodyShape[] = [];
   const polygon = [
     [-0.4, -0.5],
@@ -205,14 +205,14 @@ it.each([
   expect(world.snapshot().poses.every(Number.isFinite)).toBe(true);
 });
 
-it.each([0, -12, 0.5, NaN, Infinity, -Infinity])(
+it.each([0, -12, NaN, Infinity, -Infinity])(
   "rejects invalid material toughness %s before advancing physics",
   (toughness) => {
     const world = make();
     const before = world.snapshot();
     expect(() =>
       world.advance(TIME_STEP, { x: 0, y: -9.8 }, toughness),
-    ).toThrow("Fracture toughness must be finite and at least 1 J/m");
+    ).toThrow("Crack energy must be positive and finite");
     expect(world.snapshot()).toEqual(before);
   },
 );

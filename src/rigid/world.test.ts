@@ -18,7 +18,7 @@ afterEach(() => {
 const gravity = { x: 0, y: -GRAVITY };
 
 describe("rigid world", () => {
-  it("keeps the default plate intact when dropped from 2 m", () => {
+  it("breaks the real-glass default plate on landing without losing mass", () => {
     world = new RigidWorld("plate");
     const vertices = world.vertices();
     expect(vertices).toHaveLength(5 * 6 * 6);
@@ -26,11 +26,10 @@ describe("rigid world", () => {
     for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity);
     const { poses, stats } = world.snapshot();
     expect(poses.every(Number.isFinite)).toBe(true);
-    expect(stats.bodies).toBe(1);
+    expect(stats.bodies).toBeGreaterThan(1);
     expect(stats.sleeping).toBe(stats.bodies);
     expect(stats.mass).toBeCloseTo(50, 12);
-    expect(world.vertices()).toEqual(vertices);
-    expect(poses[17]).toBeCloseTo(0.5, 2);
+    expect(world.vertices().length).toBeGreaterThan(vertices.length);
   });
 
   it("advances at a fixed 60 Hz, clamps stalls and leaves paused frames unchanged", () => {
@@ -45,9 +44,9 @@ describe("rigid world", () => {
 
   it("wakes sleeping bodies when gravity tilts", () => {
     world = new RigidWorld("plate");
-    for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity);
+    for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity, 10000);
     expect(world.snapshot().stats.sleeping).toBe(world.snapshot().stats.bodies);
-    const moved = world.advance(0.1, { x: GRAVITY, y: 0 });
+    const moved = world.advance(0.1, { x: GRAVITY, y: 0 }, 10000);
     expect(moved.stats.sleeping).toBe(0);
     expect(moved.poses[16]).toBeGreaterThan(5);
   });
@@ -125,10 +124,10 @@ it("keeps thrown balls inside even when the launch starts in the floor margin", 
 it("keeps a grabbed plate above the floor when capture drags below the canvas", () => {
   world = new RigidWorld("plate");
   world["shapes"][4]?.body.setTranslation({ x: 5, y: 0.501 }, true);
-  for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity);
+  for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity, 10000);
   world.apply({ type: "grab", point: { x: 5, y: 0.5 } });
   world.apply({ type: "move", point: { x: 5, y: -3 } });
-  for (let i = 0; i < 120; i++) world.advance(TIME_STEP, gravity);
+  for (let i = 0; i < 120; i++) world.advance(TIME_STEP, gravity, 10000);
   expect(world.snapshot().poses[17]).toBeGreaterThan(0.45);
 });
 

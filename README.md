@@ -15,10 +15,10 @@ stops the simulation with an explanation; reload to restart.
 
 Choose `plate` to drop a single glass plate from 2 m above the floor, `pile` for
 1,000 small bodies, or `stress` for 2,000. Pause freezes physics; Reset rebuilds
-the selected scene. The plate survives landing with the default material. Bodies collide with each other and the container and sleep
+the selected scene. The default glass plate can fracture on landing. Bodies collide with each other and the container and sleep
 when they settle. `Grab` lifts a body and releases it with the pointer velocity;
 `Throw ball` launches from the start of a drag toward its end; `Blast` pushes
-bodies within 2 m of a click. Under `Material`, use the logarithmic `Fracture toughness (J/m)` slider (1–10,000 J/m) to resist breaking or make glass more brittle. Changes apply to future impacts without rebuilding the scene; Reset restores bodies using the selected toughness. Pausing disables pointer tools. Speed controls simulated seconds per real second. On devices
+bodies within 2 m of a click. Under `Material`, select a `Fracture preset`: Glass, Ice (−13°C), Acrylic (PMMA), Polystyrene or Custom. `Fracture energy (J/m²)` and `Thickness (mm)` determine the displayed `Crack energy` in J/m. Editing fracture energy switches to Custom. Changes apply to future impacts without rebuilding the scene; Reset retains the selected material and thickness. Pausing disables pointer tools. Speed controls simulated seconds per real second. On devices
 with motion sensors, `Device tilt` reads 3-axis accelerometer data, transforms it into the screen frame, and applies its XY components without normalization or a 90° clamp. Upside-down readings produce upward gravity; flat readings have little in-plane gravity. Shaking pushes bodies independently.
 
 ## Development
@@ -69,8 +69,12 @@ area and centroidal polar area moment at density 1. Repeated splits must use
 `domain` so collision simplification cannot discard mass or momentum.
 Invalid polygons, non-interior or duplicate seeds, degenerate cells, and
 nonrepresentable area or polar moments throw.
-`src/sim/fracture.ts` divides impact energy by the material's fracture toughness (effective 2D energy per metre of new crack).
-The default is 10,000 J/m and keeps the 2 m plate drop intact; 12 J/m reproduces the earlier brittle setting. Values must be finite and at least 1 J/m. Changing toughness cancels splits queued under the previous material.
+`src/sim/fracture.ts` divides impact energy by the energy per metre of new crack.
+The material controls convert measured fracture energy with `Gc × thicknessMm / 1000`.
+Glass is the initial preset: 7 J/m² at 10 mm gives 0.07 J/m. Ice uses 1.5 J/m²,
+PMMA 500 J/m², and polystyrene 400 J/m². Sources and conditions are in
+[Material presets](docs/material-presets.md). Positive finite crack energies below
+1 J/m are supported. Changing the effective crack energy cancels queued splits.
 A hit must exceed the body's narrowest width before splitting. Seeds are tried
 nearest the contact first, with spacing increasing with distance. Actual shared
 Voronoi edge length must fit the energy budget; pieces smaller than 0.005 m²
