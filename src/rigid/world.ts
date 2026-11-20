@@ -2,7 +2,7 @@ import RAPIER from "@dimforge/rapier2d-compat";
 
 import { DEFAULT_CRACK_ENERGY } from "@/sim/material";
 
-import { type BodyShape, polygonCollider } from "./body";
+import { type BodyShape, createBodyShape } from "./body";
 import { TIME_STEP } from "./constants";
 import {
   DEFAULT_ENVIRONMENT,
@@ -11,6 +11,7 @@ import {
 } from "./environment";
 import { ImpactFracture, MAX_BODIES } from "./fracture";
 import { RigidTools } from "./interactions";
+import { objectPolygon, type ObjectShape } from "./object-shape";
 import {
   DEFAULT_OBJECT_SIZE,
   type ObjectSize,
@@ -39,9 +40,11 @@ export class RigidWorld {
     scene: Scene,
     environment: EnvironmentSettings = DEFAULT_ENVIRONMENT,
     objectSize: ObjectSize = DEFAULT_OBJECT_SIZE,
+    objectShape: ObjectShape = "rectangle",
   ) {
     validateEnvironment(environment);
     validateObjectSize(objectSize, environment);
+    const initialPolygon = objectPolygon(objectShape, objectSize);
     this.environment = { ...environment };
     this.fracture = new ImpactFracture();
     this.friction = environment.friction;
@@ -58,11 +61,10 @@ export class RigidWorld {
     this.box(width + 0.2, height / 2, 0.2, height / 2, true);
     this.box(width / 2, height + 0.2, width / 2 + 0.4, 0.2, true);
     if (scene === "plate") {
-      const plate = this.box(
+      const plate = this.addBody(
+        initialPolygon,
         width / 2,
-        objectSize.height / 2,
-        objectSize.width / 2,
-        objectSize.height / 2,
+        -Math.min(...initialPolygon.map((point) => point[1])),
         false,
       );
       // New floor contacts wake bodies, so initialize them before sleeping.
@@ -86,36 +88,40 @@ export class RigidWorld {
     hy: number,
     fixed: boolean,
   ): RAPIER.RigidBody {
-    const desc = fixed
-      ? RAPIER.RigidBodyDesc.fixed()
-      : RAPIER.RigidBodyDesc.dynamic().setCcdEnabled(true);
-    const polygon: BodyShape["polygon"] = [
-      [-hx, -hy],
-      [hx, -hy],
-      [hx, hy],
-      [-hx, hy],
-    ];
-    let collider: RAPIER.ColliderDesc;
+    return this.addBody(
+      [
+        [-hx, -hy],
+        [hx, -hy],
+        [hx, hy],
+        [-hx, hy],
+      ],
+      x,
+      y,
+      fixed,
+    );
+  }
+
+  private addBody(
+    polygon: BodyShape["polygon"],
+    x: number,
+    y: number,
+    fixed: boolean,
+  ): RAPIER.RigidBody {
     try {
-      collider = polygonCollider(polygon);
+      const shape = createBodyShape(
+        this.world,
+        polygon,
+        { x, y },
+        this.environment.density,
+        this.friction,
+        fixed,
+      );
+      this.shapes.push(shape);
+      return shape.body;
     } catch (error) {
       this.dispose();
       throw error;
     }
-    const body = this.world.createRigidBody(desc.setTranslation(x, y));
-    this.world.createCollider(
-      collider.setDensity(this.environment.density).setFriction(this.friction),
-      body,
-    );
-    this.shapes.push({
-      body,
-      polygon,
-      domain: polygon.map(([x, y]) => ({ x, y })),
-      mass: fixed ? 0 : 4 * hx * hy * this.environment.density,
-      fixed,
-      ball: false,
-    });
-    return body;
   }
 
   apply(action: ToolAction): boolean {

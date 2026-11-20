@@ -6,7 +6,7 @@ export interface ObjectSize {
 }
 
 export const DEFAULT_OBJECT_SIZE: ObjectSize = { width: 2, height: 1 };
-// Empirical lower bound for the initial plate controls, in metres.
+// Empirical lower bound for the initial object controls, in metres.
 export const MIN_OBJECT_SIZE = 0.1;
 export const OBJECT_AXES = ["width", "height"] as const;
 

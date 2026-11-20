@@ -145,6 +145,10 @@ export const ControlPanel = ({
     />
 
     <ObjectControl
+      shape={settings.objectShape}
+      onShapeChange={(objectShape) => {
+        onChange({ ...settings, objectShape });
+      }}
       value={settings.objectSize}
       bounds={settings.environment}
       disabled={locked || settings.scene !== "plate"}

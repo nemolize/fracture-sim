@@ -1,4 +1,5 @@
 import type { EnvironmentSettings } from "./environment";
+import type { ObjectShape } from "./object-shape";
 import type { ObjectSize } from "./object-size";
 import type { ToolAction } from "./tools";
 
@@ -24,6 +25,7 @@ export type WorkerRequest =
       scene: Scene;
       environment?: EnvironmentSettings;
       objectSize?: ObjectSize;
+      objectShape?: ObjectShape;
     }
   | { type: "action"; action: ToolAction }
   | {

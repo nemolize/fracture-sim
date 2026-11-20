@@ -2,6 +2,7 @@ import {
   DEFAULT_ENVIRONMENT,
   type EnvironmentSettings,
 } from "@/rigid/environment";
+import type { ObjectShape } from "@/rigid/object-shape";
 import { DEFAULT_OBJECT_SIZE, type ObjectSize } from "@/rigid/object-size";
 import type { Tool } from "@/rigid/tools";
 import { type Scene, SCENES } from "@/rigid/types";
@@ -11,6 +12,7 @@ export interface Settings {
   scene: Scene;
   environment: EnvironmentSettings;
   objectSize: ObjectSize;
+  objectShape: ObjectShape;
   tool: Tool;
   /** Simulated seconds per real second. */
   speed: number;
@@ -31,6 +33,7 @@ export const DEFAULT_SETTINGS: Settings = {
   scene: "plate",
   environment: DEFAULT_ENVIRONMENT,
   objectSize: DEFAULT_OBJECT_SIZE,
+  objectShape: "rectangle",
   tool: "grab",
   speed: 1,
   material: DEFAULT_MATERIAL,

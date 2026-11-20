@@ -51,7 +51,7 @@ export const FractureCanvas = ({
       onPhysicsError,
     };
   });
-  const { scene } = settings;
+  const { scene, objectShape } = settings;
   const { width, height, density } = settings.environment;
   const { width: objectWidth, height: objectHeight } = settings.objectSize;
 
@@ -217,6 +217,7 @@ export const FractureCanvas = ({
       type: "init",
       scene,
       objectSize: { width: objectWidth, height: objectHeight },
+      objectShape,
       environment: {
         ...latest.current.settings.environment,
         width,
@@ -252,6 +253,7 @@ export const FractureCanvas = ({
     density,
     objectWidth,
     objectHeight,
+    objectShape,
   ]);
 
   return (

@@ -17,6 +17,7 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
           request.scene,
           request.environment,
           request.objectSize,
+          request.objectShape,
         );
         const vertices = world.vertices();
         const snapshot = world.snapshot();

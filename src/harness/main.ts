@@ -1,4 +1,5 @@
 import type { EnvironmentSettings } from "@/rigid/environment";
+import type { ObjectShape } from "@/rigid/object-shape";
 import type { ObjectSize } from "@/rigid/object-size";
 import type { ToolAction } from "@/rigid/tools";
 import type { Scene, WorkerRequest, WorkerResponse } from "@/rigid/types";
@@ -28,12 +29,14 @@ const harness = {
     scene: Scene,
     environment?: EnvironmentSettings,
     objectSize?: ObjectSize,
+    objectShape?: ObjectShape,
   ) =>
     request({
       type: "init",
       scene,
       ...(environment === undefined ? {} : { environment }),
       ...(objectSize === undefined ? {} : { objectSize }),
+      ...(objectShape === undefined ? {} : { objectShape }),
     }),
   step: (
     seconds: number,

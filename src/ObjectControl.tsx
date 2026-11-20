@@ -1,26 +1,59 @@
 import type { EnvironmentSettings } from "@/rigid/environment";
 import {
+  asObjectShape,
+  OBJECT_SHAPES,
+  type ObjectShape,
+} from "@/rigid/object-shape";
+import {
   maxObjectSize,
   MIN_OBJECT_SIZE,
   OBJECT_AXES,
   type ObjectSize,
 } from "@/rigid/object-size";
 
+const SHAPE_LABELS: Record<ObjectShape, string> = {
+  rectangle: "Rectangle",
+  ellipse: "Ellipse",
+  triangle: "Triangle",
+  hexagon: "Hexagon",
+};
+
 const LABELS = { width: "Object width (m)", height: "Object height (m)" };
 
 export const ObjectControl = ({
   value,
+  shape,
+  onShapeChange,
   bounds,
   disabled,
   onChange,
 }: {
   value: ObjectSize;
+  shape: ObjectShape;
+  onShapeChange: (shape: ObjectShape) => void;
   bounds: Pick<EnvironmentSettings, "width" | "height">;
   disabled: boolean;
   onChange: (value: ObjectSize) => void;
 }) => (
   <fieldset className="flex flex-col gap-2" disabled={disabled}>
     <legend className="text-sm font-medium text-gray-700">Object</legend>
+    <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+      Object shape
+      <select
+        className="rounded border border-gray-300 bg-white p-1.5 font-normal"
+        value={shape}
+        onChange={(event) => {
+          const next = asObjectShape(event.target.value);
+          if (next !== undefined) onShapeChange(next);
+        }}
+      >
+        {OBJECT_SHAPES.map((item) => (
+          <option key={item} value={item}>
+            {SHAPE_LABELS[item]}
+          </option>
+        ))}
+      </select>
+    </label>
     {OBJECT_AXES.map((axis) => (
       <label
         key={axis}
@@ -44,8 +77,8 @@ export const ObjectControl = ({
       </label>
     ))}
     <p className="text-xs text-gray-600">
-      Initial plate bounding box. Changes restart the scene. Dimensions are
-      limited to the world size.
+      Initial object shape and bounding box. Changes restart the scene. Equal
+      ellipse dimensions make a circle.
     </p>
   </fieldset>
 );

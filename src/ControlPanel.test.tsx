@@ -279,3 +279,15 @@ it.each([
     });
   },
 );
+
+it("stores the selected initial object shape", async () => {
+  const { user, onChange } = setup(true);
+  await user.selectOptions(
+    screen.getByRole("combobox", { name: "Object shape" }),
+    "triangle",
+  );
+  expect(onChange).toHaveBeenCalledWith({
+    ...DEFAULT_SETTINGS,
+    objectShape: "triangle",
+  });
+});
