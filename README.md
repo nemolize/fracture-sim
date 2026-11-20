@@ -70,7 +70,7 @@ area and centroidal polar area moment at density 1. Repeated splits must use
 Invalid polygons, non-interior or duplicate seeds, degenerate cells, and
 nonrepresentable area or polar moments throw.
 `src/sim/fracture.ts` divides impact energy by the material's fracture toughness (effective 2D energy per metre of new crack).
-The default 1,200 J/m is empirical and keeps the 2 m plate drop intact; 12 J/m reproduces the earlier brittle setting. Values must be finite and at least 1 J/m. Changing toughness cancels splits queued under the previous material.
+The default is 10,000 J/m and keeps the 2 m plate drop intact; 12 J/m reproduces the earlier brittle setting. Values must be finite and at least 1 J/m. Changing toughness cancels splits queued under the previous material.
 A hit must exceed the body's narrowest width before splitting. Seeds are tried
 nearest the contact first, with spacing increasing with distance. Actual shared
 Voronoi edge length must fit the energy budget; pieces smaller than 0.005 m²

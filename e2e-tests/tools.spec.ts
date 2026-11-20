@@ -248,7 +248,7 @@ test("material toughness changes future impacts and persists through Reset", asy
   const toughness = page.getByRole("slider", {
     name: "Fracture toughness (J/m)",
   });
-  await expect(toughness).toHaveAttribute("aria-valuetext", "1,200 J/m");
+  await expect(toughness).toHaveAttribute("aria-valuetext", "10,000 J/m");
   await expect
     .poll(() => page.evaluate(() => window.observedPhysics?.stats.bodies))
     .toBe(1);

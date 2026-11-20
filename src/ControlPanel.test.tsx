@@ -177,7 +177,7 @@ it("changes material toughness while paused without requiring a Reset", () => {
     name: "Fracture toughness (J/m)",
   });
   expect(input).toBeEnabled();
-  expect(input).toHaveAttribute("aria-valuetext", "1,200 J/m");
+  expect(input).toHaveAttribute("aria-valuetext", "10,000 J/m");
   setRange(input, "2");
   expect(onChange).toHaveBeenCalledWith({
     ...DEFAULT_SETTINGS,
