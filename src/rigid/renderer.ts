@@ -1,15 +1,15 @@
-import { FLOOR_MARGIN, VIEW_HEIGHT } from "@/gpu/camera";
+import { FLOOR_MARGIN } from "@/gpu/camera";
 import { BufferUsage } from "@/gpu/usage";
 
-import { WORLD_WIDTH } from "./constants";
+import { DEFAULT_ENVIRONMENT, type EnvironmentSettings } from "./environment";
 
-const shader = `
+const shader = (bounds: Pick<EnvironmentSettings, "width" | "height">) => `
 struct Vertex { @builtin(position) position: vec4f, @location(0) color: vec3f };
 @group(0) @binding(0) var<storage, read> poses: array<vec4f>;
 @vertex fn vertex(@location(0) point: vec2f, @location(1) body: f32, @location(2) color: vec3f) -> Vertex {
   let pose = poses[u32(body)];
   let p = pose.xy + vec2f(pose.z * point.x - pose.w * point.y, pose.w * point.x + pose.z * point.y);
-  return Vertex(vec4f(p.x / ${WORLD_WIDTH.toFixed(1)} * 2.0 - 1.0, (p.y + ${String(FLOOR_MARGIN)}) / ${String(VIEW_HEIGHT)} * 2.0 - 1.0, 0.0, 1.0), color);
+  return Vertex(vec4f(p.x / ${bounds.width.toFixed(6)} * 2.0 - 1.0, (p.y + ${String(FLOOR_MARGIN)}) / ${String(bounds.height + FLOOR_MARGIN)} * 2.0 - 1.0, 0.0, 1.0), color);
 }
 @fragment fn fragment(input: Vertex) -> @location(0) vec4f { return vec4f(input.color, 1.0); }
 `;
@@ -27,6 +27,7 @@ export class RigidRenderer {
     format: GPUTextureFormat,
     vertices: Float32Array<ArrayBuffer>,
     poses: Float32Array<ArrayBuffer>,
+    bounds: Pick<EnvironmentSettings, "width" | "height"> = DEFAULT_ENVIRONMENT,
   ) {
     this.device = device;
     this.count = vertices.length / 6;
@@ -40,7 +41,7 @@ export class RigidRenderer {
     });
     device.queue.writeBuffer(this.vertices, 0, vertices);
     device.queue.writeBuffer(this.poses, 0, poses);
-    const module = device.createShaderModule({ code: shader });
+    const module = device.createShaderModule({ code: shader(bounds) });
     this.pipeline = device.createRenderPipeline({
       layout: "auto",
       vertex: {

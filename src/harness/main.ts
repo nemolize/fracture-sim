@@ -1,3 +1,4 @@
+import type { EnvironmentSettings } from "@/rigid/environment";
 import type { ToolAction } from "@/rigid/tools";
 import type { Scene, WorkerRequest, WorkerResponse } from "@/rigid/types";
 import { DEFAULT_CRACK_ENERGY } from "@/sim/material";
@@ -22,12 +23,25 @@ const request = (message: WorkerRequest): Promise<WorkerResponse> =>
 
 const harness = {
   action: (action: ToolAction) => request({ type: "action", action }),
-  reset: (scene: Scene) => request({ type: "init", scene }),
+  reset: (scene: Scene, environment?: EnvironmentSettings) =>
+    request({
+      type: "init",
+      scene,
+      ...(environment === undefined ? {} : { environment }),
+    }),
   step: (
     seconds: number,
     gravity = { x: 0, y: -9.8 },
     crackEnergy = DEFAULT_CRACK_ENERGY,
-  ) => request({ type: "advance", seconds, gravity, crackEnergy }),
+    friction?: number,
+  ) =>
+    request({
+      type: "advance",
+      seconds,
+      gravity,
+      crackEnergy,
+      ...(friction === undefined ? {} : { friction }),
+    }),
 };
 Object.assign(window, { harness });
 export type Harness = typeof harness;

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { EnvironmentControl } from "@/EnvironmentControl";
 import { MaterialControl } from "@/MaterialControl";
 import { TOOL_HINTS, TOOL_LABELS, TOOLS } from "@/rigid/tools";
 import { SCENES, type WorldStats } from "@/rigid/types";
@@ -75,7 +76,7 @@ export const ControlPanel = ({
   onPausedChange,
   onReset,
 }: Props) => (
-  <aside className="flex w-full flex-col gap-4 rounded-lg bg-white p-4 shadow md:w-72 md:shrink-0">
+  <aside className="flex w-full flex-col gap-4 rounded-lg bg-white p-4 shadow md:sticky md:top-4 md:max-h-[calc(100dvh-2rem)] md:w-72 md:shrink-0 md:overflow-y-auto">
     <div className="grid grid-cols-1 gap-3">
       <Field label="Scene">
         <select
@@ -128,6 +129,14 @@ export const ControlPanel = ({
         }}
       />
     </Field>
+
+    <EnvironmentControl
+      value={settings.environment}
+      disabled={locked}
+      onChange={(environment) => {
+        onChange({ ...settings, environment });
+      }}
+    />
 
     <MaterialControl
       value={settings.material}

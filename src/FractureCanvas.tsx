@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
 
-import { canvasSize, pointerToWorld, VIEW_HEIGHT } from "@/gpu/camera";
+import { canvasSize, FLOOR_MARGIN, pointerToWorld } from "@/gpu/camera";
 import { gpuContext } from "@/gpu/device";
-import { WORLD_WIDTH } from "@/rigid/constants";
 import { PointerGesture } from "@/rigid/gesture";
 import { RigidRenderer } from "@/rigid/renderer";
 import type { WorkerRequest, WorkerResponse, WorldStats } from "@/rigid/types";
@@ -53,6 +52,7 @@ export const FractureCanvas = ({
     };
   });
   const { scene } = settings;
+  const { width, height, density } = settings.environment;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -105,6 +105,7 @@ export const FractureCanvas = ({
           format,
           vertices,
           response.snapshot.poses,
+          { width, height },
         );
       }
       if (response.type !== "edited") pending = false;
@@ -123,6 +124,7 @@ export const FractureCanvas = ({
         canvas.getBoundingClientRect(),
         event.clientX,
         event.clientY,
+        { width },
       ),
       time: event.timeStamp,
     });
@@ -158,7 +160,15 @@ export const FractureCanvas = ({
     window.addEventListener("blur", blur);
 
     const resize = (): void => {
-      const size = canvasSize(canvas.clientWidth, window.devicePixelRatio);
+      const size = canvasSize(
+        canvas.clientWidth,
+        window.devicePixelRatio,
+        {
+          width,
+          height,
+        },
+        device.limits.maxTextureDimension2D,
+      );
       if (canvas.width !== size.width) canvas.width = size.width;
       if (canvas.height !== size.height) canvas.height = size.height;
     };
@@ -187,7 +197,11 @@ export const FractureCanvas = ({
         send({
           type: "advance",
           seconds: input.paused ? 0 : seconds * input.settings.speed,
-          gravity: tracker.gravity(input.settings, now),
+          gravity: tracker.gravity(
+            { ...input.settings, gravity: input.settings.environment.gravity },
+            now,
+          ),
+          friction: input.settings.environment.friction,
           crackEnergy: crackEnergy(input.settings.material),
         });
         previous = now;
@@ -198,7 +212,16 @@ export const FractureCanvas = ({
       }
       animation = requestAnimationFrame(frame);
     };
-    send({ type: "init", scene });
+    send({
+      type: "init",
+      scene,
+      environment: {
+        ...latest.current.settings.environment,
+        width,
+        height,
+        density,
+      },
+    });
     animation = requestAnimationFrame(frame);
     return () => {
       stopped = true;
@@ -217,15 +240,18 @@ export const FractureCanvas = ({
       context.unconfigure();
       document.removeEventListener("visibilitychange", resetClock);
     };
-  }, [device, tracker, scene, resetToken]);
+  }, [device, tracker, scene, resetToken, width, height, density]);
 
   return (
     <canvas
       ref={canvasRef}
       aria-label="Fracture simulation"
-      width={WORLD_WIDTH * 100}
-      height={VIEW_HEIGHT * 100}
-      className="aspect-[10/5.6] w-full touch-none rounded-lg bg-gray-100 shadow"
+      width={width * 100}
+      height={(height + FLOOR_MARGIN) * 100}
+      style={{
+        aspectRatio: `${String(width)} / ${String(height + FLOOR_MARGIN)}`,
+      }}
+      className="w-full touch-none rounded-lg bg-gray-100 shadow"
     />
   );
 };

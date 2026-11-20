@@ -25,6 +25,7 @@ export interface MotionSample {
 }
 
 export interface MotionTuning {
+  gravity?: number;
   inertiaScale: number;
   inertiaCap: number;
 }
@@ -124,7 +125,10 @@ export class MotionTracker {
   }
 
   /** Screen-plane gravity plus inertial push against the device's acceleration. */
-  gravity({ inertiaScale, inertiaCap }: MotionTuning, now: number): Vec2 {
+  gravity(
+    { inertiaScale, inertiaCap, gravity = GRAVITY }: MotionTuning,
+    now: number,
+  ): Vec2 {
     const fresh = this.lastTime !== null && now - this.lastTime <= STALE_MS;
     const push = {
       x: fresh ? -this.acceleration.x * inertiaScale : 0,
@@ -133,8 +137,8 @@ export class MotionTracker {
     const length = Math.hypot(push.x, push.y);
     const limit = length > inertiaCap ? inertiaCap / length : 1;
     return {
-      x: this.gravityVector.x + push.x * limit,
-      y: this.gravityVector.y + push.y * limit,
+      x: this.gravityVector.x * (gravity / GRAVITY) + push.x * limit,
+      y: this.gravityVector.y * (gravity / GRAVITY) + push.y * limit,
     };
   }
 }

@@ -13,7 +13,7 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
       if (request.type === "init") {
         await initializePhysics();
         world?.dispose();
-        world = new RigidWorld(request.scene);
+        world = new RigidWorld(request.scene, request.environment);
         const vertices = world.vertices();
         const snapshot = world.snapshot();
         send({ type: "ready", vertices, snapshot }, [
@@ -38,6 +38,7 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
             request.seconds,
             request.gravity,
             request.crackEnergy,
+            request.friction,
           );
           if (revision !== world.geometryRevision) {
             const vertices = world.vertices();

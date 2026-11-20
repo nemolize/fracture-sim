@@ -138,11 +138,13 @@ export class ImpactFracture {
           p.x,
           p.y,
         ]);
-        const collider = polygonCollider(polygon).setMassProperties(
-          mass,
-          { x: 0, y: 0 },
-          (mass / piece.area) * piece.polarAreaMoment,
-        );
+        const collider = polygonCollider(polygon)
+          .setFriction(parent.body.collider(0).friction())
+          .setMassProperties(
+            mass,
+            { x: 0, y: 0 },
+            (mass / piece.area) * piece.polarAreaMoment,
+          );
         const body = world.createRigidBody(
           RAPIER.RigidBodyDesc.dynamic()
             .setTranslation(origin.x + dx, origin.y + dy)

@@ -57,6 +57,7 @@ const bodyY = (page: Page) =>
 const bodyX = (page: Page) =>
   page.evaluate(() => window.observedPhysics?.poses[16] ?? NaN);
 const point = async (page: Page, x: number, y: number) => {
+  await page.getByLabel("Fracture simulation").scrollIntoViewIfNeeded();
   const box = await page.getByLabel("Fracture simulation").boundingBox();
   if (box === null) throw new Error("Canvas missing");
   const scale = box.width / 10;

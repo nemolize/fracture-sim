@@ -3,6 +3,7 @@ import RAPIER from "@dimforge/rapier2d-compat";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { GRAVITY, TIME_STEP, WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
+import { DEFAULT_ENVIRONMENT } from "./environment";
 import { initializePhysics, RigidWorld } from "./world";
 
 beforeAll(async () => {
@@ -144,4 +145,101 @@ it("can grab a thrown ball and keep it in the container", () => {
   const poses = world.snapshot().poses;
   expect(poses[poses.length - 4]).toBeGreaterThan(0.1);
   expect(poses[poses.length - 3]).toBeCloseTo(2, 1);
+});
+
+it("builds selected walls, plate mass and throws within the new bounds", () => {
+  world = new RigidWorld("plate", {
+    ...DEFAULT_ENVIRONMENT,
+    width: 18,
+    height: 8,
+    density: 50,
+    gravity: 0,
+    friction: 0.8,
+  });
+  expect(world.snapshot().poses[16]).toBe(9);
+  expect(world.snapshot().poses[17]).toBe(2.5);
+  expect(world.snapshot().stats.mass).toBe(100);
+  world.apply({
+    type: "throw",
+    point: { x: 99, y: 99 },
+    velocity: { x: 0, y: 0 },
+  });
+  const ball = world["shapes"].at(-1);
+  expect(ball?.body.translation().x).toBeCloseTo(17.88);
+  expect(ball?.body.translation().y).toBeCloseTo(7.88);
+  expect(ball?.body.collider(0).friction()).toBeCloseTo(0.8);
+  world.advance(0, { x: 0, y: 0 }, 10000, 0);
+  for (const shape of world["shapes"])
+    expect(shape.body.collider(0).friction()).toBe(0);
+});
+
+it("keeps friction on recursively created fragments", () => {
+  world = new RigidWorld("plate");
+  for (let i = 0; i < 120; i++) world.advance(TIME_STEP, gravity, 0.07, 0.83);
+  expect(world.snapshot().stats.bodies).toBeGreaterThan(1);
+  for (const shape of world["shapes"])
+    expect(shape.body.collider(0).friction()).toBeCloseTo(0.83);
+});
+
+it("uses selected grab limits beyond the old right wall and ceiling", () => {
+  world = new RigidWorld("plate", {
+    ...DEFAULT_ENVIRONMENT,
+    width: 18,
+    height: 8,
+  });
+  world.apply({ type: "grab", point: { x: 9, y: 2.5 } });
+  world.apply({ type: "move", point: { x: 16, y: 7 } });
+  for (let i = 0; i < 240; i++) world.advance(TIME_STEP, { x: 0, y: 0 }, 10000);
+  expect(world.snapshot().poses[16]).toBeCloseTo(16, 1);
+  expect(world.snapshot().poses[17]).toBeCloseTo(7, 1);
+});
+
+it.each(["pile", "stress"] as const)(
+  "fits %s inside the smallest supported world",
+  (scene) => {
+    world = new RigidWorld(scene, {
+      ...DEFAULT_ENVIRONMENT,
+      width: 4,
+      height: 3,
+    });
+    const shapes = world["shapes"].slice(4);
+    for (const { body, polygon } of shapes) {
+      const center = body.translation();
+      for (const [x, y] of polygon) {
+        expect(center.x + x).toBeGreaterThan(0);
+        expect(center.x + x).toBeLessThan(4);
+        expect(center.y + y).toBeGreaterThan(0);
+        expect(center.y + y).toBeLessThan(3);
+      }
+    }
+  },
+);
+
+it.each([NaN, Infinity, -0.1, 2.1])(
+  "rejects invalid live friction %s",
+  (friction) => {
+    world = new RigidWorld("plate");
+    expect(() => world?.advance(0, gravity, 10000, friction)).toThrow(
+      "Invalid environment setting: friction",
+    );
+  },
+);
+
+it("live friction slows a sliding plate while zero friction preserves its speed", () => {
+  const distances: number[] = [];
+  for (const friction of [0, 1]) {
+    world = new RigidWorld("plate");
+    for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity, 10000);
+    const body = world["shapes"][4]?.body;
+    if (body === undefined) throw new Error("Missing plate");
+    const start = body.translation().x;
+    body.setLinvel({ x: 5, y: 0 }, true);
+    for (let i = 0; i < 30; i++)
+      world.advance(TIME_STEP, gravity, 10000, friction);
+    distances.push(body.translation().x - start);
+    world.dispose();
+    world = undefined;
+  }
+  expect(distances[0]).toBeGreaterThan(2.4);
+  expect(distances[1]).toBeLessThan(1.5);
 });

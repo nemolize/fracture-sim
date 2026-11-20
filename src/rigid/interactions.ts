@@ -2,7 +2,7 @@ import RAPIER from "@dimforge/rapier2d-compat";
 
 import type { Vec2 } from "@/sim/vec2";
 
-import { WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
+import { DEFAULT_ENVIRONMENT, type EnvironmentSettings } from "./environment";
 import { BLAST_RADIUS, limitVelocity } from "./tools";
 
 interface ToolBody {
@@ -20,8 +20,14 @@ export class RigidTools {
   private readonly world: RAPIER.World;
   private readonly bodies: () => ToolBody[];
   private grab: Grab | null = null;
+  private readonly bounds: Pick<EnvironmentSettings, "width" | "height">;
 
-  constructor(world: RAPIER.World, bodies: () => ToolBody[]) {
+  constructor(
+    world: RAPIER.World,
+    bodies: () => ToolBody[],
+    bounds: Pick<EnvironmentSettings, "width" | "height"> = DEFAULT_ENVIRONMENT,
+  ) {
+    this.bounds = bounds;
     this.world = world;
     this.bodies = bodies;
   }
@@ -96,11 +102,11 @@ export class RigidTools {
     grab.pointer.setNextKinematicTranslation({
       x: Math.max(
         anchor.x - minX,
-        Math.min(WORLD_WIDTH + anchor.x - maxX, grab.target.x),
+        Math.min(this.bounds.width + anchor.x - maxX, grab.target.x),
       ),
       y: Math.max(
         anchor.y - minY,
-        Math.min(WORLD_HEIGHT + anchor.y - maxY, grab.target.y),
+        Math.min(this.bounds.height + anchor.y - maxY, grab.target.y),
       ),
     });
   }

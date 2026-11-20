@@ -3,13 +3,12 @@ import RAPIER from "@dimforge/rapier2d-compat";
 import { DEFAULT_CRACK_ENERGY } from "@/sim/material";
 
 import { type BodyShape, polygonCollider } from "./body";
+import { TIME_STEP } from "./constants";
 import {
-  GLASS_DENSITY,
-  GRAVITY,
-  TIME_STEP,
-  WORLD_HEIGHT,
-  WORLD_WIDTH,
-} from "./constants";
+  DEFAULT_ENVIRONMENT,
+  type EnvironmentSettings,
+  validateEnvironment,
+} from "./environment";
 import { ImpactFracture, MAX_BODIES } from "./fracture";
 import { RigidTools } from "./interactions";
 import { limitVelocity, type ToolAction } from "./tools";
@@ -20,37 +19,46 @@ export const initializePhysics = (): Promise<void> =>
   (initialization ??= RAPIER.init());
 
 export class RigidWorld {
-  private readonly world = new RAPIER.World({ x: 0, y: -GRAVITY });
+  private readonly world: RAPIER.World;
   private readonly shapes: BodyShape[] = [];
-  private readonly tools = new RigidTools(this.world, () =>
-    this.shapes.filter((shape) => !shape.fixed),
-  );
-  private readonly fracture = new ImpactFracture();
+  private readonly tools: RigidTools;
+  private readonly fracture: ImpactFracture;
   geometryRevision = 0;
+  private friction: number;
+  private readonly environment: EnvironmentSettings;
   private elapsed = 0;
   private remainder = 0;
   private stepMs = 0;
 
-  constructor(scene: Scene) {
-    this.world.timestep = TIME_STEP;
-    this.box(WORLD_WIDTH / 2, -0.2, WORLD_WIDTH / 2 + 0.4, 0.2, true);
-    this.box(-0.2, WORLD_HEIGHT / 2, 0.2, WORLD_HEIGHT / 2, true);
-    this.box(WORLD_WIDTH + 0.2, WORLD_HEIGHT / 2, 0.2, WORLD_HEIGHT / 2, true);
-    this.box(
-      WORLD_WIDTH / 2,
-      WORLD_HEIGHT + 0.2,
-      WORLD_WIDTH / 2 + 0.4,
-      0.2,
-      true,
+  constructor(
+    scene: Scene,
+    environment: EnvironmentSettings = DEFAULT_ENVIRONMENT,
+  ) {
+    validateEnvironment(environment);
+    this.environment = { ...environment };
+    this.fracture = new ImpactFracture();
+    this.friction = environment.friction;
+    this.world = new RAPIER.World({ x: 0, y: -environment.gravity });
+    this.tools = new RigidTools(
+      this.world,
+      () => this.shapes.filter((shape) => !shape.fixed),
+      this.environment,
     );
+    const { width, height } = environment;
+    this.world.timestep = TIME_STEP;
+    this.box(width / 2, -0.2, width / 2 + 0.4, 0.2, true);
+    this.box(-0.2, height / 2, 0.2, height / 2, true);
+    this.box(width + 0.2, height / 2, 0.2, height / 2, true);
+    this.box(width / 2, height + 0.2, width / 2 + 0.4, 0.2, true);
     if (scene === "plate") {
-      this.box(5, 2.5, 1, 0.5, false);
+      this.box(width / 2, Math.min(2.5, height - 0.5), 1, 0.5, false);
     } else {
       const count = scene === "pile" ? 1000 : 2000;
+      const scale = Math.min(1, width / 10, height / 5.2);
       for (let i = 0; i < count; i++) {
         const x = 0.8 + (i % 60) * 0.14;
         const y = 0.065 + Math.floor(i / 60) * 0.14;
-        this.box(x, y, 0.06, 0.06, false);
+        this.box(x * scale, y * scale, 0.06 * scale, 0.06 * scale, false);
       }
     }
   }
@@ -80,14 +88,14 @@ export class RigidWorld {
     }
     const body = this.world.createRigidBody(desc.setTranslation(x, y));
     this.world.createCollider(
-      collider.setDensity(GLASS_DENSITY).setFriction(0.5),
+      collider.setDensity(this.environment.density).setFriction(this.friction),
       body,
     );
     this.shapes.push({
       body,
       polygon,
       domain: polygon.map(([x, y]) => ({ x, y })),
-      mass: fixed ? 0 : 4 * hx * hy * GLASS_DENSITY,
+      mass: fixed ? 0 : 4 * hx * hy * this.environment.density,
       fixed,
       ball: false,
     });
@@ -115,8 +123,14 @@ export class RigidWorld {
         const body = this.world.createRigidBody(
           RAPIER.RigidBodyDesc.dynamic()
             .setTranslation(
-              Math.max(radius, Math.min(WORLD_WIDTH - radius, action.point.x)),
-              Math.max(radius, Math.min(WORLD_HEIGHT - radius, action.point.y)),
+              Math.max(
+                radius,
+                Math.min(this.environment.width - radius, action.point.x),
+              ),
+              Math.max(
+                radius,
+                Math.min(this.environment.height - radius, action.point.y),
+              ),
             )
             .setLinvel(velocity.x, velocity.y)
             .setCcdEnabled(true),
@@ -124,6 +138,7 @@ export class RigidWorld {
         this.world.createCollider(
           RAPIER.ColliderDesc.ball(radius)
             .setMass(2)
+            .setFriction(this.friction)
             .setActiveEvents(RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS),
           body,
         );
@@ -177,7 +192,17 @@ export class RigidWorld {
     seconds: number,
     gravity: { x: number; y: number },
     crackEnergy = DEFAULT_CRACK_ENERGY,
+    friction = this.environment.friction,
   ): Snapshot {
+    if (!Number.isFinite(friction) || friction < 0 || friction > 2)
+      throw new Error("Invalid environment setting: friction");
+    if (friction !== this.friction) {
+      this.friction = friction;
+      for (const { body } of this.shapes) {
+        body.collider(0).setFriction(friction);
+        body.wakeUp();
+      }
+    }
     this.fracture.setCrackEnergy(crackEnergy);
     const changed =
       Math.hypot(

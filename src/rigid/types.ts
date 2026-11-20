@@ -1,3 +1,4 @@
+import type { EnvironmentSettings } from "./environment";
 import type { ToolAction } from "./tools";
 
 export const SCENES = ["plate", "pile", "stress"] as const;
@@ -17,13 +18,14 @@ export interface Snapshot {
 }
 
 export type WorkerRequest =
-  | { type: "init"; scene: Scene }
+  | { type: "init"; scene: Scene; environment?: EnvironmentSettings }
   | { type: "action"; action: ToolAction }
   | {
       type: "advance";
       seconds: number;
       gravity: { x: number; y: number };
       crackEnergy?: number;
+      friction?: number;
     };
 
 export type WorkerResponse =

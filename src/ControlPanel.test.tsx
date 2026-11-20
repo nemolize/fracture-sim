@@ -195,3 +195,32 @@ it("locks material editing when physics is unavailable", () => {
     screen.getByRole("slider", { name: "Fracture energy (J/m²)" }),
   ).toBeDisabled();
 });
+
+it.each([
+  ["Gravity (m/s²)", "1.6", "gravity", 1.6],
+  ["World width (m)", "18", "width", 18],
+  ["World height (m)", "8", "height", 8],
+  ["Areal density (kg/m²)", "50", "density", 50],
+  ["Friction coefficient", "0", "friction", 0],
+])("changes %s while paused", (label, input, key, value) => {
+  const { onChange } = setup(true);
+  const slider = screen.getByRole("slider", { name: label });
+  expect(slider).toBeEnabled();
+  setRange(slider, input);
+  expect(onChange).toHaveBeenCalledWith({
+    ...DEFAULT_SETTINGS,
+    environment: { ...DEFAULT_SETTINGS.environment, [key]: value },
+  });
+});
+
+it("locks world controls after a solver or GPU failure", () => {
+  setup(false, true);
+  for (const label of [
+    "Gravity (m/s²)",
+    "World width (m)",
+    "World height (m)",
+    "Areal density (kg/m²)",
+    "Friction coefficient",
+  ])
+    expect(screen.getByRole("slider", { name: label })).toBeDisabled();
+});

@@ -238,3 +238,22 @@ it.each([
     expect(tracker.gravity(TUNING, 0)).toEqual({ x: 3, y: -GRAVITY });
   },
 );
+
+it("scales measured gravity by the chosen g without normalizing or scaling shake", () => {
+  const tracker = new MotionTracker();
+  expect(tracker.gravity({ ...TUNING, gravity: 0 }, 0)).toEqual({ x: 0, y: 0 });
+  expect(tracker.gravity({ ...TUNING, gravity: 1.6 }, 0).y).toBeCloseTo(-1.6);
+  tracker.update(
+    { gravity: { x: 3, y: 4, z: 12 }, acceleration: { x: 2, y: 1 } },
+    0,
+    0,
+  );
+  expect(tracker.gravity({ ...TUNING, gravity: 19.6 }, 0)).toEqual({
+    x: 4,
+    y: 7,
+  });
+  expect(tracker.gravity({ ...TUNING, gravity: 0 }, 0)).toEqual({
+    x: -2,
+    y: -1,
+  });
+});
