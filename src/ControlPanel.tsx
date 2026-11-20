@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { EnvironmentControl } from "@/EnvironmentControl";
 import { MaterialControl } from "@/MaterialControl";
 import { ObjectControl } from "@/ObjectControl";
+import { naturalObjectSize } from "@/rigid/object-shape";
 import { fitObjectSize } from "@/rigid/object-size";
 import { TOOL_HINTS, TOOL_LABELS, TOOLS } from "@/rigid/tools";
 import { SCENES, type WorldStats } from "@/rigid/types";
@@ -147,7 +148,15 @@ export const ControlPanel = ({
     <ObjectControl
       shape={settings.objectShape}
       onShapeChange={(objectShape) => {
-        onChange({ ...settings, objectShape });
+        onChange({
+          ...settings,
+          objectShape,
+          objectSize: naturalObjectSize(
+            objectShape,
+            settings.objectSize.width,
+            settings.environment,
+          ),
+        });
       }}
       value={settings.objectSize}
       bounds={settings.environment}

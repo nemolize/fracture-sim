@@ -18,9 +18,14 @@ const setSize = (page: Page, name: string, value: number) =>
   }, value);
 
 for (const item of [
-  { id: "ellipse", area: 8 * Math.sin(Math.PI / 16), vertices: 32 },
-  { id: "triangle", area: 1, vertices: 3 },
-  { id: "hexagon", area: 1.5, vertices: 6 },
+  {
+    id: "ellipse",
+    area: 8 * Math.sin(Math.PI / 16),
+    vertices: 32,
+    naturalHeight: 2,
+  },
+  { id: "triangle", area: 1, vertices: 3, naturalHeight: Math.sqrt(3) },
+  { id: "hexagon", area: 1.5, vertices: 6, naturalHeight: Math.sqrt(3) },
 ]) {
   test(`${item.id} renders at selected dimensions, stays grounded and fractures on impact`, async ({
     page,
@@ -52,6 +57,26 @@ for (const item of [
     await page.getByRole("button", { name: "Pause", exact: true }).click();
     const select = page.getByRole("combobox", { name: "Object shape" });
     await select.selectOption(item.id);
+    const { naturalHeight } = item;
+    await expect
+      .poll(() => page.evaluate(() => window.shapeFrame?.stats.mass))
+      .toBeCloseTo(item.area * naturalHeight * 25, 8);
+    await expect
+      .poll(async () =>
+        Number(
+          await page
+            .getByRole("slider", { name: "Object height (m)", exact: true })
+            .inputValue(),
+        ),
+      )
+      .toBeCloseTo(naturalHeight, 12);
+    await page
+      .getByRole("group", { name: "Object", exact: true })
+      .scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: `test-results/shape-${item.id}-natural.png`,
+      fullPage: true,
+    });
     await setSize(page, "Object width (m)", 3);
     await setSize(page, "Object height (m)", 1.5);
     const mass = item.area * 2.25 * 25;
@@ -133,6 +158,41 @@ for (const item of [
       .poll(() => page.evaluate(() => window.shapeFrame?.stats.time ?? 0))
       .toBeGreaterThan(1);
     expect(await page.evaluate(() => window.shapeFrame?.stats.bodies)).toBe(1);
+    await page.getByRole("button", { name: "Pause", exact: true }).click();
+    await setSize(page, "World width (m)", 10);
+    await setSize(page, "World height (m)", 5.2);
+    await setSize(page, "Object width (m)", 5);
+    await select.selectOption("rectangle");
+    await select.selectOption(item.id);
+    await setSize(page, "World height (m)", 3.8);
+    const fittedWidth = (3.7 * 2) / naturalHeight;
+    await expect
+      .poll(async () =>
+        Number(
+          await page
+            .getByRole("slider", { name: "Object width (m)", exact: true })
+            .inputValue(),
+        ),
+      )
+      .toBeCloseTo(fittedWidth, 12);
+    await expect
+      .poll(async () =>
+        Number(
+          await page
+            .getByRole("slider", { name: "Object height (m)", exact: true })
+            .inputValue(),
+        ),
+      )
+      .toBeCloseTo(3.7, 12);
+    await expect
+      .poll(() => page.evaluate(() => window.shapeFrame?.stats.mass))
+      .toBeCloseTo(((item.area * fittedWidth * 3.7) / 2) * 25, 8);
+    await select.selectOption("rectangle");
+    await setSize(page, "Object width (m)", 8);
+    await select.selectOption(item.id);
+    await expect
+      .poll(() => page.evaluate(() => window.shapeFrame?.stats.mass))
+      .toBeCloseTo(((item.area * fittedWidth * 3.7) / 2) * 25, 8);
     expect(errors).toEqual([]);
     await expect(page.getByRole("alert")).toHaveCount(0);
   });

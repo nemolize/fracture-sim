@@ -61,14 +61,16 @@ export const ObjectControl = ({
       >
         <span className="flex justify-between gap-2">
           <span>{LABELS[axis]}</span>
-          <span>{value[axis].toLocaleString("en-US")}</span>
+          <span>
+            {value[axis].toLocaleString("en-US", { maximumFractionDigits: 2 })}
+          </span>
         </span>
         <input
           type="range"
           aria-label={LABELS[axis]}
           min={MIN_OBJECT_SIZE}
           max={maxObjectSize(bounds)[axis]}
-          step={0.1}
+          step="any"
           value={value[axis]}
           onChange={(event) => {
             onChange({ ...value, [axis]: Number(event.target.value) });
@@ -77,8 +79,8 @@ export const ObjectControl = ({
       </label>
     ))}
     <p className="text-xs text-gray-600">
-      Initial object shape and bounding box. Changes restart the scene. Equal
-      ellipse dimensions make a circle.
+      Selecting Ellipse makes a circle; Triangle and Hexagon have equal sides.
+      Adjust width and height to stretch the shape. Changes restart the scene.
     </p>
   </fieldset>
 );

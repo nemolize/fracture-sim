@@ -259,8 +259,13 @@ it("locks object size when physics is unavailable", () => {
 });
 
 it.each([
-  ["World width (m)", "4", { width: 3.9, height: 7 }, { width: 4 }],
-  ["World height (m)", "3", { width: 9, height: 2.9 }, { height: 3 }],
+  ["World width (m)", "4", { width: 3.9, height: (7 * 3.9) / 9 }, { width: 4 }],
+  [
+    "World height (m)",
+    "3",
+    { width: (9 * 2.9) / 7, height: 2.9 },
+    { height: 3 },
+  ],
 ])(
   "shrinks the object when %s becomes smaller",
   (label, value, objectSize, patch) => {
@@ -289,5 +294,6 @@ it("stores the selected initial object shape", async () => {
   expect(onChange).toHaveBeenCalledWith({
     ...DEFAULT_SETTINGS,
     objectShape: "triangle",
+    objectSize: { width: 2, height: Math.sqrt(3) },
   });
 });

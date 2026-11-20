@@ -23,9 +23,13 @@ export const fitObjectSize = (
   bounds: Pick<EnvironmentSettings, "width" | "height">,
 ): ObjectSize => {
   const max = maxObjectSize(bounds);
+  const scale = Math.min(1, max.width / size.width, max.height / size.height);
   return {
-    width: Math.min(size.width, max.width),
-    height: Math.min(size.height, max.height),
+    width: Math.max(MIN_OBJECT_SIZE, Math.min(max.width, size.width * scale)),
+    height: Math.max(
+      MIN_OBJECT_SIZE,
+      Math.min(max.height, size.height * scale),
+    ),
   };
 };
 

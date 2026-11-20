@@ -1,7 +1,8 @@
 import { polygonMoments } from "@/sim/polygon";
 
 import type { BodyShape } from "./body";
-import type { ObjectSize } from "./object-size";
+import type { EnvironmentSettings } from "./environment";
+import { fitObjectSize, MIN_OBJECT_SIZE, type ObjectSize } from "./object-size";
 
 export const OBJECT_SHAPES = [
   "rectangle",
@@ -12,6 +13,23 @@ export const OBJECT_SHAPES = [
 export type ObjectShape = (typeof OBJECT_SHAPES)[number];
 export const asObjectShape = (value: string): ObjectShape | undefined =>
   OBJECT_SHAPES.find((shape) => shape === value);
+
+const HEIGHT_PER_WIDTH: Record<ObjectShape, number> = {
+  rectangle: 0.5,
+  ellipse: 1,
+  triangle: Math.sqrt(3) / 2,
+  hexagon: Math.sqrt(3) / 2,
+};
+
+export const naturalObjectSize = (
+  shape: ObjectShape,
+  currentWidth: number,
+  bounds: Pick<EnvironmentSettings, "width" | "height">,
+): ObjectSize => {
+  const ratio = HEIGHT_PER_WIDTH[shape];
+  const width = Math.max(currentWidth, MIN_OBJECT_SIZE / ratio);
+  return fitObjectSize({ width, height: width * ratio }, bounds);
+};
 
 export const objectPolygon = (
   shape: string,
