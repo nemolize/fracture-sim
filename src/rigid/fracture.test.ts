@@ -15,8 +15,10 @@ afterEach(() => {
     w.dispose();
   });
 });
-const make = () => {
+const makeRaisedPlateWorld = () => {
   const world = new RigidWorld("plate");
+  world["shapes"][4]?.body.setTranslation({ x: 5, y: 2.5 }, true);
+  world["world"].propagateModifiedBodyPositionsToColliders();
   worlds.push(world);
   return world;
 };
@@ -26,7 +28,7 @@ it("separates drops below and above the crack threshold using real Rapier impuls
     [0.001, false],
     [0.15, true],
   ] as const) {
-    const world = make();
+    const world = makeRaisedPlateWorld();
     world["shapes"][4]?.body.setTranslation({ x: 5, y: 0.5 + height }, true);
     for (let i = 0; i < 60; i++)
       world.advance(TIME_STEP, { x: 0, y: -9.8 }, 12);
@@ -95,7 +97,7 @@ it("refuses balls at capacity without changing geometry or mass", () => {
 });
 
 it("retains the whole parent when full and retries its queued split when room appears", () => {
-  const world = make();
+  const world = makeRaisedPlateWorld();
   for (let i = 1; i < MAX_BODIES; i++)
     world.apply({
       type: "throw",
@@ -123,7 +125,7 @@ it("retains the whole parent when full and retries its queued split when room ap
 });
 
 it("keeps the parent and rolls back partial children if collider creation fails", () => {
-  const world = make();
+  const world = makeRaisedPlateWorld();
   for (let i = 0; i < 30; i++) world.advance(TIME_STEP, { x: 0, y: -9.8 }, 12);
   const parent = world["shapes"][4];
   const count = world["world"].bodies.len();
@@ -143,8 +145,9 @@ it("keeps the parent and rolls back partial children if collider creation fails"
 });
 
 it("detaches a grabbed parent before replacing it, leaving later pointer actions safe", () => {
-  const world = make();
+  const world = makeRaisedPlateWorld();
   world.apply({ type: "grab", point: { x: 5, y: 2.5 } });
+  expect(world["world"].bodies.len()).toBe(6);
   world.apply({
     type: "throw",
     point: { x: 3, y: 2.5 },
@@ -159,7 +162,7 @@ it("detaches a grabbed parent before replacing it, leaving later pointer actions
 });
 
 it("rejects malformed render geometry", () => {
-  const world = make();
+  const world = makeRaisedPlateWorld();
   const shape = world["shapes"][4];
   if (shape === undefined) throw new Error("Missing plate");
   shape.polygon = [];
@@ -173,7 +176,7 @@ it.each([
   "zero-impulse",
   "flipped",
 ])("ignores unusable contact data: %s", (mode) => {
-  const world = make();
+  const world = makeRaisedPlateWorld();
   const engine = world["world"];
   const shapes = world["shapes"];
   const read = engine.contactPair.bind(engine);
@@ -208,7 +211,7 @@ it.each([
 it.each([0, -12, NaN, Infinity, -Infinity])(
   "rejects invalid material toughness %s before advancing physics",
   (toughness) => {
-    const world = make();
+    const world = makeRaisedPlateWorld();
     const before = world.snapshot();
     expect(() =>
       world.advance(TIME_STEP, { x: 0, y: -9.8 }, toughness),
@@ -218,7 +221,7 @@ it.each([0, -12, NaN, Infinity, -Infinity])(
 );
 
 it("cancels a capacity-deferred split when the material changes", () => {
-  const world = make();
+  const world = makeRaisedPlateWorld();
   for (let i = 1; i < MAX_BODIES; i++)
     world.apply({
       type: "throw",

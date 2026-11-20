@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import type { Snapshot, WorkerResponse } from "../src/rigid/types";
-import { installIntactPlateFixture, releaseCustomPlate } from "./intact-plate";
+import { observeCrackEnergy, selectCustomMaterial } from "./material-fixture";
 
 declare global {
   interface Window {
@@ -74,10 +74,10 @@ const drag = async (
 };
 
 test.beforeEach(async ({ page }) => {
-  await installIntactPlateFixture(page);
+  await observeCrackEnergy(page);
   await observeWorker(page);
   await page.goto("/");
-  await releaseCustomPlate(page);
+  await selectCustomMaterial(page);
   await expect
     .poll(() => page.evaluate(() => window.observedPhysics?.stats.sleeping))
     .toBe(1);
@@ -177,7 +177,7 @@ test("worker blast leaves a distant body below 1 cm per second", async ({
     });
     const before = await window.harness.action({
       type: "blast",
-      point: { x: 4, y: 2.5 },
+      point: { x: 4, y: 0.5 },
     });
     const after = await window.harness.step(1 / 60, { x: 0, y: 0 });
     if (before.type !== "edited" || after.type !== "frame")
@@ -206,8 +206,8 @@ test("worker release carries the given velocity after a 2 m lift", async ({
   await page.goto("/harness.html");
   const measured = await page.evaluate(async () => {
     await window.harness.reset("plate");
-    await window.harness.action({ type: "grab", point: { x: 5, y: 2.5 } });
-    await window.harness.action({ type: "move", point: { x: 5, y: 4.5 } });
+    await window.harness.action({ type: "grab", point: { x: 5, y: 0.5 } });
+    await window.harness.action({ type: "move", point: { x: 5, y: 2.5 } });
     for (let i = 0; i < 20; i++) await window.harness.step(0.1);
     const before = await window.harness.action({
       type: "release",

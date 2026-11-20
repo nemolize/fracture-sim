@@ -8,12 +8,17 @@ declare global {
   }
 }
 
-test("worker fractures a plate dropped 2 m and transfers matching geometry", async ({
+test("worker fractures a plate explicitly lifted 2 m and transfers matching geometry", async ({
   page,
 }) => {
   await page.goto("/harness.html");
   const result = await page.evaluate(async () => {
     const initial = await window.harness.reset("plate");
+    await window.harness.action({ type: "grab", point: { x: 5, y: 0.5 } });
+    await window.harness.action({ type: "move", point: { x: 5, y: 2.5 } });
+    for (let i = 0; i < 20; i++)
+      await window.harness.step(0.1, { x: 0, y: -9.8 }, 12);
+    await window.harness.action({ type: "release", velocity: { x: 0, y: 0 } });
     let frame = initial;
     let geometryChanged = false;
     for (let i = 0; i < 100; i++) {
@@ -37,7 +42,7 @@ test("worker fractures a plate dropped 2 m and transfers matching geometry", asy
       finite: frame.snapshot.poses.every(Number.isFinite),
     };
   });
-  expect(result.initialY).toBe(2.5);
+  expect(result.initialY).toBeCloseTo(0.5, 2);
   expect(result.geometryChanged).toBe(true);
   expect(result.finalY).toBeGreaterThan(0);
   expect(result.stats.bodies).toBeGreaterThan(1);
@@ -116,7 +121,7 @@ test("WebGPU renders the plate, follows motion, and rebuilds scenes without diag
   });
   await expect(page.getByLabel("Device tilt")).toBeEnabled();
   const stats = page.getByLabel("Simulation statistics");
-  await expect(stats).toContainText(/Bodies[2-9][0-9]*/);
+  await expect(stats).toContainText(/Bodies1(?:Sleeping)/);
   await expect(stats).toContainText(/Sleeping[1-9][0-9]*/);
   const canvas = page.getByLabel("Fracture simulation");
   await expect.poll(() => glassPixels(page)).toBeGreaterThan(500);

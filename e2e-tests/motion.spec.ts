@@ -5,7 +5,7 @@ import type {
   WorkerRequest,
   WorkerResponse,
 } from "../src/rigid/types";
-import { installIntactPlateFixture, releaseCustomPlate } from "./intact-plate";
+import { observeCrackEnergy, selectCustomMaterial } from "./material-fixture";
 
 interface Reading3 {
   x: number;
@@ -28,7 +28,7 @@ test("accelerometer readings lift the plate upside down and preserve measured XY
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
-  await installIntactPlateFixture(page);
+  await observeCrackEnergy(page);
   await page.addInitScript(() => {
     window.motionAxes = { x: 0, y: 9.8, z: 0 };
     const OriginalWorker = window.Worker;
@@ -65,7 +65,7 @@ test("accelerometer readings lift the plate upside down and preserve measured XY
     }, 40);
   });
   await page.goto("/");
-  await releaseCustomPlate(page);
+  await selectCustomMaterial(page);
   await expect(page.getByLabel("Device tilt")).toBeChecked();
   await expect
     .poll(() => page.evaluate(() => window.motionFrame?.stats.sleeping))

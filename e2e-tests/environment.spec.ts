@@ -5,7 +5,7 @@ import type {
   WorkerRequest,
   WorkerResponse,
 } from "../src/rigid/types";
-import { installIntactPlateFixture, releaseCustomPlate } from "./intact-plate";
+import { observeCrackEnergy, selectCustomMaterial } from "./material-fixture";
 
 declare global {
   interface Window {
@@ -32,7 +32,7 @@ test("world controls reach physics, resize rendering and preserve pointer metres
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
-  await installIntactPlateFixture(page);
+  await observeCrackEnergy(page);
   await page.addInitScript(() => {
     window.environmentWorkers = 0;
     const OriginalWorker = window.Worker;
@@ -61,7 +61,7 @@ test("world controls reach physics, resize rendering and preserve pointer metres
     };
   });
   await page.goto("/");
-  await releaseCustomPlate(page);
+  await selectCustomMaterial(page);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await setSlider(page, "Gravity (m/s²)", 0);
   await expect
@@ -103,7 +103,7 @@ test("world controls reach physics, resize rendering and preserve pointer metres
     x: box.x + (x * box.width) / 18,
     y: box.y + box.height - ((y + 0.4) * box.width) / 18,
   });
-  await page.mouse.move(point(9, 2.5).x, point(9, 2.5).y);
+  await page.mouse.move(point(9, 0.5).x, point(9, 0.5).y);
   await page.mouse.down();
   await page.mouse.move(point(13, 5).x, point(13, 5).y, { steps: 20 });
   await expect

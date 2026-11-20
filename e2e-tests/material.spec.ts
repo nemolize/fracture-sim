@@ -6,6 +6,7 @@ declare global {
   interface Window {
     materialCrackEnergy?: number;
     materialBodyCount?: number;
+    materialTime?: number;
   }
 }
 
@@ -33,8 +34,10 @@ test("real material presets convert Gc and thickness before reaching the worker"
         this.addEventListener(
           "message",
           (event: MessageEvent<WorkerResponse>) => {
-            if (event.data.type !== "error")
+            if (event.data.type !== "error") {
               window.materialBodyCount = event.data.snapshot.stats.bodies;
+              window.materialTime = event.data.snapshot.stats.time;
+            }
           },
         );
       }
@@ -50,8 +53,9 @@ test("real material presets convert Gc and thickness before reaching the worker"
     "Crack energy: 0.07 J/m",
   );
   await expect
-    .poll(() => page.evaluate(() => window.materialBodyCount ?? 0))
-    .toBeGreaterThan(1);
+    .poll(() => page.evaluate(() => window.materialTime ?? 0))
+    .toBeGreaterThan(2);
+  expect(await page.evaluate(() => window.materialBodyCount)).toBe(1);
   await page.screenshot({
     path: "test-results/material-presets.png",
     fullPage: true,

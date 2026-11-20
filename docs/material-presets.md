@@ -30,6 +30,8 @@ is separately adjustable under World, and is not changed with the preset or thic
 minimum fragment area remain simplified; these values do not calibrate the
 simulation's full dynamic response to an actual material test. In particular,
 the real-glass default fractures more readily than the previous custom setting.
+The plate starts asleep with its bottom touching the floor, avoiding a startup
+impact; pointer tools, collisions and gravity changes can wake it.
 
 [mit]: https://ocw.mit.edu/courses/3-11-mechanics-of-materials-fall-1999/e5bca953e1dbd0cd0376f0f77033dc0d_MIT3_11F99_frac.pdf#page=9
 [ice]: https://www.cambridge.org/core/journals/journal-of-glaciology/article/fracture-toughness-of-ice-a-preliminary-account-of-some-new-experiments/87E062E1284661430F7346A643015532

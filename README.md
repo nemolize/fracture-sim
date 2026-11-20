@@ -13,9 +13,9 @@ stops the simulation with an explanation; reload to restart.
 
 ## Using it
 
-Choose `plate` to drop a single glass plate from 2 m above the floor, `pile` for
+Choose `plate` to place a single glass plate at rest on the floor, `pile` for
 1,000 small bodies, or `stress` for 2,000. Pause freezes physics; Reset rebuilds
-the selected scene. The default glass plate can fracture on landing. Bodies collide with each other and the container and sleep
+the selected scene. The default glass plate starts intact; lift and release it or throw a ball to fracture it. Bodies collide with each other and the container and sleep
 when they settle. `Grab` lifts a body and releases it with the pointer velocity;
 `Throw ball` launches from the start of a drag toward its end; `Blast` pushes
 bodies within 2 m of a click. Under `Material`, select a `Fracture preset`: Glass, Ice (−13°C), Acrylic (PMMA), Polystyrene or Custom. `Fracture energy (J/m²)` and `Thickness (mm)` determine the displayed `Crack energy` in J/m. Editing fracture energy switches to Custom. Changes apply to future impacts without rebuilding the scene; Reset retains the selected material and thickness. Under `World`, adjust gravity (0–40 m/s²), world width (4–30 m), height (3–20 m), areal density (1–100 kg/m²), and friction (0–2). These slider ranges are empirical. Gravity and friction apply live; size and density changes restart the selected scene, even while paused. Reset retains all settings. Smaller worlds shrink the pile/stress scene bodies uniformly to fit; the plate remains 2 × 1 m. With device motion enabled, measured gravity is multiplied by the selected g / 9.8 without normalization; shake acceleration remains independent. Pausing disables pointer tools. Speed controls simulated seconds per real second. On devices

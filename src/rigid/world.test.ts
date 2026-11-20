@@ -19,18 +19,18 @@ afterEach(() => {
 const gravity = { x: 0, y: -GRAVITY };
 
 describe("rigid world", () => {
-  it("breaks the real-glass default plate on landing without losing mass", () => {
+  it("keeps the real-glass default plate intact at floor level", () => {
     world = new RigidWorld("plate");
     const vertices = world.vertices();
     expect(vertices).toHaveLength(5 * 6 * 6);
-    expect(world.snapshot().poses[17]).toBe(2.5);
+    expect(world.snapshot().poses[17]).toBeCloseTo(0.5, 2);
     for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity);
     const { poses, stats } = world.snapshot();
     expect(poses.every(Number.isFinite)).toBe(true);
-    expect(stats.bodies).toBeGreaterThan(1);
+    expect(stats.bodies).toBe(1);
     expect(stats.sleeping).toBe(stats.bodies);
     expect(stats.mass).toBeCloseTo(50, 12);
-    expect(world.vertices().length).toBeGreaterThan(vertices.length);
+    expect(world.vertices()).toEqual(vertices);
   });
 
   it("advances at a fixed 60 Hz, clamps stalls and leaves paused frames unchanged", () => {
@@ -90,7 +90,7 @@ it("reports a non-finite engine state", () => {
 
 it("routes pointer actions and appends a ball with matching geometry and poses", () => {
   world = new RigidWorld("plate");
-  expect(world.apply({ type: "grab", point: { x: 5, y: 2.5 } })).toBe(false);
+  expect(world.apply({ type: "grab", point: { x: 5, y: 0.5 } })).toBe(false);
   world.apply({ type: "move", point: { x: 5, y: 3.5 } });
   for (let i = 0; i < 60; i++) world.advance(TIME_STEP, gravity);
   expect(world.snapshot().poses[17]).toBeGreaterThan(3.3);
@@ -157,7 +157,7 @@ it("builds selected walls, plate mass and throws within the new bounds", () => {
     friction: 0.8,
   });
   expect(world.snapshot().poses[16]).toBe(9);
-  expect(world.snapshot().poses[17]).toBe(2.5);
+  expect(world.snapshot().poses[17]).toBeCloseTo(0.5, 2);
   expect(world.snapshot().stats.mass).toBe(100);
   world.apply({
     type: "throw",
@@ -175,6 +175,7 @@ it("builds selected walls, plate mass and throws within the new bounds", () => {
 
 it("keeps friction on recursively created fragments", () => {
   world = new RigidWorld("plate");
+  world["shapes"][4]?.body.setTranslation({ x: 5, y: 2.5 }, true);
   for (let i = 0; i < 120; i++) world.advance(TIME_STEP, gravity, 0.07, 0.83);
   expect(world.snapshot().stats.bodies).toBeGreaterThan(1);
   for (const shape of world["shapes"])
@@ -187,7 +188,7 @@ it("uses selected grab limits beyond the old right wall and ceiling", () => {
     width: 18,
     height: 8,
   });
-  world.apply({ type: "grab", point: { x: 9, y: 2.5 } });
+  world.apply({ type: "grab", point: { x: 9, y: 0.5 } });
   world.apply({ type: "move", point: { x: 16, y: 7 } });
   for (let i = 0; i < 240; i++) world.advance(TIME_STEP, { x: 0, y: 0 }, 10000);
   expect(world.snapshot().poses[16]).toBeCloseTo(16, 1);

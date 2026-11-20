@@ -51,7 +51,10 @@ export class RigidWorld {
     this.box(width + 0.2, height / 2, 0.2, height / 2, true);
     this.box(width / 2, height + 0.2, width / 2 + 0.4, 0.2, true);
     if (scene === "plate") {
-      this.box(width / 2, Math.min(2.5, height - 0.5), 1, 0.5, false);
+      const plate = this.box(width / 2, 0.5, 1, 0.5, false);
+      // New floor contacts wake bodies, so initialize them before sleeping.
+      this.world.step();
+      plate.sleep();
     } else {
       const count = scene === "pile" ? 1000 : 2000;
       const scale = Math.min(1, width / 10, height / 5.2);
@@ -69,7 +72,7 @@ export class RigidWorld {
     hx: number,
     hy: number,
     fixed: boolean,
-  ): void {
+  ): RAPIER.RigidBody {
     const desc = fixed
       ? RAPIER.RigidBodyDesc.fixed()
       : RAPIER.RigidBodyDesc.dynamic().setCcdEnabled(true);
@@ -99,6 +102,7 @@ export class RigidWorld {
       fixed,
       ball: false,
     });
+    return body;
   }
 
   apply(action: ToolAction): boolean {
