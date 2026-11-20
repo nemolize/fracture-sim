@@ -2,6 +2,7 @@ import {
   DEFAULT_ENVIRONMENT,
   type EnvironmentSettings,
 } from "@/rigid/environment";
+import { DEFAULT_OBJECT_SIZE, type ObjectSize } from "@/rigid/object-size";
 import type { Tool } from "@/rigid/tools";
 import { type Scene, SCENES } from "@/rigid/types";
 import { DEFAULT_MATERIAL, type MaterialSettings } from "@/sim/material";
@@ -9,6 +10,7 @@ import { DEFAULT_MATERIAL, type MaterialSettings } from "@/sim/material";
 export interface Settings {
   scene: Scene;
   environment: EnvironmentSettings;
+  objectSize: ObjectSize;
   tool: Tool;
   /** Simulated seconds per real second. */
   speed: number;
@@ -28,6 +30,7 @@ export const MOTION_RANGES = {
 export const DEFAULT_SETTINGS: Settings = {
   scene: "plate",
   environment: DEFAULT_ENVIRONMENT,
+  objectSize: DEFAULT_OBJECT_SIZE,
   tool: "grab",
   speed: 1,
   material: DEFAULT_MATERIAL,

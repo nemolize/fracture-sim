@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { ControlPanel } from "./ControlPanel";
-import { DEFAULT_SETTINGS } from "./settings";
+import { DEFAULT_SETTINGS, type Settings } from "./settings";
 
 // userEvent cannot drag a range input, so set it the way a browser reports it.
 const setRange = (slider: HTMLElement, value: string): void => {
@@ -20,6 +20,7 @@ const setup = (
   paused = false,
   locked = false,
   motion: Partial<Parameters<typeof ControlPanel>[0]["motion"]> = {},
+  settings: Partial<Settings> = {},
 ) => {
   const onChange = vi.fn();
   const setEnabled = vi.fn();
@@ -27,7 +28,7 @@ const setup = (
   const onReset = vi.fn();
   render(
     <ControlPanel
-      settings={DEFAULT_SETTINGS}
+      settings={{ ...DEFAULT_SETTINGS, ...settings }}
       stats={stats}
       paused={paused}
       locked={locked}
@@ -224,3 +225,57 @@ it("locks world controls after a solver or GPU failure", () => {
   ])
     expect(screen.getByRole("slider", { name: label })).toBeDisabled();
 });
+
+it.each([
+  ["Object width (m)", "4", { width: 4, height: 1 }],
+  ["Object height (m)", "2.4", { width: 2, height: 2.4 }],
+])("changes %s while paused", (label, value, objectSize) => {
+  const { onChange } = setup(true);
+  setRange(screen.getByRole("slider", { name: label }), value);
+  expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_SETTINGS, objectSize });
+});
+
+it.each(["pile", "stress"] as const)(
+  "disables plate size controls in %s",
+  (scene) => {
+    setup(false, false, {}, { scene });
+    expect(
+      screen.getByRole("slider", { name: "Object width (m)" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("slider", { name: "Object height (m)" }),
+    ).toBeDisabled();
+  },
+);
+
+it("locks object size when physics is unavailable", () => {
+  setup(false, true);
+  expect(
+    screen.getByRole("slider", { name: "Object width (m)" }),
+  ).toBeDisabled();
+  expect(
+    screen.getByRole("slider", { name: "Object height (m)" }),
+  ).toBeDisabled();
+});
+
+it.each([
+  ["World width (m)", "4", { width: 3.9, height: 7 }, { width: 4 }],
+  ["World height (m)", "3", { width: 9, height: 2.9 }, { height: 3 }],
+])(
+  "shrinks the object when %s becomes smaller",
+  (label, value, objectSize, patch) => {
+    const environment = { ...DEFAULT_SETTINGS.environment, height: 8 };
+    const { onChange } = setup(
+      false,
+      false,
+      {},
+      { environment, objectSize: { width: 9, height: 7 } },
+    );
+    setRange(screen.getByRole("slider", { name: label }), value);
+    expect(onChange).toHaveBeenCalledWith({
+      ...DEFAULT_SETTINGS,
+      environment: { ...environment, ...patch },
+      objectSize,
+    });
+  },
+);

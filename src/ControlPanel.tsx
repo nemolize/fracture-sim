@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 
 import { EnvironmentControl } from "@/EnvironmentControl";
 import { MaterialControl } from "@/MaterialControl";
+import { ObjectControl } from "@/ObjectControl";
+import { fitObjectSize } from "@/rigid/object-size";
 import { TOOL_HINTS, TOOL_LABELS, TOOLS } from "@/rigid/tools";
 import { SCENES, type WorldStats } from "@/rigid/types";
 import { asScene, MOTION_RANGES, type Settings } from "@/settings";
@@ -134,7 +136,20 @@ export const ControlPanel = ({
       value={settings.environment}
       disabled={locked}
       onChange={(environment) => {
-        onChange({ ...settings, environment });
+        onChange({
+          ...settings,
+          environment,
+          objectSize: fitObjectSize(settings.objectSize, environment),
+        });
+      }}
+    />
+
+    <ObjectControl
+      value={settings.objectSize}
+      bounds={settings.environment}
+      disabled={locked || settings.scene !== "plate"}
+      onChange={(objectSize) => {
+        onChange({ ...settings, objectSize });
       }}
     />
 

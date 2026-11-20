@@ -1,4 +1,5 @@
 import type { EnvironmentSettings } from "./environment";
+import type { ObjectSize } from "./object-size";
 import type { ToolAction } from "./tools";
 
 export const SCENES = ["plate", "pile", "stress"] as const;
@@ -18,7 +19,12 @@ export interface Snapshot {
 }
 
 export type WorkerRequest =
-  | { type: "init"; scene: Scene; environment?: EnvironmentSettings }
+  | {
+      type: "init";
+      scene: Scene;
+      environment?: EnvironmentSettings;
+      objectSize?: ObjectSize;
+    }
   | { type: "action"; action: ToolAction }
   | {
       type: "advance";

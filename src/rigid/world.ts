@@ -11,6 +11,11 @@ import {
 } from "./environment";
 import { ImpactFracture, MAX_BODIES } from "./fracture";
 import { RigidTools } from "./interactions";
+import {
+  DEFAULT_OBJECT_SIZE,
+  type ObjectSize,
+  validateObjectSize,
+} from "./object-size";
 import { limitVelocity, type ToolAction } from "./tools";
 import type { Scene, Snapshot } from "./types";
 
@@ -33,8 +38,10 @@ export class RigidWorld {
   constructor(
     scene: Scene,
     environment: EnvironmentSettings = DEFAULT_ENVIRONMENT,
+    objectSize: ObjectSize = DEFAULT_OBJECT_SIZE,
   ) {
     validateEnvironment(environment);
+    validateObjectSize(objectSize, environment);
     this.environment = { ...environment };
     this.fracture = new ImpactFracture();
     this.friction = environment.friction;
@@ -51,7 +58,13 @@ export class RigidWorld {
     this.box(width + 0.2, height / 2, 0.2, height / 2, true);
     this.box(width / 2, height + 0.2, width / 2 + 0.4, 0.2, true);
     if (scene === "plate") {
-      const plate = this.box(width / 2, 0.5, 1, 0.5, false);
+      const plate = this.box(
+        width / 2,
+        objectSize.height / 2,
+        objectSize.width / 2,
+        objectSize.height / 2,
+        false,
+      );
       // New floor contacts wake bodies, so initialize them before sleeping.
       this.world.step();
       plate.sleep();

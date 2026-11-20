@@ -1,4 +1,5 @@
 import type { EnvironmentSettings } from "@/rigid/environment";
+import type { ObjectSize } from "@/rigid/object-size";
 import type { ToolAction } from "@/rigid/tools";
 import type { Scene, WorkerRequest, WorkerResponse } from "@/rigid/types";
 import { DEFAULT_CRACK_ENERGY } from "@/sim/material";
@@ -23,11 +24,16 @@ const request = (message: WorkerRequest): Promise<WorkerResponse> =>
 
 const harness = {
   action: (action: ToolAction) => request({ type: "action", action }),
-  reset: (scene: Scene, environment?: EnvironmentSettings) =>
+  reset: (
+    scene: Scene,
+    environment?: EnvironmentSettings,
+    objectSize?: ObjectSize,
+  ) =>
     request({
       type: "init",
       scene,
       ...(environment === undefined ? {} : { environment }),
+      ...(objectSize === undefined ? {} : { objectSize }),
     }),
   step: (
     seconds: number,

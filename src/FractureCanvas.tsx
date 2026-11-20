@@ -53,6 +53,7 @@ export const FractureCanvas = ({
   });
   const { scene } = settings;
   const { width, height, density } = settings.environment;
+  const { width: objectWidth, height: objectHeight } = settings.objectSize;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -215,6 +216,7 @@ export const FractureCanvas = ({
     send({
       type: "init",
       scene,
+      objectSize: { width: objectWidth, height: objectHeight },
       environment: {
         ...latest.current.settings.environment,
         width,
@@ -240,7 +242,17 @@ export const FractureCanvas = ({
       context.unconfigure();
       document.removeEventListener("visibilitychange", resetClock);
     };
-  }, [device, tracker, scene, resetToken, width, height, density]);
+  }, [
+    device,
+    tracker,
+    scene,
+    resetToken,
+    width,
+    height,
+    density,
+    objectWidth,
+    objectHeight,
+  ]);
 
   return (
     <canvas
