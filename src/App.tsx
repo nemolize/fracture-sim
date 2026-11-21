@@ -8,6 +8,7 @@ import { DEFAULT_SETTINGS, type Settings } from "@/settings";
 import { useMotion } from "@/useMotion";
 
 const INITIAL_STATS: WorldStats = {
+  mass: 0,
   bodies: 0,
   sleeping: 0,
   stepMs: 0,

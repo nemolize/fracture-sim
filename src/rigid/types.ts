@@ -1,9 +1,13 @@
+import type { EnvironmentSettings } from "./environment";
+import type { ObjectShape } from "./object-shape";
+import type { ObjectSize } from "./object-size";
 import type { ToolAction } from "./tools";
 
 export const SCENES = ["plate", "pile", "stress"] as const;
 export type Scene = (typeof SCENES)[number];
 
 export interface WorldStats {
+  mass: number;
   bodies: number;
   sleeping: number;
   stepMs: number;
@@ -16,12 +20,24 @@ export interface Snapshot {
 }
 
 export type WorkerRequest =
-  | { type: "init"; scene: Scene }
+  | {
+      type: "init";
+      scene: Scene;
+      environment?: EnvironmentSettings;
+      objectSize?: ObjectSize;
+      objectShape?: ObjectShape;
+    }
   | { type: "action"; action: ToolAction }
-  | { type: "advance"; seconds: number; gravity: { x: number; y: number } };
+  | {
+      type: "advance";
+      seconds: number;
+      gravity: { x: number; y: number };
+      crackEnergy?: number;
+      friction?: number;
+    };
 
 export type WorkerResponse =
   | { type: "ready"; vertices: Float32Array<ArrayBuffer>; snapshot: Snapshot }
-  | { type: "frame"; snapshot: Snapshot }
+  | { type: "frame"; snapshot: Snapshot; vertices?: Float32Array<ArrayBuffer> }
   | { type: "edited"; snapshot: Snapshot; vertices?: Float32Array<ArrayBuffer> }
   | { type: "error"; message: string };

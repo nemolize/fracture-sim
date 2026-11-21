@@ -13,30 +13,36 @@ export interface MotionReading {
   acceleration: Axes | null;
 }
 
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
 export interface MotionSample {
-  tilt: number | null;
+  gravity: Vec3 | null;
   acceleration: Vec2 | null;
 }
 
 export interface MotionTuning {
+  gravity?: number;
   inertiaScale: number;
   inertiaCap: number;
 }
 
-/** In-screen share of gravity below which the device counts as lying flat; chosen empirically, no fixed source. */
-const FLAT_SHARE = 0.1;
-const QUARTER_TURN = Math.PI / 2;
-/** Radians either side of upside down where the tilt keeps its side; chosen empirically, no fixed source. */
-const FLIP_BAND = 0.2;
 /** How long an acceleration sample keeps pushing once events stop; chosen empirically, no fixed source. */
 const STALE_MS = 500;
 
 const finite = (value: number | null): value is number =>
   value !== null && Number.isFinite(value);
 
-const planar = (axes: Axes | null, sign: number): Vec2 | null =>
+const spatial = (axes: Axes | null, sign: number): Vec3 | null =>
   axes !== null && finite(axes.x) && finite(axes.y)
-    ? { x: sign * axes.x, y: sign * axes.y }
+    ? {
+        x: sign * axes.x,
+        y: sign * axes.y,
+        z: finite(axes.z) ? sign * axes.z : 0,
+      }
     : null;
 
 export const toScreenFrame = ({ x, y }: Vec2, angle: number): Vec2 => {
@@ -52,9 +58,8 @@ export const toScreenFrame = ({ x, y }: Vec2, angle: number): Vec2 => {
   }
 };
 
-/** Whether the event carries a sensor reading at all, however the device is held. */
 export const hasReading = (event: MotionReading): boolean =>
-  planar(event.accelerationIncludingGravity, 1) !== null;
+  spatial(event.accelerationIncludingGravity, 1) !== null;
 
 /**
  * Reads one `devicemotion` event. `flipped` is true where the browser reports
@@ -66,24 +71,20 @@ export const readMotion = (
   flipped: boolean,
 ): MotionSample => {
   const sign = flipped ? -1 : 1;
-  const reaction = planar(event.accelerationIncludingGravity, sign);
-  const acceleration = planar(event.acceleration, sign);
-  let tilt: number | null = null;
+  const reaction = spatial(event.accelerationIncludingGravity, sign);
+  const own = spatial(event.acceleration, sign);
+  let gravity: Vec3 | null = null;
   if (reaction !== null) {
-    // The reading is gravity's reaction plus the device's own acceleration; only gravity tilts.
-    const own = acceleration ?? { x: 0, y: 0 };
-    const gravity = toScreenFrame(
-      { x: own.x - reaction.x, y: own.y - reaction.y },
-      angle,
-    );
-    if (Math.hypot(gravity.x, gravity.y) >= FLAT_SHARE * GRAVITY) {
-      tilt = Math.atan2(gravity.x, -gravity.y);
-    }
+    const vector = {
+      x: (own?.x ?? 0) - reaction.x,
+      y: (own?.y ?? 0) - reaction.y,
+      z: (own?.z ?? 0) - reaction.z,
+    };
+    gravity = spatial({ ...toScreenFrame(vector, angle), z: vector.z }, 1);
   }
   return {
-    tilt,
-    acceleration:
-      acceleration === null ? null : toScreenFrame(acceleration, angle),
+    gravity,
+    acceleration: own === null ? null : toScreenFrame(own, angle),
   };
 };
 
@@ -91,9 +92,7 @@ const blend = (seconds: number, timeConstant: number): number =>
   timeConstant <= 0 ? 1 : 1 - Math.exp(-seconds / timeConstant);
 
 export class MotionTracker {
-  private tilt = 0;
-  /** Side of the last sample outside the upside-down band, as a sign. */
-  private side = 0;
+  private gravityVector: Vec3 = { x: 0, y: -GRAVITY, z: 0 };
   private acceleration: Vec2 = { x: 0, y: 0 };
   private lastTime: number | null = null;
 
@@ -102,29 +101,34 @@ export class MotionTracker {
     const seconds =
       this.lastTime === null ? Infinity : (time - this.lastTime) / 1000;
     this.lastTime = time;
-    if (sample.tilt !== null) {
-      // Noise around upside down keeps the side the samples came from instead of swinging across.
-      const upsideDown = Math.abs(sample.tilt) > Math.PI - FLIP_BAND;
-      if ((!upsideDown || this.side === 0) && sample.tilt !== 0) {
-        this.side = Math.sign(sample.tilt);
-      }
-      const target = upsideDown
-        ? this.side * QUARTER_TURN
-        : Math.max(-QUARTER_TURN, Math.min(QUARTER_TURN, sample.tilt));
-      this.tilt += (target - this.tilt) * blend(seconds, smoothing);
+    if (sample.gravity !== null) {
+      const weight = blend(seconds, smoothing);
+      this.gravityVector = {
+        x:
+          this.gravityVector.x +
+          (sample.gravity.x - this.gravityVector.x) * weight,
+        y:
+          this.gravityVector.y +
+          (sample.gravity.y - this.gravityVector.y) * weight,
+        z:
+          this.gravityVector.z +
+          (sample.gravity.z - this.gravityVector.z) * weight,
+      };
     }
     this.acceleration = sample.acceleration ?? { x: 0, y: 0 };
   }
 
   reset(): void {
-    this.tilt = 0;
-    this.side = 0;
+    this.gravityVector = { x: 0, y: -GRAVITY, z: 0 };
     this.acceleration = { x: 0, y: 0 };
     this.lastTime = null;
   }
 
-  /** Gravity along the tilt plus the inertial push against the device's acceleration. */
-  gravity({ inertiaScale, inertiaCap }: MotionTuning, now: number): Vec2 {
+  /** Screen-plane gravity plus inertial push against the device's acceleration. */
+  gravity(
+    { inertiaScale, inertiaCap, gravity = GRAVITY }: MotionTuning,
+    now: number,
+  ): Vec2 {
     const fresh = this.lastTime !== null && now - this.lastTime <= STALE_MS;
     const push = {
       x: fresh ? -this.acceleration.x * inertiaScale : 0,
@@ -133,8 +137,8 @@ export class MotionTracker {
     const length = Math.hypot(push.x, push.y);
     const limit = length > inertiaCap ? inertiaCap / length : 1;
     return {
-      x: GRAVITY * Math.sin(this.tilt) + push.x * limit,
-      y: -GRAVITY * Math.cos(this.tilt) + push.y * limit,
+      x: this.gravityVector.x * (gravity / GRAVITY) + push.x * limit,
+      y: this.gravityVector.y * (gravity / GRAVITY) + push.y * limit,
     };
   }
 }

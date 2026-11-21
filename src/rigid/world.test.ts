@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/dot-notation -- Inspect real engine fixtures without exposing mutation APIs to the app. */
 import RAPIER from "@dimforge/rapier2d-compat";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { GRAVITY, TIME_STEP, WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
+import { DEFAULT_ENVIRONMENT } from "./environment";
 import { initializePhysics, RigidWorld } from "./world";
 
 beforeAll(async () => {
@@ -17,15 +19,17 @@ afterEach(() => {
 const gravity = { x: 0, y: -GRAVITY };
 
 describe("rigid world", () => {
-  it("drops a plate from 2 m above the floor and preserves its shape", () => {
+  it("keeps the real-glass default plate intact at floor level", () => {
     world = new RigidWorld("plate");
     const vertices = world.vertices();
     expect(vertices).toHaveLength(5 * 6 * 6);
-    expect(world.snapshot().poses[17]).toBe(2.5);
+    expect(world.snapshot().poses[17]).toBeCloseTo(0.5, 2);
     for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity);
     const { poses, stats } = world.snapshot();
-    expect(poses[17]).toBeCloseTo(0.5, 2);
-    expect(stats).toMatchObject({ bodies: 1, sleeping: 1 });
+    expect(poses.every(Number.isFinite)).toBe(true);
+    expect(stats.bodies).toBe(1);
+    expect(stats.sleeping).toBe(stats.bodies);
+    expect(stats.mass).toBeCloseTo(50, 12);
     expect(world.vertices()).toEqual(vertices);
   });
 
@@ -41,9 +45,9 @@ describe("rigid world", () => {
 
   it("wakes sleeping bodies when gravity tilts", () => {
     world = new RigidWorld("plate");
-    for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity);
-    expect(world.snapshot().stats.sleeping).toBe(1);
-    const moved = world.advance(0.1, { x: GRAVITY, y: 0 });
+    for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity, 10000);
+    expect(world.snapshot().stats.sleeping).toBe(world.snapshot().stats.bodies);
+    const moved = world.advance(0.1, { x: GRAVITY, y: 0 }, 10000);
     expect(moved.stats.sleeping).toBe(0);
     expect(moved.poses[16]).toBeGreaterThan(5);
   });
@@ -54,7 +58,14 @@ describe("rigid world", () => {
       world = new RigidWorld(scene);
       for (let i = 0; i < 200; i++) world.advance(0.1, gravity);
       const { poses, stats } = world.snapshot();
-      expect(stats.bodies).toBe(scene === "pile" ? 1000 : 2000);
+      expect(stats.bodies).toBeGreaterThanOrEqual(
+        scene === "pile" ? 1000 : 2000,
+      );
+      expect(stats.bodies).toBeLessThanOrEqual(2000);
+      expect(stats.mass).toBeCloseTo(
+        (scene === "pile" ? 1000 : 2000) * 0.36,
+        10,
+      );
       expect(stats.sleeping).toBe(stats.bodies);
       for (let i = 16; i < poses.length; i += 4) {
         expect(poses[i]).toBeGreaterThan(0);
@@ -79,7 +90,7 @@ it("reports a non-finite engine state", () => {
 
 it("routes pointer actions and appends a ball with matching geometry and poses", () => {
   world = new RigidWorld("plate");
-  expect(world.apply({ type: "grab", point: { x: 5, y: 2.5 } })).toBe(false);
+  expect(world.apply({ type: "grab", point: { x: 5, y: 0.5 } })).toBe(false);
   world.apply({ type: "move", point: { x: 5, y: 3.5 } });
   for (let i = 0; i < 60; i++) world.advance(TIME_STEP, gravity);
   expect(world.snapshot().poses[17]).toBeGreaterThan(3.3);
@@ -107,15 +118,17 @@ it("keeps thrown balls inside even when the launch starts in the floor margin", 
     velocity: { x: 0, y: 0 },
   });
   for (let i = 0; i < 120; i++) world.advance(TIME_STEP, gravity);
-  expect(world.snapshot().poses[21]).toBeGreaterThan(0.1);
+  const poses = world.snapshot().poses;
+  expect(poses[poses.length - 3]).toBeGreaterThan(0.1);
 });
 
 it("keeps a grabbed plate above the floor when capture drags below the canvas", () => {
   world = new RigidWorld("plate");
-  for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity);
+  world["shapes"][4]?.body.setTranslation({ x: 5, y: 0.501 }, true);
+  for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity, 10000);
   world.apply({ type: "grab", point: { x: 5, y: 0.5 } });
   world.apply({ type: "move", point: { x: 5, y: -3 } });
-  for (let i = 0; i < 120; i++) world.advance(TIME_STEP, gravity);
+  for (let i = 0; i < 120; i++) world.advance(TIME_STEP, gravity, 10000);
   expect(world.snapshot().poses[17]).toBeGreaterThan(0.45);
 });
 
@@ -129,6 +142,105 @@ it("can grab a thrown ball and keep it in the container", () => {
   world.apply({ type: "grab", point: { x: 1, y: 1 } });
   world.apply({ type: "move", point: { x: -5, y: 2 } });
   for (let i = 0; i < 120; i++) world.advance(TIME_STEP, gravity);
-  expect(world.snapshot().poses[20]).toBeGreaterThan(0.1);
-  expect(world.snapshot().poses[21]).toBeCloseTo(2, 1);
+  const poses = world.snapshot().poses;
+  expect(poses[poses.length - 4]).toBeGreaterThan(0.1);
+  expect(poses[poses.length - 3]).toBeCloseTo(2, 1);
+});
+
+it("builds selected walls, plate mass and throws within the new bounds", () => {
+  world = new RigidWorld("plate", {
+    ...DEFAULT_ENVIRONMENT,
+    width: 18,
+    height: 8,
+    density: 50,
+    gravity: 0,
+    friction: 0.8,
+  });
+  expect(world.snapshot().poses[16]).toBe(9);
+  expect(world.snapshot().poses[17]).toBeCloseTo(0.5, 2);
+  expect(world.snapshot().stats.mass).toBe(100);
+  world.apply({
+    type: "throw",
+    point: { x: 99, y: 99 },
+    velocity: { x: 0, y: 0 },
+  });
+  const ball = world["shapes"].at(-1);
+  expect(ball?.body.translation().x).toBeCloseTo(17.88);
+  expect(ball?.body.translation().y).toBeCloseTo(7.88);
+  expect(ball?.body.collider(0).friction()).toBeCloseTo(0.8);
+  world.advance(0, { x: 0, y: 0 }, 10000, 0);
+  for (const shape of world["shapes"])
+    expect(shape.body.collider(0).friction()).toBe(0);
+});
+
+it("keeps friction on recursively created fragments", () => {
+  world = new RigidWorld("plate");
+  world["shapes"][4]?.body.setTranslation({ x: 5, y: 2.5 }, true);
+  for (let i = 0; i < 120; i++) world.advance(TIME_STEP, gravity, 0.07, 0.83);
+  expect(world.snapshot().stats.bodies).toBeGreaterThan(1);
+  for (const shape of world["shapes"])
+    expect(shape.body.collider(0).friction()).toBeCloseTo(0.83);
+});
+
+it("uses selected grab limits beyond the old right wall and ceiling", () => {
+  world = new RigidWorld("plate", {
+    ...DEFAULT_ENVIRONMENT,
+    width: 18,
+    height: 8,
+  });
+  world.apply({ type: "grab", point: { x: 9, y: 0.5 } });
+  world.apply({ type: "move", point: { x: 16, y: 7 } });
+  for (let i = 0; i < 240; i++) world.advance(TIME_STEP, { x: 0, y: 0 }, 10000);
+  expect(world.snapshot().poses[16]).toBeCloseTo(16, 1);
+  expect(world.snapshot().poses[17]).toBeCloseTo(7, 1);
+});
+
+it.each(["pile", "stress"] as const)(
+  "fits %s inside the smallest supported world",
+  (scene) => {
+    world = new RigidWorld(scene, {
+      ...DEFAULT_ENVIRONMENT,
+      width: 4,
+      height: 3,
+    });
+    const shapes = world["shapes"].slice(4);
+    for (const { body, polygon } of shapes) {
+      const center = body.translation();
+      for (const [x, y] of polygon) {
+        expect(center.x + x).toBeGreaterThan(0);
+        expect(center.x + x).toBeLessThan(4);
+        expect(center.y + y).toBeGreaterThan(0);
+        expect(center.y + y).toBeLessThan(3);
+      }
+    }
+  },
+);
+
+it.each([NaN, Infinity, -0.1, 2.1])(
+  "rejects invalid live friction %s",
+  (friction) => {
+    world = new RigidWorld("plate");
+    expect(() => world?.advance(0, gravity, 10000, friction)).toThrow(
+      "Invalid environment setting: friction",
+    );
+  },
+);
+
+it("live friction slows a sliding plate while zero friction preserves its speed", () => {
+  const distances: number[] = [];
+  for (const friction of [0, 1]) {
+    world = new RigidWorld("plate");
+    for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity, 10000);
+    const body = world["shapes"][4]?.body;
+    if (body === undefined) throw new Error("Missing plate");
+    const start = body.translation().x;
+    body.setLinvel({ x: 5, y: 0 }, true);
+    for (let i = 0; i < 30; i++)
+      world.advance(TIME_STEP, gravity, 10000, friction);
+    distances.push(body.translation().x - start);
+    world.dispose();
+    world = undefined;
+  }
+  expect(distances[0]).toBeGreaterThan(2.4);
+  expect(distances[1]).toBeLessThan(1.5);
 });

@@ -1,5 +1,10 @@
 import type { ReactNode } from "react";
 
+import { EnvironmentControl } from "@/EnvironmentControl";
+import { MaterialControl } from "@/MaterialControl";
+import { ObjectControl } from "@/ObjectControl";
+import { naturalObjectSize } from "@/rigid/object-shape";
+import { fitObjectSize } from "@/rigid/object-size";
 import { TOOL_HINTS, TOOL_LABELS, TOOLS } from "@/rigid/tools";
 import { SCENES, type WorldStats } from "@/rigid/types";
 import { asScene, MOTION_RANGES, type Settings } from "@/settings";
@@ -74,7 +79,7 @@ export const ControlPanel = ({
   onPausedChange,
   onReset,
 }: Props) => (
-  <aside className="flex w-full flex-col gap-4 rounded-lg bg-white p-4 shadow md:w-72 md:shrink-0">
+  <aside className="flex w-full flex-col gap-4 rounded-lg bg-white p-4 shadow md:sticky md:top-4 md:max-h-[calc(100dvh-2rem)] md:w-72 md:shrink-0 md:overflow-y-auto">
     <div className="grid grid-cols-1 gap-3">
       <Field label="Scene">
         <select
@@ -128,6 +133,47 @@ export const ControlPanel = ({
       />
     </Field>
 
+    <EnvironmentControl
+      value={settings.environment}
+      disabled={locked}
+      onChange={(environment) => {
+        onChange({
+          ...settings,
+          environment,
+          objectSize: fitObjectSize(settings.objectSize, environment),
+        });
+      }}
+    />
+
+    <ObjectControl
+      shape={settings.objectShape}
+      onShapeChange={(objectShape) => {
+        onChange({
+          ...settings,
+          objectShape,
+          objectSize: naturalObjectSize(
+            objectShape,
+            settings.objectSize.width,
+            settings.environment,
+          ),
+        });
+      }}
+      value={settings.objectSize}
+      bounds={settings.environment}
+      disabled={locked || settings.scene !== "plate"}
+      onChange={(objectSize) => {
+        onChange({ ...settings, objectSize });
+      }}
+    />
+
+    <MaterialControl
+      value={settings.material}
+      disabled={locked}
+      onChange={(material) => {
+        onChange({ ...settings, material });
+      }}
+    />
+
     <fieldset className="flex flex-col gap-2">
       <legend className="mb-1 text-sm font-medium text-gray-700">Motion</legend>
       <label className="flex items-center gap-2 text-sm text-gray-800">
@@ -139,7 +185,7 @@ export const ControlPanel = ({
             motion.setEnabled(event.target.checked);
           }}
         />
-        Gyro tilt
+        Device tilt
       </label>
       <p className="text-xs text-gray-600">
         {MOTION_NOTICES[motion.support] ?? motion.notice ?? MOTION_HINT}

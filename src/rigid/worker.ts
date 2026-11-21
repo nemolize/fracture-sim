@@ -13,7 +13,12 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
       if (request.type === "init") {
         await initializePhysics();
         world?.dispose();
-        world = new RigidWorld(request.scene);
+        world = new RigidWorld(
+          request.scene,
+          request.environment,
+          request.objectSize,
+          request.objectShape,
+        );
         const vertices = world.vertices();
         const snapshot = world.snapshot();
         send({ type: "ready", vertices, snapshot }, [
@@ -33,8 +38,20 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
             ]);
           } else send({ type: "edited", snapshot }, [snapshot.poses.buffer]);
         } else {
-          const snapshot = world.advance(request.seconds, request.gravity);
-          send({ type: "frame", snapshot }, [snapshot.poses.buffer]);
+          const revision = world.geometryRevision;
+          const snapshot = world.advance(
+            request.seconds,
+            request.gravity,
+            request.crackEnergy,
+            request.friction,
+          );
+          if (revision !== world.geometryRevision) {
+            const vertices = world.vertices();
+            send({ type: "frame", snapshot, vertices }, [
+              vertices.buffer,
+              snapshot.poses.buffer,
+            ]);
+          } else send({ type: "frame", snapshot }, [snapshot.poses.buffer]);
         }
       }
     } catch (error) {

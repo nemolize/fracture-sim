@@ -8,25 +8,46 @@ declare global {
   }
 }
 
-test("worker drops an intact plate 2 m onto the floor", async ({ page }) => {
+test("worker fractures a plate explicitly lifted 2 m and transfers matching geometry", async ({
+  page,
+}) => {
   await page.goto("/harness.html");
   const result = await page.evaluate(async () => {
     const initial = await window.harness.reset("plate");
+    await window.harness.action({ type: "grab", point: { x: 5, y: 0.5 } });
+    await window.harness.action({ type: "move", point: { x: 5, y: 2.5 } });
+    for (let i = 0; i < 20; i++)
+      await window.harness.step(0.1, { x: 0, y: -9.8 }, 12);
+    await window.harness.action({ type: "release", velocity: { x: 0, y: 0 } });
     let frame = initial;
-    for (let i = 0; i < 100; i++) frame = await window.harness.step(0.1);
+    let geometryChanged = false;
+    for (let i = 0; i < 100; i++) {
+      frame = await window.harness.step(0.1, { x: 0, y: -9.8 }, 12);
+      if (frame.type === "frame" && frame.vertices !== undefined) {
+        geometryChanged = true;
+        for (let j = 2; j < frame.vertices.length; j += 6) {
+          const body = frame.vertices[j] ?? Infinity;
+          if (body * 4 + 3 >= frame.snapshot.poses.length)
+            throw new Error("Geometry/pose mismatch");
+        }
+      }
+    }
     if (initial.type !== "ready" || frame.type !== "frame")
       throw new Error("Worker failed");
     return {
       initialY: initial.snapshot.poses[17],
+      geometryChanged,
       finalY: frame.snapshot.poses[17],
       stats: frame.snapshot.stats,
       finite: frame.snapshot.poses.every(Number.isFinite),
     };
   });
-  expect(result.initialY).toBe(2.5);
-  expect(result.finalY).toBeGreaterThan(0.45);
-  expect(result.finalY).toBeLessThan(0.55);
-  expect(result.stats).toMatchObject({ bodies: 1, sleeping: 1 });
+  expect(result.initialY).toBeCloseTo(0.5, 2);
+  expect(result.geometryChanged).toBe(true);
+  expect(result.finalY).toBeGreaterThan(0);
+  expect(result.stats.bodies).toBeGreaterThan(1);
+  expect(result.stats.sleeping).toBe(result.stats.bodies);
+  expect(result.stats.mass).toBeCloseTo(50, 12);
   expect(result.finite).toBe(true);
 });
 
@@ -48,7 +69,10 @@ test("1000 bodies sleep inside the container within 20 simulated seconds", async
     }
     return { stats, contained, finite: poses.every(Number.isFinite) };
   });
-  expect(result.stats.sleeping).toBe(1000);
+  expect(result.stats.bodies).toBeGreaterThanOrEqual(1000);
+  expect(result.stats.bodies).toBeLessThanOrEqual(2000);
+  expect(result.stats.sleeping).toBe(result.stats.bodies);
+  expect(result.stats.mass).toBeCloseTo(360, 10);
   expect(result.stats.time).toBeCloseTo(20);
   expect(result.contained).toBe(true);
   expect(result.finite).toBe(true);
@@ -95,10 +119,10 @@ test("WebGPU renders the plate, follows motion, and rebuilds scenes without diag
       }),
     );
   });
-  await expect(page.getByLabel("Gyro tilt")).toBeEnabled();
+  await expect(page.getByLabel("Device tilt")).toBeEnabled();
   const stats = page.getByLabel("Simulation statistics");
-  await expect(stats).toContainText("Bodies1");
-  await expect(stats).toContainText("Sleeping1");
+  await expect(stats).toContainText(/Bodies1(?:Sleeping)/);
+  await expect(stats).toContainText(/Sleeping[1-9][0-9]*/);
   const canvas = page.getByLabel("Fracture simulation");
   await expect.poll(() => glassPixels(page)).toBeGreaterThan(500);
   const before = await canvas.screenshot();
@@ -111,15 +135,15 @@ test("WebGPU renders the plate, follows motion, and rebuilds scenes without diag
     );
   });
 
-  await expect(page.getByLabel("Gyro tilt")).toBeEnabled();
-  await expect(page.getByLabel("Gyro tilt")).toBeChecked();
+  await expect(page.getByLabel("Device tilt")).toBeEnabled();
+  await expect(page.getByLabel("Device tilt")).toBeChecked();
   await expect
     .poll(async () => Buffer.compare(before, await canvas.screenshot()))
     .not.toBe(0);
   await page.getByRole("combobox", { name: /^Scene/ }).selectOption("pile");
-  await expect(stats).toContainText("Bodies1000");
+  await expect(stats).toContainText(/Bodies1[0-9]{3}/);
   await page.getByRole("button", { name: "Reset" }).click();
-  await expect(stats).toContainText("Bodies1000");
+  await expect(stats).toContainText(/Bodies1[0-9]{3}/);
   await expect.poll(() => glassPixels(page)).toBeGreaterThan(500);
   expect(errors).toEqual([]);
   await page.screenshot({ path: "test-results/rigid-world.png" });
