@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import type { Harness } from "../src/harness/main";
+import { openSettings } from "./settings";
 
 declare global {
   interface Window {
@@ -111,6 +112,7 @@ test("WebGPU renders the plate, follows motion, and rebuilds scenes without diag
     if (message.type() === "error") errors.push(message.text());
   });
   await page.goto("/");
+  await openSettings(page);
   await page.evaluate(() => {
     window.dispatchEvent(
       new DeviceMotionEvent("devicemotion", {
@@ -167,6 +169,7 @@ test("physics worker failure stops the app and explains the failure", async ({
     window.Worker = BrokenWorker;
   });
   await page.goto("/");
+  await openSettings(page);
   await expect(page.getByRole("alert")).toContainText("The physics stopped");
   await expect(page.getByRole("alert")).toContainText(
     "WASM initialization failed",

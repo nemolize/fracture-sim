@@ -1,6 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 
 import type { WorkerRequest } from "../src/rigid/types";
+import { openSettings } from "./settings";
 
 declare global {
   interface Window {
@@ -27,11 +28,16 @@ export const observeCrackEnergy = async (page: Page): Promise<void> => {
   });
 };
 
+/** Leaves the settings popup as it found it, so pointer tests keep the canvas clear. */
 export const selectCustomMaterial = async (page: Page): Promise<void> => {
+  const toggle = page.getByRole("button", { name: "Settings", exact: true });
+  const wasOpen = (await toggle.getAttribute("aria-expanded")) === "true";
+  await openSettings(page);
   await page
     .getByRole("combobox", { name: "Fracture preset" })
     .selectOption("custom");
   await expect
     .poll(() => page.evaluate(() => window.fixtureCrackEnergy))
     .toBe(10000);
+  if (!wasOpen) await toggle.click();
 };

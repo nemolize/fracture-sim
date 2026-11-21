@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import type { Snapshot, WorkerResponse } from "../src/rigid/types";
+import { openSettings } from "./settings";
 
 declare global {
   interface Window {
@@ -54,6 +55,7 @@ for (const item of [
       };
     });
     await page.goto("/");
+    await openSettings(page);
     await page.getByRole("button", { name: "Pause", exact: true }).click();
     const select = page.getByRole("combobox", { name: "Object shape" });
     await select.selectOption(item.id);

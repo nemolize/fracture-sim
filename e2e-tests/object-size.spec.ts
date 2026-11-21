@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import type { Snapshot, WorkerResponse } from "../src/rigid/types";
+import { openSettings } from "./settings";
 
 declare global {
   interface Window {
@@ -56,6 +57,7 @@ test("plate bounding box controls update geometry, mass, reset and grab targets"
     };
   });
   await page.goto("/");
+  await openSettings(page);
   const width = page.getByRole("slider", {
     name: "Object width (m)",
     exact: true,

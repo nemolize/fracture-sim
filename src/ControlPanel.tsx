@@ -79,7 +79,7 @@ export const ControlPanel = ({
   onPausedChange,
   onReset,
 }: Props) => (
-  <aside className="flex w-full flex-col gap-4 rounded-lg bg-white p-4 shadow md:sticky md:top-4 md:max-h-[calc(100dvh-2rem)] md:w-72 md:shrink-0 md:overflow-y-auto">
+  <aside className="flex w-full flex-col gap-4 rounded-lg bg-white/95 p-4 shadow-lg">
     <div className="grid grid-cols-1 gap-3">
       <Field label="Scene">
         <select
