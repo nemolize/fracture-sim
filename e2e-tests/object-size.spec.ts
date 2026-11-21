@@ -115,6 +115,7 @@ test("plate bounding box controls update geometry, mass, reset and grab targets"
     .toBeGreaterThan(3.3);
   await page.mouse.up();
   await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await openSettings(page);
   await expect(width).toHaveValue("4");
   await expect(height).toHaveValue("2.4");
   await setSlider(page, "Object width (m)", 9);

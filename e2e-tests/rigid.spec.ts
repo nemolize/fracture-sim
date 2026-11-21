@@ -145,6 +145,7 @@ test("WebGPU renders the plate, follows motion, and rebuilds scenes without diag
   await page.getByRole("combobox", { name: /^Scene/ }).selectOption("pile");
   await expect(stats).toContainText(/Bodies1[0-9]{3}/);
   await page.getByRole("button", { name: "Reset" }).click();
+  await openSettings(page);
   await expect(stats).toContainText(/Bodies1[0-9]{3}/);
   await expect.poll(() => glassPixels(page)).toBeGreaterThan(500);
   expect(errors).toEqual([]);

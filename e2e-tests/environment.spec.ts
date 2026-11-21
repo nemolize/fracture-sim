@@ -120,11 +120,13 @@ test("world controls reach physics, resize rendering and preserve pointer metres
     .poll(() => page.evaluate(() => window.environmentSnapshot?.poses[17] ?? 0))
     .toBeGreaterThan(4.8);
   await page.mouse.up();
+  await openSettings(page);
   await setSlider(page, "Gravity (m/s²)", 1.6);
   await expect
     .poll(() => page.evaluate(() => window.environmentAdvance?.gravity.y))
     .toBeCloseTo(-1.6, 8);
   await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await openSettings(page);
   await expect(
     page.getByRole("slider", { name: "World scale", exact: true }),
   ).toHaveValue("1.8");

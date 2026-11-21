@@ -107,6 +107,7 @@ for (const item of [
     expect(geometry.bottom).toBeCloseTo(0, 2);
     expect(geometry.points).toBe((item.vertices - 2) * 3);
     await page.getByRole("button", { name: "Reset", exact: true }).click();
+    await openSettings(page);
     await expect(select).toHaveValue(item.id);
     await expect(
       page.getByRole("slider", { name: "Object width (m)", exact: true }),
@@ -147,6 +148,7 @@ for (const item of [
       path: `test-results/shape-${item.id}-impact.png`,
       fullPage: true,
     });
+    await openSettings(page);
     await page.getByRole("button", { name: "Pause", exact: true }).click();
     await setSize(page, "World scale", 3);
     await setSize(page, "Object width (m)", 29.9);
