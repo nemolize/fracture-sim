@@ -117,17 +117,16 @@ test("plate bounding box controls update geometry, mass, reset and grab targets"
   await expect(height).toHaveValue("2.4");
   await setSlider(page, "Object width (m)", 9);
   await setSlider(page, "Object height (m)", 4);
-  await setSlider(page, "World width (m)", 4);
-  await setSlider(page, "World height (m)", 3);
-  await expect(width).toHaveValue("3.9");
+  await setSlider(page, "World scale", 0.6);
+  await expect(width).toHaveValue("5.9");
   await expect
     .poll(async () => Number(await height.inputValue()))
-    .toBeCloseTo((4 * 3.9) / 9, 12);
-  await expect(width).toHaveAttribute("max", "3.9");
-  await expect(height).toHaveAttribute("max", "2.9");
+    .toBeCloseTo((4 * 5.9) / 9, 12);
+  await expect(width).toHaveAttribute("max", "5.9");
+  await expect(height).toHaveAttribute("max", "3.02");
   await expect
     .poll(() => page.evaluate(() => window.sizedObject?.stats.mass))
-    .toBeCloseTo(3.9 * ((4 * 3.9) / 9) * 25, 8);
+    .toBeCloseTo(5.9 * ((4 * 5.9) / 9) * 25, 8);
   await page
     .getByRole("combobox", { name: "Scene", exact: true })
     .selectOption("pile");
@@ -136,9 +135,9 @@ test("plate bounding box controls update geometry, mass, reset and grab targets"
   await page
     .getByRole("combobox", { name: "Scene", exact: true })
     .selectOption("plate");
-  await expect(width).toHaveValue("3.9");
+  await expect(width).toHaveValue("5.9");
   await expect
     .poll(async () => Number(await height.inputValue()))
-    .toBeCloseTo((4 * 3.9) / 9, 12);
+    .toBeCloseTo((4 * 5.9) / 9, 12);
   expect(errors).toEqual([]);
 });

@@ -14,8 +14,8 @@ export const OBJECT_AXES = ["width", "height"] as const;
 export const maxObjectSize = (
   bounds: Pick<EnvironmentSettings, "width" | "height">,
 ): ObjectSize => ({
-  width: Number((bounds.width - 0.1).toFixed(1)),
-  height: Number((bounds.height - 0.1).toFixed(1)),
+  width: Number((bounds.width - 0.1).toFixed(6)),
+  height: Number((bounds.height - 0.1).toFixed(6)),
 });
 
 export const fitObjectSize = (

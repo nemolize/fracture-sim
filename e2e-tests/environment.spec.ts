@@ -73,8 +73,13 @@ test("world controls reach physics, resize rendering and preserve pointer metres
     .poll(() => page.evaluate(() => window.environmentAdvance?.friction))
     .toBe(0.83);
   expect(await page.evaluate(() => window.environmentWorkers)).toBe(workers);
-  await setSlider(page, "World width (m)", 18);
-  await setSlider(page, "World height (m)", 8);
+  await expect(
+    page.getByRole("slider", { name: "World width (m)", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("slider", { name: "World height (m)", exact: true }),
+  ).toHaveCount(0);
+  await setSlider(page, "World scale", 1.8);
   await setSlider(page, "Areal density (kg/m²)", 50);
   await expect
     .poll(() => page.evaluate(() => window.environmentSnapshot?.stats.mass))
@@ -84,13 +89,13 @@ test("world controls reach physics, resize rendering and preserve pointer metres
     .toBe(9);
   await expect
     .poll(() => page.evaluate(() => window.environmentSnapshot?.poses[5]))
-    .toBe(4);
+    .toBeCloseTo(4.68, 6);
   const canvas = page.getByLabel("Fracture simulation");
   await canvas.scrollIntoViewIfNeeded();
   const box = await canvas.boundingBox();
   // eslint-disable-next-line playwright/no-conditional-in-test -- Bounding boxes are nullable in Playwright.
   if (box === null) throw new Error("Canvas missing");
-  expect(box.width / box.height).toBeCloseTo(18 / 8.4, 2);
+  expect(box.width / box.height).toBeCloseTo(18 / 9.76, 2);
   await page.getByRole("complementary").evaluate((panel) => {
     panel.scrollTop = 0;
   });
@@ -119,8 +124,8 @@ test("world controls reach physics, resize rendering and preserve pointer metres
     .toBeCloseTo(-1.6, 8);
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(
-    page.getByRole("slider", { name: "World width (m)", exact: true }),
-  ).toHaveValue("18");
+    page.getByRole("slider", { name: "World scale", exact: true }),
+  ).toHaveValue("1.8");
   await expect(
     page.getByRole("slider", { name: "Friction coefficient", exact: true }),
   ).toHaveValue("0.83");
@@ -130,7 +135,7 @@ test("world controls reach physics, resize rendering and preserve pointer metres
 test.describe("high-DPI world bounds", () => {
   test.use({ deviceScaleFactor: 2 });
 
-  test("renders the tallest narrow world within the GPU texture limit", async ({
+  test("caps an enlarged high-DPI canvas while changing world scale", async ({
     page,
   }) => {
     const errors: string[] = [];
@@ -140,8 +145,8 @@ test.describe("high-DPI world bounds", () => {
     });
     await page.goto("/");
     await page.getByRole("button", { name: "Pause", exact: true }).click();
-    await setSlider(page, "World width (m)", 4);
-    await setSlider(page, "World height (m)", 20);
+    await setSlider(page, "World scale", 0.6);
+    await setSlider(page, "World scale", 3);
     const limit = await page.evaluate(async () => {
       const adapter = await navigator.gpu.requestAdapter();
       if (adapter === null) throw new Error("No GPU adapter");
@@ -151,11 +156,18 @@ test.describe("high-DPI world bounds", () => {
       return max;
     });
     const canvas = page.getByLabel("Fracture simulation");
+    await canvas.evaluate((el) => {
+      el.style.width = "10000px";
+    });
     await expect
-      .poll(() => canvas.evaluate((el: HTMLCanvasElement) => el.height))
-      .toBeGreaterThan(7000);
-    const height = await canvas.evaluate((el: HTMLCanvasElement) => el.height);
-    expect(height).toBeLessThanOrEqual(limit);
+      .poll(() => canvas.evaluate((el: HTMLCanvasElement) => el.width))
+      .toBe(Math.min(20000, limit));
+    const size = await canvas.evaluate((el: HTMLCanvasElement) => ({
+      width: el.width,
+      height: el.height,
+    }));
+    expect(size.height).toBeLessThanOrEqual(limit);
+    expect(size.width / size.height).toBeCloseTo(30 / 16, 2);
     expect(errors).toEqual([]);
     await expect(page.getByRole("alert")).toHaveCount(0);
   });

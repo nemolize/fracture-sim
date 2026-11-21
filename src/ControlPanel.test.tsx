@@ -22,7 +22,7 @@ const setup = (
   motion: Partial<Parameters<typeof ControlPanel>[0]["motion"]> = {},
   settings: Partial<Settings> = {},
 ) => {
-  const onChange = vi.fn();
+  const onChange = vi.fn<(next: Settings) => void>();
   const setEnabled = vi.fn();
   const onPausedChange = vi.fn();
   const onReset = vi.fn();
@@ -199,8 +199,6 @@ it("locks material editing when physics is unavailable", () => {
 
 it.each([
   ["Gravity (m/s²)", "1.6", "gravity", 1.6],
-  ["World width (m)", "18", "width", 18],
-  ["World height (m)", "8", "height", 8],
   ["Areal density (kg/m²)", "50", "density", 50],
   ["Friction coefficient", "0", "friction", 0],
 ])("changes %s while paused", (label, input, key, value) => {
@@ -218,8 +216,7 @@ it("locks world controls after a solver or GPU failure", () => {
   setup(false, true);
   for (const label of [
     "Gravity (m/s²)",
-    "World width (m)",
-    "World height (m)",
+    "World scale",
     "Areal density (kg/m²)",
     "Friction coefficient",
   ])
@@ -258,32 +255,44 @@ it("locks object size when physics is unavailable", () => {
   ).toBeDisabled();
 });
 
-it.each([
-  ["World width (m)", "4", { width: 3.9, height: (7 * 3.9) / 9 }, { width: 4 }],
-  [
-    "World height (m)",
-    "3",
-    { width: (9 * 2.9) / 7, height: 2.9 },
-    { height: 3 },
-  ],
-])(
-  "shrinks the object when %s becomes smaller",
-  (label, value, objectSize, patch) => {
-    const environment = { ...DEFAULT_SETTINGS.environment, height: 8 };
-    const { onChange } = setup(
-      false,
-      false,
-      {},
-      { environment, objectSize: { width: 9, height: 7 } },
-    );
-    setRange(screen.getByRole("slider", { name: label }), value);
-    expect(onChange).toHaveBeenCalledWith({
-      ...DEFAULT_SETTINGS,
-      environment: { ...environment, ...patch },
-      objectSize,
-    });
-  },
-);
+it("scales both world dimensions and fits the object proportionally", () => {
+  const { onChange } = setup(
+    true,
+    false,
+    {},
+    { objectSize: { width: 9, height: 5 } },
+  );
+  setRange(screen.getByRole("slider", { name: "World scale" }), "0.6");
+  expect(onChange).toHaveBeenCalledOnce();
+  const next = onChange.mock.calls[0]?.[0];
+  expect(next?.environment).toEqual({
+    ...DEFAULT_SETTINGS.environment,
+    width: 6,
+    height: 3.12,
+  });
+  expect(next?.objectSize.width).toBeCloseTo((9 * 3.02) / 5, 12);
+  expect(next?.objectSize.height).toBeCloseTo(3.02, 12);
+});
+it("shows one world scale multiplier instead of separate dimension sliders", () => {
+  setup(
+    true,
+    false,
+    {},
+    {
+      environment: { ...DEFAULT_SETTINGS.environment, width: 18, height: 9.36 },
+    },
+  );
+  expect(screen.getByRole("slider", { name: "World scale" })).toHaveValue(
+    "1.8",
+  );
+  expect(screen.getByText("×1.8")).toBeVisible();
+  expect(
+    screen.queryByRole("slider", { name: "World width (m)" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("slider", { name: "World height (m)" }),
+  ).not.toBeInTheDocument();
+});
 
 it("stores the selected initial object shape", async () => {
   const { user, onChange } = setup(true);

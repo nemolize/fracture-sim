@@ -146,8 +146,7 @@ for (const item of [
       fullPage: true,
     });
     await page.getByRole("button", { name: "Pause", exact: true }).click();
-    await setSize(page, "World width (m)", 30);
-    await setSize(page, "World height (m)", 20);
+    await setSize(page, "World scale", 3);
     await setSize(page, "Object width (m)", 29.9);
     await setSize(page, "Object height (m)", 0.1);
     await expect
@@ -159,13 +158,12 @@ for (const item of [
       .toBeGreaterThan(1);
     expect(await page.evaluate(() => window.shapeFrame?.stats.bodies)).toBe(1);
     await page.getByRole("button", { name: "Pause", exact: true }).click();
-    await setSize(page, "World width (m)", 10);
-    await setSize(page, "World height (m)", 5.2);
+    await setSize(page, "World scale", 1);
     await setSize(page, "Object width (m)", 5);
     await select.selectOption("rectangle");
     await select.selectOption(item.id);
-    await setSize(page, "World height (m)", 3.8);
-    const fittedWidth = (3.7 * 2) / naturalHeight;
+    await setSize(page, "World scale", 0.7);
+    const fittedWidth = (3.54 * 2) / naturalHeight;
     await expect
       .poll(async () =>
         Number(
@@ -183,16 +181,16 @@ for (const item of [
             .inputValue(),
         ),
       )
-      .toBeCloseTo(3.7, 12);
+      .toBeCloseTo(3.54, 12);
     await expect
       .poll(() => page.evaluate(() => window.shapeFrame?.stats.mass))
-      .toBeCloseTo(((item.area * fittedWidth * 3.7) / 2) * 25, 8);
+      .toBeCloseTo(((item.area * fittedWidth * 3.54) / 2) * 25, 8);
     await select.selectOption("rectangle");
     await setSize(page, "Object width (m)", 8);
     await select.selectOption(item.id);
     await expect
       .poll(() => page.evaluate(() => window.shapeFrame?.stats.mass))
-      .toBeCloseTo(((item.area * fittedWidth * 3.7) / 2) * 25, 8);
+      .toBeCloseTo(((item.area * fittedWidth * 3.54) / 2) * 25, 8);
     expect(errors).toEqual([]);
     await expect(page.getByRole("alert")).toHaveCount(0);
   });

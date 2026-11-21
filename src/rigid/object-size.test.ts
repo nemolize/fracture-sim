@@ -79,3 +79,24 @@ it("retains the minimum dimension when a manually stretched object cannot fit un
     validateObjectSize(fitted, { width: 4, height: 3 });
   }).not.toThrow();
 });
+
+it.each([
+  {
+    bounds: { width: 6, height: 3.12 },
+    expected: { width: 5.9, height: 3.02 },
+  },
+  {
+    bounds: { width: 7, height: 3.64 },
+    expected: { width: 6.9, height: 3.54 },
+  },
+  {
+    bounds: { width: 8, height: 4.16 },
+    expected: { width: 7.9, height: 4.06 },
+  },
+])(
+  "retains clearance for fractional world dimensions $bounds",
+  ({ bounds, expected }) => {
+    expect(maxObjectSize(bounds)).toEqual(expected);
+    expect(bounds.height - maxObjectSize(bounds).height).toBeCloseTo(0.1, 12);
+  },
+);
