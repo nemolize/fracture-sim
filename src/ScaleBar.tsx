@@ -15,7 +15,7 @@ export const ScaleBar = ({
       aria-label="World scale reference"
       className="pointer-events-none absolute inset-x-0 bottom-3 flex flex-col items-end gap-1 text-xs text-gray-800"
     >
-      <span className="mr-3 px-2 py-1">{label}</span>
+      <span className="mr-3 rounded bg-gray-500/40 px-2 py-1">{label}</span>
       <div
         role="img"
         aria-label={`${label} scale bar`}
