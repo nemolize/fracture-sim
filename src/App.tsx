@@ -41,8 +41,10 @@ const App = () => {
   const [physicsError, setPhysicsError] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
   const { gpu, unsupported } = useGpu();
   const motion = useMotion(settings);
+  const locked = gpu.status !== "ready" || physicsError !== null;
 
   useEffect(() => {
     if (!panelOpen) return;
@@ -51,26 +53,49 @@ const App = () => {
       setPanelOpen(false);
       toggleRef.current?.focus();
     };
+    const onPointerDown = (event: PointerEvent): void => {
+      const inside = event
+        .composedPath()
+        .some(
+          (node) => node === popupRef.current || node === toggleRef.current,
+        );
+      if (inside) return;
+      setPanelOpen(false);
+    };
     window.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
     };
   }, [panelOpen]);
 
   return (
     <main className="relative mx-auto flex min-h-screen max-w-6xl flex-col gap-4 bg-gray-50 p-4">
-      <button
-        ref={toggleRef}
-        type="button"
-        aria-expanded={panelOpen}
-        aria-controls={PANEL_ID}
-        className="absolute top-4 right-4 z-10 rounded bg-gray-800 px-3 py-1.5 text-sm font-medium text-white shadow hover:bg-gray-700"
-        onClick={() => {
-          setPanelOpen(!panelOpen);
-        }}
-      >
-        Settings
-      </button>
+      <div className="absolute top-4 right-4 z-10 flex gap-2">
+        <button
+          type="button"
+          disabled={locked}
+          className="rounded bg-white px-3 py-1.5 text-sm font-medium text-gray-800 shadow hover:bg-gray-100 disabled:opacity-50"
+          onClick={() => {
+            setResetToken((token) => token + 1);
+          }}
+        >
+          Reset
+        </button>
+        <button
+          ref={toggleRef}
+          type="button"
+          aria-expanded={panelOpen}
+          aria-controls={PANEL_ID}
+          className="rounded bg-gray-800 px-3 py-1.5 text-sm font-medium text-white shadow hover:bg-gray-700"
+          onClick={() => {
+            setPanelOpen(!panelOpen);
+          }}
+        >
+          Settings
+        </button>
+      </div>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <h1 className="text-2xl font-bold text-gray-800">Fracture Sim</h1>
         {gpu.status === "ready" && physicsError === null ? (
@@ -104,6 +129,7 @@ const App = () => {
       </div>
       {panelOpen ? (
         <div
+          ref={popupRef}
           id={PANEL_ID}
           className="absolute top-16 right-4 z-10 max-h-[calc(100dvh-5rem)] w-72 max-w-[calc(100%-2rem)] overflow-y-auto rounded-lg"
         >
@@ -111,13 +137,10 @@ const App = () => {
             settings={settings}
             stats={stats}
             paused={paused}
-            locked={gpu.status !== "ready" || physicsError !== null}
+            locked={locked}
             motion={motion}
             onChange={setSettings}
             onPausedChange={setPaused}
-            onReset={() => {
-              setResetToken((token) => token + 1);
-            }}
           />
         </div>
       ) : null}

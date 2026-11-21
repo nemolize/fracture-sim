@@ -25,7 +25,6 @@ const setup = (
   const onChange = vi.fn<(next: Settings) => void>();
   const setEnabled = vi.fn();
   const onPausedChange = vi.fn();
-  const onReset = vi.fn();
   render(
     <ControlPanel
       settings={{ ...DEFAULT_SETTINGS, ...settings }}
@@ -41,13 +40,11 @@ const setup = (
       }}
       onChange={onChange}
       onPausedChange={onPausedChange}
-      onReset={onReset}
     />,
   );
   return {
     onChange,
     onPausedChange,
-    onReset,
     setEnabled,
     user: userEvent.setup(),
   };
@@ -143,12 +140,10 @@ describe("ControlPanel", () => {
     });
   });
 
-  it("toggles pause and resets", async () => {
-    const { onPausedChange, onReset, user } = setup();
+  it("toggles pause", async () => {
+    const { onPausedChange, user } = setup();
     await user.click(screen.getByRole("button", { name: "Pause" }));
     expect(onPausedChange).toHaveBeenCalledWith(true);
-    await user.click(screen.getByRole("button", { name: "Reset" }));
-    expect(onReset).toHaveBeenCalledOnce();
   });
 
   it("offers to resume while paused", () => {
@@ -156,12 +151,11 @@ describe("ControlPanel", () => {
     expect(screen.getByRole("button", { name: "Resume" })).toBeVisible();
   });
 
-  it("locks Reset and the settings that rebuild the solver, not Pause", () => {
+  it("locks the settings that rebuild the solver, not Pause", () => {
     setup(false, true);
     for (const label of ["Scene"]) {
       expect(screen.getByLabelText(label)).toBeDisabled();
     }
-    expect(screen.getByRole("button", { name: "Reset" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Pause" })).toBeEnabled();
   });
 });

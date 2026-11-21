@@ -13,12 +13,14 @@ vi.mock("@/FractureCanvas", () => ({
     onStats,
     onContextUnavailable,
     onPhysicsError,
+    resetToken,
   }: {
+    resetToken: number;
     onStats: (stats: WorldStats) => void;
     onContextUnavailable: (message: string) => void;
     onPhysicsError: (message: string) => void;
   }) => (
-    <div aria-label="Fracture simulation">
+    <div aria-label="Fracture simulation" data-reset-token={resetToken}>
       <button
         type="button"
         onClick={() => {
@@ -129,7 +131,10 @@ describe("with WebGPU", () => {
     expect(screen.getByLabelText("Simulation statistics")).toHaveTextContent(
       "Bodies0",
     );
-    await user.click(screen.getByRole("button", { name: "report stats" }));
+    await act(async () => {
+      screen.getByRole("button", { name: "report stats" }).click();
+      await Promise.resolve();
+    });
     expect(screen.getByLabelText("Simulation statistics")).toHaveTextContent(
       "Bodies3",
     );
@@ -145,7 +150,21 @@ describe("with WebGPU", () => {
     expect(screen.getByLabelText("Scene")).toHaveValue("pile");
     await user.click(screen.getByRole("button", { name: "Pause" }));
     expect(screen.getByRole("button", { name: "Resume" })).toBeVisible();
+  });
+
+  it("keeps Reset on the screen and closes the popup on a tap outside it", async () => {
+    setGpu(fakeGpu().gpu);
+    const user = userEvent.setup();
+    render(<App />);
+    const canvas = await screen.findByLabelText("Fracture simulation");
+    expect(canvas).toHaveAttribute("data-reset-token", "0");
     await user.click(screen.getByRole("button", { name: "Reset" }));
+    expect(canvas).toHaveAttribute("data-reset-token", "1");
+    await openSettings(user);
+    await user.click(screen.getByLabelText("Scene"));
+    expect(screen.getByLabelText("Scene")).toBeVisible();
+    await user.click(screen.getByRole("heading", { name: "Fracture Sim" }));
+    expect(screen.queryByLabelText("Scene")).toBeNull();
   });
 
   it("stops and locks the controls when the device is lost", async () => {
@@ -200,7 +219,6 @@ describe("with WebGPU", () => {
     );
     expect(screen.getByRole("alert")).toHaveTextContent("The physics stopped");
     expect(screen.getByRole("alert")).toHaveTextContent("WASM failed");
-    await openSettings(user);
     expect(screen.getByRole("button", { name: "Reset" })).toBeDisabled();
   });
 

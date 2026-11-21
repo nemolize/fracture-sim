@@ -14,12 +14,10 @@ interface Props {
   settings: Settings;
   stats: WorldStats;
   paused: boolean;
-  /** Reset and the settings that rebuild the solver stay off once WebGPU is gone. */
   locked: boolean;
   motion: Pick<MotionControl, "support" | "enabled" | "notice" | "setEnabled">;
   onChange: (next: Settings) => void;
   onPausedChange: (paused: boolean) => void;
-  onReset: () => void;
 }
 
 const Field = ({ label, children }: { label: string; children: ReactNode }) => (
@@ -77,7 +75,6 @@ export const ControlPanel = ({
   motion,
   onChange,
   onPausedChange,
-  onReset,
 }: Props) => (
   <aside className="flex w-full flex-col gap-4 rounded-lg bg-white/95 p-4 shadow-lg">
     <div className="grid grid-cols-1 gap-3">
@@ -222,25 +219,15 @@ export const ControlPanel = ({
       />
     </fieldset>
 
-    <div className="flex gap-2">
-      <button
-        type="button"
-        className="grow rounded border border-gray-300 p-1.5"
-        onClick={() => {
-          onPausedChange(!paused);
-        }}
-      >
-        {paused ? "Resume" : "Pause"}
-      </button>
-      <button
-        type="button"
-        className="grow rounded border border-gray-300 p-1.5 disabled:opacity-50"
-        disabled={locked}
-        onClick={onReset}
-      >
-        Reset
-      </button>
-    </div>
+    <button
+      type="button"
+      className="rounded border border-gray-300 p-1.5"
+      onClick={() => {
+        onPausedChange(!paused);
+      }}
+    >
+      {paused ? "Resume" : "Pause"}
+    </button>
 
     <dl
       aria-label="Simulation statistics"

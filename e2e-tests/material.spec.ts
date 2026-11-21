@@ -86,6 +86,7 @@ test("real material presets convert Gc and thickness before reaching the worker"
     .poll(() => page.evaluate(() => window.materialCrackEnergy))
     .toBeCloseTo(0.01515, 12);
   await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await openSettings(page);
   await expect(preset).toHaveValue("ice");
   await expect(thickness).toHaveValue("10.1");
   await energy.press("ArrowRight");
