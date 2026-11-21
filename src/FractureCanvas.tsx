@@ -5,6 +5,7 @@ import { gpuContext } from "@/gpu/device";
 import { PointerGesture } from "@/rigid/gesture";
 import { RigidRenderer } from "@/rigid/renderer";
 import type { WorkerRequest, WorkerResponse, WorldStats } from "@/rigid/types";
+import { ScaleBar } from "@/ScaleBar";
 import type { Settings } from "@/settings";
 import { crackEnergy } from "@/sim/material";
 import type { MotionTracker } from "@/sim/motion";
@@ -257,15 +258,18 @@ export const FractureCanvas = ({
   ]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      aria-label="Fracture simulation"
-      width={width * 100}
-      height={(height + FLOOR_MARGIN) * 100}
-      style={{
-        aspectRatio: `${String(width)} / ${String(height + FLOOR_MARGIN)}`,
-      }}
-      className="w-full touch-none rounded-lg bg-gray-100 shadow"
-    />
+    <div className="relative">
+      <canvas
+        ref={canvasRef}
+        aria-label="Fracture simulation"
+        width={width * 100}
+        height={(height + FLOOR_MARGIN) * 100}
+        style={{
+          aspectRatio: `${String(width)} / ${String(height + FLOOR_MARGIN)}`,
+        }}
+        className="block w-full touch-none rounded-lg bg-gray-100 shadow"
+      />
+      <ScaleBar environment={settings.environment} />
+    </div>
   );
 };
