@@ -16,10 +16,11 @@ for (const viewport of [
     const reference = page.getByRole("group", {
       name: "World scale reference",
     });
+    const widths: number[] = [];
     for (const { scale, metres } of [
-      { scale: 0.6, metres: 1 },
-      { scale: 1, metres: 2 },
-      { scale: 3, metres: 5 },
+      { scale: 0.6, metres: 0.6 },
+      { scale: 1, metres: 1 },
+      { scale: 3, metres: 3 },
     ]) {
       await page
         .getByRole("slider", { name: "World scale", exact: true })
@@ -31,9 +32,7 @@ for (const viewport of [
           input.dispatchEvent(new Event("input", { bubbles: true }));
         }, scale);
       await canvas.scrollIntoViewIfNeeded();
-      await expect(reference).toHaveText(
-        `${String(metres)} m · ×${scale.toFixed(1)}`,
-      );
+      await expect(reference).toHaveText(`${String(metres)} m`);
       const bar = page.getByRole("img", {
         name: `${String(metres)} m scale bar`,
       });
@@ -42,6 +41,18 @@ for (const viewport of [
       // eslint-disable-next-line playwright/no-conditional-in-test -- Bounding boxes are nullable in Playwright.
       if (worldBox === null || barBox === null)
         throw new Error("Missing scale geometry");
+      widths.push(barBox.width);
+      expect(
+        await bar.evaluate((el) => {
+          const style = getComputedStyle(el);
+          return {
+            top: style.borderTopWidth,
+            bottom: style.borderBottomWidth,
+            left: style.borderLeftWidth,
+            right: style.borderRightWidth,
+          };
+        }),
+      ).toEqual({ top: "0px", bottom: "2px", left: "2px", right: "2px" });
       expect(barBox.width).toBeCloseTo(
         (worldBox.width * metres) / (10 * scale),
         1,
@@ -63,6 +74,7 @@ for (const viewport of [
         }),
       ).toBe("Fracture simulation");
     }
+    expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(0.05);
     await canvas.locator("..").screenshot({
       path: `test-results/scale-reference-${String(viewport.width)}.png`,
     });
