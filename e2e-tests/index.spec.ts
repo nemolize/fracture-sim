@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
+import { openSettings } from "./settings";
 import { isPreviewTarget } from "./target";
 
 declare global {
@@ -11,6 +12,7 @@ declare global {
 
 test("should load the rigid-body simulator", async ({ page }) => {
   await page.goto("/");
+  await openSettings(page);
   await expect(page).toHaveTitle("Fracture Sim");
   await expect(page.getByLabel("Fracture simulation")).toBeVisible();
   await expect(page.getByRole("combobox", { name: /^Scene/ })).toHaveValue(
@@ -44,6 +46,7 @@ test.describe("without a usable WebGPU", () => {
       Object.defineProperty(navigator, "gpu", { value: undefined });
     });
     await page.goto("/");
+    await openSettings(page);
 
     await expectNoSimulation(page);
   });
@@ -55,6 +58,7 @@ test.describe("without a usable WebGPU", () => {
       navigator.gpu.requestAdapter = () => Promise.resolve(null);
     });
     await page.goto("/");
+    await openSettings(page);
 
     await expectNoSimulation(page);
   });
@@ -67,6 +71,7 @@ test.describe("without a usable WebGPU", () => {
         Promise.reject(new Error("device refused"));
     });
     await page.goto("/");
+    await openSettings(page);
 
     await expectNoSimulation(page);
     await expect(page.getByRole("alert")).toContainText("device refused");
@@ -94,6 +99,7 @@ test("should stop and say so when the GPU device is lost", async ({ page }) => {
     };
   });
   await page.goto("/");
+  await openSettings(page);
   await expect(page.getByLabel("Fracture simulation")).toBeVisible();
 
   await page.evaluate(() => {

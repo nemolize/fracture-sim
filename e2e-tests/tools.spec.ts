@@ -2,6 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import type { Snapshot, WorkerResponse } from "../src/rigid/types";
 import { observeCrackEnergy, selectCustomMaterial } from "./material-fixture";
+import { closeSettings, openSettings } from "./settings";
 
 declare global {
   interface Window {
@@ -95,6 +96,7 @@ test("release preserves pointer velocity and a cancelled grab stops following", 
   await page.mouse.move(to.x, to.y, { steps: 10 });
   await page.mouse.up();
   await expect.poll(() => bodyX(page)).toBeGreaterThan(6);
+  await openSettings(page);
   await page.getByRole("button", { name: "Reset" }).click();
   await expect.poll(() => bodyX(page)).toBeCloseTo(5, 1);
   await expect.poll(() => bodyY(page)).toBeLessThan(0.7);
@@ -115,14 +117,16 @@ test("throw tool launches a visible ball that hits the plate", async ({
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
   });
+  await openSettings(page);
   await page
     .getByRole("combobox", { name: "Fracture preset" })
     .selectOption("glass");
+  await page.getByLabel("Throw ball").check();
+  await closeSettings(page);
   await page.screenshot({
     path: "test-results/fracture-before.png",
     fullPage: true,
   });
-  await page.getByLabel("Throw ball").check();
   await page.evaluate(() => {
     window.plateMaxSpeed = 0;
   });
@@ -143,13 +147,16 @@ test("throw tool launches a visible ball that hits the plate", async ({
   await expect
     .poll(() => page.evaluate(() => window.observedPhysics?.stats.time ?? 0))
     .toBeGreaterThan(hitTime + 0.8);
+  await openSettings(page);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await page.screenshot({ path: "test-results/throw-hit.png", fullPage: true });
   expect(errors).toEqual([]);
 });
 
 test("blast tool pushes nearby bodies away", async ({ page }) => {
+  await openSettings(page);
   await page.getByLabel("Blast", { exact: true }).check();
+  await closeSettings(page);
   const location = await point(page, 4, 0.5);
   await page.mouse.click(location.x, location.y);
   await expect.poll(() => bodyX(page)).toBeGreaterThan(5.1);

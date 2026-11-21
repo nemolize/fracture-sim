@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import type { WorkerRequest, WorkerResponse } from "../src/rigid/types";
+import { openSettings } from "./settings";
 
 declare global {
   interface Window {
@@ -44,6 +45,7 @@ test("real material presets convert Gc and thickness before reaching the worker"
     };
   });
   await page.goto("/");
+  await openSettings(page);
   const preset = page.getByRole("combobox", { name: "Fracture preset" });
   const energy = page.getByRole("slider", { name: "Fracture energy (J/m²)" });
   const thickness = page.getByRole("slider", { name: "Thickness (mm)" });

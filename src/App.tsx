@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ControlPanel } from "@/ControlPanel";
 import { FractureCanvas } from "@/FractureCanvas";
@@ -31,17 +31,46 @@ const Notice = ({
   </section>
 );
 
+const PANEL_ID = "settings-panel";
+
 const App = () => {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [paused, setPaused] = useState(false);
   const [resetToken, setResetToken] = useState(0);
   const [stats, setStats] = useState<WorldStats>(INITIAL_STATS);
   const [physicsError, setPhysicsError] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
   const { gpu, unsupported } = useGpu();
   const motion = useMotion(settings);
 
+  useEffect(() => {
+    if (!panelOpen) return;
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== "Escape") return;
+      setPanelOpen(false);
+      toggleRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [panelOpen]);
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-4 bg-gray-50 p-4 md:flex-row md:items-start">
+    <main className="relative mx-auto flex min-h-screen max-w-6xl flex-col gap-4 bg-gray-50 p-4">
+      <button
+        ref={toggleRef}
+        type="button"
+        aria-expanded={panelOpen}
+        aria-controls={PANEL_ID}
+        className="absolute top-4 right-4 z-10 rounded bg-gray-800 px-3 py-1.5 text-sm font-medium text-white shadow hover:bg-gray-700"
+        onClick={() => {
+          setPanelOpen(!panelOpen);
+        }}
+      >
+        Settings
+      </button>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <h1 className="text-2xl font-bold text-gray-800">Fracture Sim</h1>
         {gpu.status === "ready" && physicsError === null ? (
@@ -73,18 +102,25 @@ const App = () => {
           </Notice>
         ) : null}
       </div>
-      <ControlPanel
-        settings={settings}
-        stats={stats}
-        paused={paused}
-        locked={gpu.status !== "ready" || physicsError !== null}
-        motion={motion}
-        onChange={setSettings}
-        onPausedChange={setPaused}
-        onReset={() => {
-          setResetToken((token) => token + 1);
-        }}
-      />
+      {panelOpen ? (
+        <div
+          id={PANEL_ID}
+          className="absolute top-16 right-4 z-10 max-h-[calc(100dvh-5rem)] w-72 max-w-[calc(100%-2rem)] overflow-y-auto rounded-lg"
+        >
+          <ControlPanel
+            settings={settings}
+            stats={stats}
+            paused={paused}
+            locked={gpu.status !== "ready" || physicsError !== null}
+            motion={motion}
+            onChange={setSettings}
+            onPausedChange={setPaused}
+            onReset={() => {
+              setResetToken((token) => token + 1);
+            }}
+          />
+        </div>
+      ) : null}
     </main>
   );
 };

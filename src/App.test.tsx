@@ -51,6 +51,12 @@ const setGpu = (value: unknown): void => {
   Object.defineProperty(navigator, "gpu", { value, configurable: true });
 };
 
+const openSettings = async (
+  user: ReturnType<typeof userEvent.setup>,
+): Promise<void> => {
+  await user.click(screen.getByRole("button", { name: "Settings" }));
+};
+
 afterEach(() => {
   Reflect.deleteProperty(navigator, "gpu");
 });
@@ -72,8 +78,10 @@ describe("without WebGPU", () => {
 
   it("locks Reset and scene but not Pause", async () => {
     setGpu(undefined);
+    const user = userEvent.setup();
     render(<App />);
     await screen.findByRole("alert");
+    await openSettings(user);
     for (const label of ["Scene"]) {
       expect(screen.getByLabelText(label)).toBeDisabled();
     }
@@ -83,12 +91,41 @@ describe("without WebGPU", () => {
 });
 
 describe("with WebGPU", () => {
+  it("keeps the settings in a popup that the Settings button toggles", async () => {
+    setGpu(fakeGpu().gpu);
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByLabelText("Fracture simulation");
+    const toggle = screen.getByRole("button", { name: "Settings" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByLabelText("Scene")).toBeNull();
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByLabelText("Scene")).toBeVisible();
+    await user.click(toggle);
+    expect(screen.queryByLabelText("Scene")).toBeNull();
+  });
+
+  it("closes the popup on Escape, ignores other keys and returns focus to the button", async () => {
+    setGpu(fakeGpu().gpu);
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByLabelText("Fracture simulation");
+    await openSettings(user);
+    await user.keyboard("a");
+    expect(screen.getByLabelText("Scene")).toBeVisible();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByLabelText("Scene")).toBeNull();
+    expect(screen.getByRole("button", { name: "Settings" })).toHaveFocus();
+  });
+
   it("renders the canvas with its controls and the statistics", async () => {
     setGpu(fakeGpu().gpu);
     const user = userEvent.setup();
     render(<App />);
     expect(screen.getByRole("heading", { name: "Fracture Sim" })).toBeVisible();
     expect(await screen.findByLabelText("Fracture simulation")).toBeVisible();
+    await openSettings(user);
     expect(screen.getByLabelText("Simulation statistics")).toHaveTextContent(
       "Bodies0",
     );
@@ -103,6 +140,7 @@ describe("with WebGPU", () => {
     const user = userEvent.setup();
     render(<App />);
     await screen.findByLabelText("Fracture simulation");
+    await openSettings(user);
     await user.selectOptions(screen.getByLabelText("Scene"), "pile");
     expect(screen.getByLabelText("Scene")).toHaveValue("pile");
     await user.click(screen.getByRole("button", { name: "Pause" }));
@@ -113,8 +151,10 @@ describe("with WebGPU", () => {
   it("stops and locks the controls when the device is lost", async () => {
     const fake = fakeGpu();
     setGpu(fake.gpu);
+    const user = userEvent.setup();
     render(<App />);
     await screen.findByLabelText("Fracture simulation");
+    await openSettings(user);
     await act(async () => {
       fake.loseDevice("unknown", "the GPU process crashed");
       await Promise.resolve();
@@ -160,6 +200,7 @@ describe("with WebGPU", () => {
     );
     expect(screen.getByRole("alert")).toHaveTextContent("The physics stopped");
     expect(screen.getByRole("alert")).toHaveTextContent("WASM failed");
+    await openSettings(user);
     expect(screen.getByRole("button", { name: "Reset" })).toBeDisabled();
   });
 

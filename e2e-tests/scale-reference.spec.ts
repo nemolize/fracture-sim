@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { closeSettings, openSettings } from "./settings";
+
 test.use({ deviceScaleFactor: 2 });
 
 for (const viewport of [
@@ -11,6 +13,7 @@ for (const viewport of [
   }) => {
     await page.setViewportSize(viewport);
     await page.goto("/");
+    await openSettings(page);
     await page.getByRole("button", { name: "Pause", exact: true }).click();
     const canvas = page.getByLabel("Fracture simulation");
     const reference = page.getByRole("group", {
@@ -31,6 +34,8 @@ for (const viewport of [
           )?.set?.call(input, String(value));
           input.dispatchEvent(new Event("input", { bubbles: true }));
         }, scale);
+      // The popup would cover the scale bar the checks below hit-test.
+      await closeSettings(page);
       await canvas.scrollIntoViewIfNeeded();
       await expect(reference).toHaveText(`${String(metres)} m`);
       const bar = page.getByRole("img", {
@@ -73,6 +78,7 @@ for (const viewport of [
             ?.getAttribute("aria-label");
         }),
       ).toBe("Fracture simulation");
+      await openSettings(page);
     }
     expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(0.05);
     await canvas.locator("..").screenshot({

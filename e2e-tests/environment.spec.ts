@@ -6,6 +6,7 @@ import type {
   WorkerResponse,
 } from "../src/rigid/types";
 import { observeCrackEnergy, selectCustomMaterial } from "./material-fixture";
+import { openSettings } from "./settings";
 
 declare global {
   interface Window {
@@ -61,6 +62,7 @@ test("world controls reach physics, resize rendering and preserve pointer metres
     };
   });
   await page.goto("/");
+  await openSettings(page);
   await selectCustomMaterial(page);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await setSlider(page, "Gravity (m/s²)", 0);
@@ -144,6 +146,7 @@ test.describe("high-DPI world bounds", () => {
       if (message.type() === "error") errors.push(message.text());
     });
     await page.goto("/");
+    await openSettings(page);
     await page.getByRole("button", { name: "Pause", exact: true }).click();
     await setSlider(page, "World scale", 0.6);
     await setSlider(page, "World scale", 3);
