@@ -1,4 +1,4 @@
-import { FLOOR_MARGIN } from "@/gpu/camera";
+import { FLOOR_MARGIN, worldViewport } from "@/gpu/camera";
 import { BufferUsage } from "@/gpu/usage";
 
 import { DEFAULT_ENVIRONMENT, type EnvironmentSettings } from "./environment";
@@ -21,6 +21,7 @@ export class RigidRenderer {
   private readonly group: GPUBindGroup;
   private readonly pipeline: GPURenderPipeline;
   private readonly count: number;
+  private readonly bounds: Pick<EnvironmentSettings, "width" | "height">;
 
   constructor(
     device: GPUDevice,
@@ -31,6 +32,7 @@ export class RigidRenderer {
   ) {
     this.device = device;
     this.count = vertices.length / 6;
+    this.bounds = bounds;
     this.vertices = device.createBuffer({
       size: vertices.byteLength,
       usage: BufferUsage.VERTEX | BufferUsage.COPY_DST,
@@ -67,7 +69,11 @@ export class RigidRenderer {
     });
   }
 
-  draw(target: GPUTextureView, poses: Float32Array<ArrayBuffer>): void {
+  draw(
+    target: GPUTextureView,
+    poses: Float32Array<ArrayBuffer>,
+    canvas: { width: number; height: number },
+  ): void {
     this.device.queue.writeBuffer(this.poses, 0, poses);
     const encoder = this.device.createCommandEncoder();
     const pass = encoder.beginRenderPass({
@@ -80,6 +86,8 @@ export class RigidRenderer {
         },
       ],
     });
+    const view = worldViewport(canvas, this.bounds);
+    pass.setViewport(view.x, view.y, view.width, view.height, 0, 1);
     pass.setPipeline(this.pipeline);
     pass.setBindGroup(0, this.group);
     pass.setVertexBuffer(0, this.vertices);
