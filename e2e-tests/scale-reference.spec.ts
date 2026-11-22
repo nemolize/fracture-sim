@@ -15,7 +15,6 @@ for (const viewport of [
     await page.goto("/");
     await openSettings(page);
     await page.getByRole("button", { name: "Pause", exact: true }).click();
-    await openSettings(page);
     const canvas = page.getByLabel("Fracture simulation");
     const reference = page.getByRole("group", {
       name: "World scale reference",

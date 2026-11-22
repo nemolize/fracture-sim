@@ -59,7 +59,7 @@ export const MaterialControl = ({ value, disabled, onChange }: Props) => {
           <span className="flex items-center gap-1">
             {format(energy)}
             <ResetButton
-              label="Fracture energy"
+              label="Fracture energy (J/m²)"
               atDefault={energy === materialFractureEnergy(DEFAULT_MATERIAL)}
               onReset={() => {
                 onChange({
@@ -97,7 +97,7 @@ export const MaterialControl = ({ value, disabled, onChange }: Props) => {
           <span className="flex items-center gap-1">
             {format(value.thicknessMm)}
             <ResetButton
-              label="Thickness"
+              label="Thickness (mm)"
               atDefault={value.thicknessMm === DEFAULT_MATERIAL.thicknessMm}
               onReset={() => {
                 onChange({

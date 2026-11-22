@@ -22,9 +22,7 @@ test("should load the rigid-body simulator", async ({ page }) => {
     /Bodies[1-9][0-9]*/,
   );
   await page.getByRole("button", { name: "Pause", exact: true }).click();
-  await openSettings(page);
   await page.getByRole("button", { name: "Resume", exact: true }).click();
-  await openSettings(page);
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await openSettings(page);
   await expect(page.getByLabel("Simulation statistics")).toContainText(

@@ -65,7 +65,6 @@ test("world controls reach physics, resize rendering and preserve pointer metres
   await openSettings(page);
   await selectCustomMaterial(page);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
-  await openSettings(page);
   await setSlider(page, "Gravity (m/s²)", 0);
   await expect
     .poll(() => page.evaluate(() => window.environmentAdvance?.gravity.y))
@@ -107,7 +106,6 @@ test("world controls reach physics, resize rendering and preserve pointer metres
     fullPage: true,
   });
   await page.getByRole("button", { name: "Resume", exact: true }).click();
-  await openSettings(page);
   const point = (x: number, y: number) => ({
     x: box.x + (x * box.width) / 18,
     y: box.y + box.height - ((y + 0.4) * box.width) / 18,
@@ -152,7 +150,6 @@ test.describe("high-DPI world bounds", () => {
     await page.goto("/");
     await openSettings(page);
     await page.getByRole("button", { name: "Pause", exact: true }).click();
-    await openSettings(page);
     await setSlider(page, "World scale", 0.6);
     await setSlider(page, "World scale", 3);
     const limit = await page.evaluate(async () => {

@@ -149,7 +149,6 @@ test("throw tool launches a visible ball that hits the plate", async ({
     .toBeGreaterThan(hitTime + 0.8);
   await openSettings(page);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
-  await openSettings(page);
   await page.screenshot({ path: "test-results/throw-hit.png", fullPage: true });
   expect(errors).toEqual([]);
 });

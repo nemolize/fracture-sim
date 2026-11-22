@@ -67,6 +67,7 @@ const MotionSlider = ({
         <ResetButton
           label={label}
           atDefault={value === defaultValue}
+          disabled={disabled}
           onReset={() => {
             onChange(defaultValue);
           }}
@@ -100,7 +101,8 @@ export const ControlPanel = ({
   <aside className="flex w-full flex-col gap-4 rounded-lg bg-white/95 p-4 shadow-lg">
     <button
       type="button"
-      className="rounded border border-gray-300 p-1.5 text-sm"
+      disabled={locked}
+      className="rounded border border-gray-300 p-1.5 text-sm disabled:opacity-50"
       onClick={() => {
         onChange(resetParameters(settings));
       }}

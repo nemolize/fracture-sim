@@ -108,6 +108,16 @@ describe("with WebGPU", () => {
     expect(screen.queryByLabelText("Scene")).toBeNull();
   });
 
+  it("keeps the popup open when Pause is pressed", async () => {
+    setGpu(fakeGpu().gpu);
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByLabelText("Fracture simulation");
+    await openSettings(user);
+    await user.click(screen.getByRole("button", { name: /^Pause$/ }));
+    expect(screen.getByLabelText("Scene")).toBeVisible();
+  });
+
   it("closes the popup on Escape, ignores other keys and returns focus to the button", async () => {
     setGpu(fakeGpu().gpu);
     const user = userEvent.setup();

@@ -1,17 +1,19 @@
 export const ResetButton = ({
   label,
   atDefault,
+  disabled = false,
   onReset,
 }: {
   label: string;
   atDefault: boolean;
+  disabled?: boolean;
   onReset: () => void;
 }) => (
   <button
     type="button"
     aria-label={`Reset ${label}`}
     title={`Reset ${label}`}
-    disabled={atDefault}
+    disabled={atDefault || disabled}
     className="inline-flex size-5 items-center justify-center rounded text-gray-600 hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-transparent"
     onClick={onReset}
   >

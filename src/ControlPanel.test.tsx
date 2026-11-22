@@ -339,7 +339,7 @@ describe("reset buttons", () => {
     ["Object width (m)", { objectSize: { width: 1, height: 1 } }],
     ["Object height (m)", { objectSize: { width: 2, height: 0.8 } }],
     [
-      "Fracture energy",
+      "Fracture energy (J/m²)",
       {
         material: {
           ...DEFAULT_SETTINGS.material,
@@ -349,7 +349,7 @@ describe("reset buttons", () => {
       },
     ],
     [
-      "Thickness",
+      "Thickness (mm)",
       { material: { ...DEFAULT_SETTINGS.material, thicknessMm: 3 } },
     ],
     ["Shake strength", { inertiaScale: 2 }],
@@ -361,6 +361,20 @@ describe("reset buttons", () => {
     const { onChange, user } = setup(false, false, { enabled: true }, patch);
     await user.click(screen.getByRole("button", { name: `Reset ${label}` }));
     expect(onChange).toHaveBeenCalledWith(DEFAULT_SETTINGS);
+  });
+
+  it("disables the motion resets while the device tilt is off", () => {
+    setup(false, false, { enabled: false }, { inertiaScale: 2 });
+    expect(
+      screen.getByRole("button", { name: "Reset Shake strength" }),
+    ).toBeDisabled();
+  });
+
+  it("locks Reset parameters with the rest of the panel", () => {
+    setup(false, true);
+    expect(
+      screen.getByRole("button", { name: "Reset parameters" }),
+    ).toBeDisabled();
   });
 
   it("resets the shape and the fracture preset", async () => {
