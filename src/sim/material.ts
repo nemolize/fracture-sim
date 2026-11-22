@@ -1,3 +1,5 @@
+import { MIN_FRAGMENT_AREA } from "./fracture";
+
 export const MATERIAL_PRESETS = [
   { id: "glass", label: "Glass", fractureEnergy: 7 },
   { id: "ice", label: "Ice (−13°C)", fractureEnergy: 1.5 },
@@ -10,12 +12,14 @@ export interface MaterialSettings {
   preset: MaterialPreset | "custom";
   customFractureEnergy: number;
   thicknessMm: number;
+  minFragmentArea: number;
 }
 
 export const DEFAULT_MATERIAL: MaterialSettings = {
   preset: "glass",
   customFractureEnergy: 1_000_000,
   thicknessMm: 10,
+  minFragmentArea: MIN_FRAGMENT_AREA,
 };
 
 export const findMaterialPreset = (id: string) =>

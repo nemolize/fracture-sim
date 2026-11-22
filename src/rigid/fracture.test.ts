@@ -296,3 +296,21 @@ it("scales the minimum fragment area with the square of the world scale below ×
     );
   }
 });
+
+it("applies a changed minimum fragment area scaled by the world area factor", () => {
+  const world = new RigidWorld(
+    "plate",
+    withWorldScale(DEFAULT_ENVIRONMENT, 0.5),
+  );
+  worlds.push(world);
+  world.advance(0, { x: 0, y: -9.81 }, undefined, undefined, 0.004);
+  expect(world["fracture"]["minFragmentArea"]).toBeCloseTo(0.004 * 0.25, 12);
+});
+
+it("rejects a non-positive minimum fragment area", () => {
+  const world = new RigidWorld("plate");
+  worlds.push(world);
+  expect(() =>
+    world.advance(0, { x: 0, y: -9.81 }, undefined, undefined, 0),
+  ).toThrow("Minimum fragment area");
+});

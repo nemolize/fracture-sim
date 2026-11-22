@@ -288,7 +288,12 @@ describe("reset buttons", () => {
     },
     objectShape: "hexagon",
     objectSize: { width: 1, height: 0.8 },
-    material: { preset: "custom", customFractureEnergy: 50, thicknessMm: 3 },
+    material: {
+      ...DEFAULT_SETTINGS.material,
+      preset: "custom",
+      customFractureEnergy: 50,
+      thicknessMm: 3,
+    },
     inertiaScale: 2,
     inertiaCap: 5,
     tiltSmoothing: 0.5,
@@ -299,7 +304,7 @@ describe("reset buttons", () => {
     const buttons = screen.getAllByRole("button", {
       name: /^Reset (?!parameters)/,
     });
-    expect(buttons).toHaveLength(13);
+    expect(buttons).toHaveLength(14);
     for (const button of buttons) expect(button).toBeDisabled();
   });
 

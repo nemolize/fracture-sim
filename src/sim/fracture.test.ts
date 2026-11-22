@@ -79,8 +79,9 @@ describe("impact crack budget", () => {
   });
 
   it("rejects a split that would leave a fragment under the minimum", () => {
-    const edge = plate.map((p) => ({ x: p.x * 0.03, y: p.y * 0.03 }));
-    const pieces = fracturePieces(edge, { x: -0.03, y: -0.006 }, 171.5);
+    const k = 0.03 * Math.sqrt(MIN_FRAGMENT_AREA / 0.0005);
+    const edge = plate.map((p) => ({ x: p.x * k, y: p.y * k }));
+    const pieces = fracturePieces(edge, { x: -k, y: -k / 5 }, 171.5);
     expect(pieces.length).toBeGreaterThan(1);
     expect(pieces.every((p) => p.area >= MIN_FRAGMENT_AREA)).toBe(true);
   });

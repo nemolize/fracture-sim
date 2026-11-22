@@ -41,6 +41,7 @@ export class RigidWorld {
   private readonly shapes: BodyShape[] = [];
   private readonly tools: RigidTools;
   private readonly fracture: ImpactFracture;
+  private readonly areaScale: number;
   geometryRevision = 0;
   private friction: number;
   private wakeGravity: { x: number; y: number };
@@ -63,7 +64,8 @@ export class RigidWorld {
     const initialPolygon = objectPolygon(objectShape, objectSize);
     this.environment = { ...environment };
     const lengthScale = Math.min(1, worldScale(environment));
-    this.fracture = new ImpactFracture(MIN_FRAGMENT_AREA * lengthScale ** 2);
+    this.areaScale = lengthScale ** 2;
+    this.fracture = new ImpactFracture(MIN_FRAGMENT_AREA * this.areaScale);
     this.friction = environment.friction;
     this.wakeGravity = { x: 0, y: -environment.gravity };
     this.averageGravity = { ...this.wakeGravity };
@@ -259,6 +261,7 @@ export class RigidWorld {
     gravity: { x: number; y: number },
     crackEnergy = DEFAULT_CRACK_ENERGY,
     friction = this.environment.friction,
+    minFragmentArea = MIN_FRAGMENT_AREA,
   ): Snapshot {
     if (!Number.isFinite(friction) || friction < 0 || friction > 2)
       throw new Error("Invalid environment setting: friction");
@@ -270,6 +273,7 @@ export class RigidWorld {
       }
     }
     this.fracture.setCrackEnergy(crackEnergy);
+    this.fracture.setMinFragmentArea(minFragmentArea * this.areaScale);
     this.world.gravity = gravity;
     // A raw sample as the reference would bounce between noise extremes, so average first.
     const blend =

@@ -217,6 +217,7 @@ export const FractureCanvas = ({
           ),
           friction: input.settings.environment.friction,
           crackEnergy: crackEnergy(input.settings.material),
+          minFragmentArea: input.settings.material.minFragmentArea,
         });
         previous = now;
         pending = true;
