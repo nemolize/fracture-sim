@@ -78,7 +78,7 @@ PMMA 500 J/m², and polystyrene 400 J/m². Sources and conditions are in
 A hit must exceed the body's narrowest width before splitting. Seeds are tried
 nearest the contact first, with spacing increasing with distance. Actual shared
 Voronoi edge length must fit the energy budget; pieces smaller than 0.0005 m²
-are rejected. A hit creates at most 40 pieces.
+(times the square of the world scale below ×1) are rejected. A hit creates at most 40 pieces.
 
 `src/rigid/fracture.ts` uses contact impulses to locate active contacts, but budgets
 fracture from the lost normal-mode kinetic energy across the step, including

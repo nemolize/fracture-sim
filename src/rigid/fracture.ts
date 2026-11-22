@@ -15,6 +15,12 @@ export class ImpactFracture {
   private readonly pending = new Map<BodyShape, Piece[]>();
   private crackEnergy = DEFAULT_CRACK_ENERGY;
 
+  private readonly minFragmentArea: number;
+
+  constructor(minFragmentArea: number) {
+    this.minFragmentArea = minFragmentArea;
+  }
+
   setCrackEnergy(value: number): void {
     if (!isCrackEnergy(value))
       throw new Error("Crack energy must be positive and finite");
@@ -109,6 +115,7 @@ export class ImpactFracture {
               },
               energy,
               this.crackEnergy,
+              this.minFragmentArea,
             );
             if (pieces.length > 1) this.pending.set(shape, pieces);
           }

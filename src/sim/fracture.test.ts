@@ -6,6 +6,7 @@ import {
   MIN_FRAGMENT_AREA,
   narrowestWidth,
 } from "./fracture";
+import { polygonMoments } from "./polygon";
 import type { Vec2 } from "./vec2";
 
 const CRACK_ENERGY = 12;
@@ -90,6 +91,24 @@ describe("impact crack budget", () => {
     expect(pieces.length).toBeGreaterThan(1);
     expect(pieces.every((p) => p.area >= MIN_FRAGMENT_AREA)).toBe(true);
     expect(Math.min(...pieces.map((p) => p.area))).toBeLessThan(0.005);
+  });
+
+  it("applies a caller-supplied minimum fragment area", () => {
+    const small = plate.map((p) => ({ x: p.x * 0.05, y: p.y * 0.1 }));
+    const minimum = 2e-5;
+    const pieces = splitWithToughness(
+      small,
+      { x: 0, y: 0 },
+      100,
+      CRACK_ENERGY,
+      minimum,
+    );
+    expect(pieces.length).toBeGreaterThan(1);
+    expect(pieces.every((p) => p.area >= minimum)).toBe(true);
+    const area = polygonMoments(small).area;
+    expect(
+      splitWithToughness(small, { x: 0, y: 0 }, 100, CRACK_ENERGY, area),
+    ).toEqual([]);
   });
 });
 

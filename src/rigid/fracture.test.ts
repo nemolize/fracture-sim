@@ -2,9 +2,15 @@
 import RAPIER from "@dimforge/rapier2d-compat";
 import { afterEach, beforeAll, expect, it, vi } from "vitest";
 
+import { MIN_FRAGMENT_AREA } from "@/sim/fracture";
+
 import { type BodyShape, polygonCollider } from "./body";
 import { TIME_STEP } from "./constants";
-import { DEFAULT_ENVIRONMENT } from "./environment";
+import {
+  DEFAULT_ENVIRONMENT,
+  INITIAL_ENVIRONMENT,
+  withWorldScale,
+} from "./environment";
 import { ImpactFracture, MAX_BODIES } from "./fracture";
 import { initializePhysics, RigidWorld } from "./world";
 
@@ -41,7 +47,7 @@ it("separates drops below and above the crack threshold using real Rapier impuls
 
 it("breaks two chunks colliding at 4 m/s and keeps their mass through subsequent impacts", () => {
   const engine = new RAPIER.World({ x: 0, y: 0 });
-  const fracture = new ImpactFracture();
+  const fracture = new ImpactFracture(MIN_FRAGMENT_AREA);
   fracture.setCrackEnergy(12);
   const shapes: BodyShape[] = [];
   const polygon = [
@@ -244,4 +250,49 @@ it("cancels a capacity-deferred split when the material changes", () => {
   for (let i = 0; i < 60; i++)
     world.advance(TIME_STEP, { x: 0, y: -9.8 }, 1200);
   expect(shapes.includes(parent)).toBe(true);
+});
+
+const dropOnlyPileBox = (speed: number) => {
+  const world = new RigidWorld("pile", INITIAL_ENVIRONMENT);
+  worlds.push(world);
+  const [box, ...others] = world["shapes"].filter((s) => !s.fixed);
+  if (box === undefined) throw new Error("Missing pile box");
+  for (const s of others) {
+    world["world"].removeRigidBody(s.body);
+    world["shapes"].splice(world["shapes"].indexOf(s), 1);
+  }
+  box.body.setTranslation({ x: 1, y: 0.1 }, true);
+  box.body.setRotation(0, true);
+  box.body.setLinvel({ x: 0, y: -speed }, true);
+  let lowest = Infinity;
+  for (let i = 0; i < 30; i++) {
+    world.advance(TIME_STEP, { x: 0, y: 0 });
+    if (world["shapes"].includes(box))
+      lowest = Math.min(lowest, box.body.translation().y);
+  }
+  return { bodies: world.snapshot().stats.bodies, touchedFloor: lowest < 0.02 };
+};
+
+it("fractures a pile-sized box at the starting scale only under enough energy", () => {
+  const weak = dropOnlyPileBox(0.3);
+  expect(weak).toEqual({ bodies: 1, touchedFloor: true });
+  expect(dropOnlyPileBox(20).bodies).toBeGreaterThan(1);
+});
+
+it("scales the minimum fragment area with the square of the world scale below ×1 and keeps it above", () => {
+  for (const [scale, factor] of [
+    [0.2, 0.04],
+    [1, 1],
+    [3, 1],
+  ] as const) {
+    const world = new RigidWorld(
+      "plate",
+      withWorldScale(DEFAULT_ENVIRONMENT, scale),
+    );
+    worlds.push(world);
+    expect(world["fracture"]["minFragmentArea"]).toBeCloseTo(
+      MIN_FRAGMENT_AREA * factor,
+      12,
+    );
+  }
 });
