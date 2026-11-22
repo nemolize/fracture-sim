@@ -19,9 +19,14 @@ export interface CentreExtent {
   top: number;
 }
 
-export const centreExtent = (polygon: BodyShape["polygon"]): CentreExtent => {
-  const xs = polygon.map(([x]) => x);
-  const ys = polygon.map(([, y]) => y);
+export const centreExtent = (
+  polygon: BodyShape["polygon"],
+  angle = 0,
+): CentreExtent => {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const xs = polygon.map(([x, y]) => x * cos - y * sin);
+  const ys = polygon.map(([x, y]) => x * sin + y * cos);
   return {
     left: -Math.min(...xs),
     right: Math.max(...xs),

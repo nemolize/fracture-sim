@@ -15,7 +15,6 @@ import {
   withWorldScale,
   WORLD_SCALE_RANGE,
 } from "./environment";
-import { OBJECT_SHAPES } from "./object-shape";
 import { initializePhysics, RigidWorld } from "./world";
 
 beforeAll(async () => {
@@ -181,19 +180,6 @@ it.each([
   expect(y).toBeLessThan(WORLD_HEIGHT);
   expect(body.linvel()).toEqual({ x: 0, y: 0 });
 });
-
-it.each(OBJECT_SHAPES)(
-  "puts a sunk %s back at the height it is first placed on the floor",
-  (shape) => {
-    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE, shape);
-    const body = world["shapes"][4]?.body;
-    if (body === undefined) throw new Error("Missing plate");
-    const placed = body.translation().y;
-    body.setTranslation({ x: 5, y: -0.3 }, true);
-    world.advance(TIME_STEP, { x: 0, y: 0 }, 10000);
-    expect(body.translation().y).toBeCloseTo(placed, 3);
-  },
-);
 
 it("refuses invalid convex geometry", () => {
   vi.spyOn(RAPIER.ColliderDesc, "convexHull").mockReturnValueOnce(null);

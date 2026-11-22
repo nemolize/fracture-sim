@@ -308,7 +308,7 @@ export class RigidWorld {
 
   private returnSunkBodies(): void {
     const { width, height } = this.environment;
-    for (const { body, polygon, fixed } of this.shapes) {
+    for (const { body, polygon, fixed, ball } of this.shapes) {
       if (fixed || body.isSleeping()) continue;
       const { x, y } = body.translation();
       const inside = x > 0 && x < width && y > 0 && y < height;
@@ -318,7 +318,7 @@ export class RigidWorld {
         y > -WALL_THICKNESS &&
         y < height + WALL_THICKNESS;
       if (inside || !inWall) continue;
-      const extent = centreExtent(polygon);
+      const extent = centreExtent(polygon, ball ? 0 : body.rotation());
       body.setTranslation(
         {
           x: Math.min(Math.max(x, extent.left), width - extent.right),
