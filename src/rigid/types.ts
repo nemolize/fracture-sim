@@ -26,7 +26,9 @@ export type WorkerRequest =
       environment?: EnvironmentSettings;
       objectSize?: ObjectSize;
       objectShape?: ObjectShape;
+      visibleHeight?: number;
     }
+  | { type: "resize"; visibleHeight: number }
   | { type: "action"; action: ToolAction }
   | {
       type: "advance";

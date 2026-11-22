@@ -20,6 +20,8 @@ import {
 import { limitVelocity, type ToolAction } from "./tools";
 import type { Scene, Snapshot } from "./types";
 
+const WALL_HALF_HEIGHT = 100;
+
 let initialization: Promise<void> | undefined;
 export const initializePhysics = (): Promise<void> =>
   (initialization ??= RAPIER.init());
@@ -32,6 +34,8 @@ export class RigidWorld {
   geometryRevision = 0;
   private friction: number;
   private readonly environment: EnvironmentSettings;
+  private readonly ceiling: RAPIER.RigidBody;
+  private readonly baseHeight: number;
   private elapsed = 0;
   private remainder = 0;
   private stepMs = 0;
@@ -57,9 +61,16 @@ export class RigidWorld {
     const { width, height } = environment;
     this.world.timestep = TIME_STEP;
     this.box(width / 2, -0.2, width / 2 + 0.4, 0.2, true);
-    this.box(-0.2, height / 2, 0.2, height / 2, true);
-    this.box(width + 0.2, height / 2, 0.2, height / 2, true);
-    this.box(width / 2, height + 0.2, width / 2 + 0.4, 0.2, true);
+    this.box(-0.2, 0, 0.2, WALL_HALF_HEIGHT, true);
+    this.box(width + 0.2, 0, 0.2, WALL_HALF_HEIGHT, true);
+    this.ceiling = this.box(
+      width / 2,
+      height + 0.2,
+      width / 2 + 0.4,
+      0.2,
+      true,
+    );
+    this.baseHeight = height;
     if (scene === "plate") {
       const plate = this.addBody(
         initialPolygon,
@@ -79,6 +90,19 @@ export class RigidWorld {
         this.box(x * scale, y * scale, 0.06 * scale, 0.06 * scale, false);
       }
     }
+  }
+
+  setVisibleHeight(visible: number): void {
+    if (!Number.isFinite(visible) || visible < 0)
+      throw new Error("Invalid visible height");
+    const height = Math.max(this.baseHeight, visible);
+    if (height === this.environment.height) return;
+    this.environment.height = height;
+    this.ceiling.setTranslation(
+      { x: this.environment.width / 2, y: height + 0.2 },
+      true,
+    );
+    for (const { body, fixed } of this.shapes) if (!fixed) body.wakeUp();
   }
 
   private box(

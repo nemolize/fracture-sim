@@ -19,6 +19,8 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
           request.objectSize,
           request.objectShape,
         );
+        if (request.visibleHeight !== undefined)
+          world.setVisibleHeight(request.visibleHeight);
         const vertices = world.vertices();
         const snapshot = world.snapshot();
         send({ type: "ready", vertices, snapshot }, [
@@ -27,7 +29,9 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
         ]);
       } else {
         if (world === undefined) throw new Error("Physics worker is not ready");
-        if (request.type === "action") {
+        if (request.type === "resize") {
+          world.setVisibleHeight(request.visibleHeight);
+        } else if (request.type === "action") {
           const changed = world.apply(request.action);
           const snapshot = world.snapshot();
           if (changed) {

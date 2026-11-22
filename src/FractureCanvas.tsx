@@ -1,6 +1,11 @@
 import { useEffect, useRef } from "react";
 
-import { canvasSize, FLOOR_MARGIN, pointerToWorld } from "@/gpu/camera";
+import {
+  canvasSize,
+  FLOOR_MARGIN,
+  pointerToWorld,
+  visibleWorldHeight,
+} from "@/gpu/camera";
 import { gpuContext } from "@/gpu/device";
 import { PointerGesture } from "@/rigid/gesture";
 import { RigidRenderer } from "@/rigid/renderer";
@@ -80,6 +85,9 @@ export const FractureCanvas = ({
     let pending = false;
     let previous: number | null = null;
     let animation = 0;
+    const visibleHeight = (): number =>
+      visibleWorldHeight(canvas.clientWidth, canvas.clientHeight, width);
+    let sentHeight = visibleHeight();
 
     const fail = (message: string): void => {
       stopped = true;
@@ -107,7 +115,7 @@ export const FractureCanvas = ({
           format,
           vertices,
           response.snapshot.poses,
-          { width, height },
+          { width },
         );
       }
       if (response.type !== "edited") pending = false;
@@ -193,6 +201,11 @@ export const FractureCanvas = ({
           : Math.min((now - previous) / 1000, 0.1);
       if (renderer !== undefined && !pending) {
         const input = latest.current;
+        const visible = visibleHeight();
+        if (Math.abs(visible - sentHeight) > 1e-3) {
+          sentHeight = visible;
+          send({ type: "resize", visibleHeight: visible });
+        }
         send({
           type: "advance",
           seconds: input.paused ? 0 : seconds,
@@ -216,6 +229,7 @@ export const FractureCanvas = ({
       scene,
       objectSize: { width: objectWidth, height: objectHeight },
       objectShape,
+      visibleHeight: sentHeight,
       environment: {
         ...latest.current.settings.environment,
         width,

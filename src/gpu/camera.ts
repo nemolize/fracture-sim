@@ -25,17 +25,14 @@ export const canvasSize = (
   };
 };
 
-/** Pixel rectangle the world occupies: full width, anchored to the canvas bottom. */
-export const worldViewport = (
-  canvas: { width: number; height: number },
-  bounds: Pick<EnvironmentSettings, "width" | "height"> = DEFAULT_ENVIRONMENT,
-): { x: number; y: number; width: number; height: number } => {
-  const height = Math.min(
-    canvas.height,
-    (canvas.width * (bounds.height + FLOOR_MARGIN)) / bounds.width,
-  );
-  return { x: 0, y: canvas.height - height, width: canvas.width, height };
-};
+export const visibleWorldHeight = (
+  cssWidth: number,
+  cssHeight: number,
+  worldWidth: number,
+): number =>
+  cssWidth > 0
+    ? Math.max(0, (cssHeight / cssWidth) * worldWidth - FLOOR_MARGIN)
+    : 0;
 
 export const pointerToWorld = (
   rect: { left: number; top: number; width: number; height: number },
