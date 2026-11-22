@@ -85,6 +85,31 @@ test("grabs a body, lifts it 2 m and releases it to fall", async ({ page }) => {
   await expect.poll(() => bodyY(page)).toBeLessThan(0.7);
 });
 
+const visibleWorldTop = async (page: Page) => {
+  const box = await page.getByLabel("Fracture simulation").boundingBox();
+  if (box === null) throw new Error("Canvas missing");
+  return (box.height / box.width) * 10 - 0.4;
+};
+
+for (const viewport of [
+  { name: "tall desktop", width: 1280, height: 1400 },
+  { name: "phone", width: 390, height: 844 },
+]) {
+  test(`lifts a body to the top of the ${viewport.name} canvas`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    const visibleTop = () => visibleWorldTop(page);
+    await expect.poll(visibleTop).toBeGreaterThan(5.8);
+    const target = (await visibleTop()) - 0.7;
+    await drag(page, await point(page, 5, 0.5), await point(page, 5, target));
+    await expect
+      .poll(async () => Math.abs((await bodyY(page)) - target))
+      .toBeLessThan(0.3);
+    await page.mouse.up();
+  });
+}
+
 test("release preserves pointer velocity and a cancelled grab stops following", async ({
   page,
 }) => {

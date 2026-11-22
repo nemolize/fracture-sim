@@ -244,3 +244,61 @@ it("live friction slows a sliding plate while zero friction preserves its speed"
   expect(distances[0]).toBeGreaterThan(2.4);
   expect(distances[1]).toBeLessThan(1.5);
 });
+
+describe("visible height", () => {
+  it("lets a body rise to a ceiling raised to the visible height", () => {
+    world = new RigidWorld("plate");
+    world.setVisibleHeight(12);
+    world.apply({ type: "grab", point: { x: 5, y: 0.5 } });
+    world.apply({ type: "move", point: { x: 5, y: 11 } });
+    for (let i = 0; i < 240; i++)
+      world.advance(TIME_STEP, { x: 0, y: 0 }, 10000);
+    expect(world.snapshot().poses[17]).toBeCloseTo(11, 1);
+  });
+
+  it("clamps throws to the visible height", () => {
+    world = new RigidWorld("plate");
+    world.setVisibleHeight(12);
+    world.apply({
+      type: "throw",
+      point: { x: 5, y: 99 },
+      velocity: { x: 0, y: 0 },
+    });
+    expect(world["shapes"].at(-1)?.body.translation().y).toBeCloseTo(11.88);
+  });
+
+  it("keeps the configured height when the view is shorter", () => {
+    world = new RigidWorld("plate");
+    world.setVisibleHeight(2);
+    world.apply({
+      type: "throw",
+      point: { x: 5, y: 99 },
+      velocity: { x: 0, y: 0 },
+    });
+    expect(world["shapes"].at(-1)?.body.translation().y).toBeCloseTo(
+      WORLD_HEIGHT - 0.12,
+    );
+  });
+
+  it("keeps the walls tall enough after the ceiling moves", () => {
+    world = new RigidWorld("plate");
+    world.setVisibleHeight(20);
+    world["shapes"][4]?.body.setTranslation({ x: 9.7, y: 15 }, true);
+    world["shapes"][4]?.body.setLinvel({ x: 30, y: 0 }, true);
+    for (let i = 0; i < 120; i++)
+      world.advance(TIME_STEP, { x: 0, y: 0 }, 10000);
+    expect(world.snapshot().poses[16]).toBeLessThan(WORLD_WIDTH);
+  });
+
+  it("rejects an invalid height and ignores an unchanged one", () => {
+    world = new RigidWorld("plate");
+    expect(() => {
+      world?.setVisibleHeight(Number.NaN);
+    }).toThrow("Invalid visible height");
+    expect(() => {
+      world?.setVisibleHeight(-1);
+    }).toThrow("Invalid visible height");
+    world.setVisibleHeight(WORLD_HEIGHT);
+    expect(world["environment"].height).toBe(WORLD_HEIGHT);
+  });
+});

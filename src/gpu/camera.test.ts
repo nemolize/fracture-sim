@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { canvasSize, MAX_PIXEL_RATIO, worldViewport } from "./camera";
+import { canvasSize, MAX_PIXEL_RATIO, visibleWorldHeight } from "./camera";
 
 describe("canvasSize", () => {
   it("follows the CSS size", () => {
@@ -19,22 +19,19 @@ describe("canvasSize", () => {
   });
 });
 
-describe("worldViewport", () => {
-  it("anchors the full-width world to the bottom of a taller canvas", () => {
-    const view = worldViewport({ width: 1000, height: 900 });
-    expect(view.y).toBeCloseTo(340);
-    expect(view).toMatchObject({ x: 0, width: 1000 });
-    expect(view.height).toBeCloseTo(560);
+describe("visibleWorldHeight", () => {
+  it("follows the canvas aspect ratio at a fixed world width", () => {
+    expect(visibleWorldHeight(1000, 900, 10)).toBeCloseTo(8.6);
+    expect(visibleWorldHeight(390, 800, 10)).toBeCloseTo(20.1, 1);
   });
 
-  it("uses the selected world dimensions", () => {
-    expect(
-      worldViewport({ width: 900, height: 420 }, { width: 18, height: 8 }),
-    ).toEqual({ x: 0, y: 0, width: 900, height: 420 });
+  it("scales with the world width and never goes negative", () => {
+    expect(visibleWorldHeight(900, 420, 18)).toBeCloseTo(8);
+    expect(visibleWorldHeight(1000, 1, 10)).toBe(0);
   });
 
-  it("never exceeds the canvas height", () => {
-    expect(worldViewport({ width: 1000, height: 300 }).height).toBe(300);
+  it("is empty for an unmeasured canvas", () => {
+    expect(visibleWorldHeight(0, 500, 10)).toBe(0);
   });
 });
 

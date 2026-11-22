@@ -90,8 +90,8 @@ test("world controls reach physics, resize rendering and preserve pointer metres
     .poll(() => page.evaluate(() => window.environmentSnapshot?.poses[16]))
     .toBe(9);
   await expect
-    .poll(() => page.evaluate(() => window.environmentSnapshot?.poses[5]))
-    .toBeCloseTo(4.68, 6);
+    .poll(() => page.evaluate(() => window.environmentSnapshot?.poses[13]))
+    .toBeGreaterThanOrEqual(9.36 + 0.2 - 1e-6);
   const canvas = page.getByLabel("Fracture simulation");
   await canvas.scrollIntoViewIfNeeded();
   const box = await canvas.boundingBox();
