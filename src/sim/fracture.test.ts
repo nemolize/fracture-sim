@@ -57,7 +57,8 @@ describe("impact crack budget", () => {
   });
 
   it("keeps tiny fragments whole, and bounds high-energy hits", () => {
-    const tiny = plate.map(({ x, y }) => ({ x: x * 0.05, y: y * 0.05 }));
+    const half = Math.sqrt(MIN_FRAGMENT_AREA) / 2;
+    const tiny = plate.map(({ x, y }) => ({ x: x * half, y: y * half }));
     expect(fracturePieces(tiny, { x: 0, y: 0 }, 1e9)).toEqual([]);
     const pieces = fracturePieces(
       plate.map((p) => ({ x: p.x * 10, y: p.y * 10 })),
@@ -66,13 +67,29 @@ describe("impact crack budget", () => {
     );
     expect(pieces.length).toBeGreaterThan(1);
     expect(pieces.length).toBe(40);
+    const side = Math.sqrt(MIN_FRAGMENT_AREA / 2) * 1.01;
     expect(
       fracturePieces(
-        plate.map((p) => ({ x: p.x * 0.05, y: p.y * 0.1 })),
+        plate.map((p) => ({ x: p.x * side, y: p.y * side * 2 })),
         { x: 0, y: 0 },
         100,
       ),
     ).toEqual([]);
+  });
+
+  it("rejects a split that would leave a fragment under the minimum", () => {
+    const edge = plate.map((p) => ({ x: p.x * 0.03, y: p.y * 0.03 }));
+    const pieces = fracturePieces(edge, { x: -0.03, y: -0.006 }, 171.5);
+    expect(pieces.length).toBeGreaterThan(1);
+    expect(pieces.every((p) => p.area >= MIN_FRAGMENT_AREA)).toBe(true);
+  });
+
+  it("splits a body below the former 0.005 m² floor into smaller fragments", () => {
+    const small = plate.map((p) => ({ x: p.x * 0.05, y: p.y * 0.1 }));
+    const pieces = fracturePieces(small, { x: 0, y: 0 }, 100);
+    expect(pieces.length).toBeGreaterThan(1);
+    expect(pieces.every((p) => p.area >= MIN_FRAGMENT_AREA)).toBe(true);
+    expect(Math.min(...pieces.map((p) => p.area))).toBeLessThan(0.005);
   });
 });
 
