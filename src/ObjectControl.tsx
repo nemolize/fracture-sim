@@ -9,9 +9,9 @@ import {
   DEFAULT_OBJECT_SIZE,
   fitObjectSize,
   maxObjectSize,
-  MIN_OBJECT_SIZE,
   OBJECT_AXES,
   type ObjectSize,
+  objectUnit,
 } from "@/rigid/object-size";
 import { DEFAULT_SETTINGS } from "@/settings";
 
@@ -94,7 +94,7 @@ export const ObjectControl = ({
         <input
           type="range"
           aria-label={LABELS[axis]}
-          min={MIN_OBJECT_SIZE}
+          min={objectUnit(bounds)}
           max={maxObjectSize(bounds)[axis]}
           step="any"
           value={value[axis]}

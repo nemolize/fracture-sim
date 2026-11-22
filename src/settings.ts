@@ -1,6 +1,6 @@
 import {
-  DEFAULT_ENVIRONMENT,
   type EnvironmentSettings,
+  INITIAL_ENVIRONMENT,
 } from "@/rigid/environment";
 import type { ObjectShape } from "@/rigid/object-shape";
 import { DEFAULT_OBJECT_SIZE, type ObjectSize } from "@/rigid/object-size";
@@ -29,7 +29,7 @@ export const MOTION_RANGES = {
 
 export const DEFAULT_SETTINGS: Settings = {
   scene: "plate",
-  environment: DEFAULT_ENVIRONMENT,
+  environment: INITIAL_ENVIRONMENT,
   objectSize: DEFAULT_OBJECT_SIZE,
   objectShape: "rectangle",
   tool: "grab",

@@ -3,8 +3,9 @@ import {
   type EnvironmentSettings,
 } from "@/rigid/environment";
 
-/** Visible floor depth in metres. */
-export const FLOOR_MARGIN = 0.4;
+/** Visible floor depth in metres: 0.4 m in a 10 m world, in proportion below that. */
+export const floorMargin = (worldWidth: number): number =>
+  Math.min(0.4, worldWidth * 0.04);
 /** Cap the backing store on high-DPI displays: past 2x the extra pixels are not visible. */
 export const MAX_PIXEL_RATIO = 2;
 
@@ -31,7 +32,7 @@ export const visibleWorldHeight = (
   worldWidth: number,
 ): number =>
   cssWidth > 0
-    ? Math.max(0, (cssHeight / cssWidth) * worldWidth - FLOOR_MARGIN)
+    ? Math.max(0, (cssHeight / cssWidth) * worldWidth - floorMargin(worldWidth))
     : 0;
 
 export const pointerToWorld = (
@@ -43,6 +44,8 @@ export const pointerToWorld = (
   const scale = rect.width / bounds.width;
   return {
     x: (clientX - rect.left) / scale,
-    y: (rect.height - FLOOR_MARGIN * scale - (clientY - rect.top)) / scale,
+    y:
+      (rect.height - floorMargin(bounds.width) * scale - (clientY - rect.top)) /
+      scale,
   };
 };

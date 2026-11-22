@@ -5,8 +5,8 @@ import {
   DEFAULT_OBJECT_SIZE,
   fitObjectSize,
   maxObjectSize,
-  MIN_OBJECT_SIZE,
   OBJECT_AXES,
+  objectUnit,
   validateObjectSize,
 } from "./object-size";
 
@@ -23,7 +23,10 @@ it("fits object dimensions to the world without enlarging them", () => {
 
 it("accepts minimum, default and maximum-sized boxes", () => {
   for (const size of [
-    { width: MIN_OBJECT_SIZE, height: MIN_OBJECT_SIZE },
+    {
+      width: objectUnit(DEFAULT_ENVIRONMENT),
+      height: objectUnit(DEFAULT_ENVIRONMENT),
+    },
     DEFAULT_OBJECT_SIZE,
     maxObjectSize(DEFAULT_ENVIRONMENT),
   ])
@@ -37,7 +40,7 @@ it.each(OBJECT_AXES)("rejects invalid object %s", (axis) => {
     NaN,
     Infinity,
     0,
-    MIN_OBJECT_SIZE / 2,
+    objectUnit(DEFAULT_ENVIRONMENT) / 2,
     maxObjectSize(DEFAULT_ENVIRONMENT)[axis] + 0.01,
     DEFAULT_ENVIRONMENT[axis] + 0.1,
   ])

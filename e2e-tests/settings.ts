@@ -17,9 +17,10 @@ export const closeSettings = async (page: Page): Promise<void> => {
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
 };
 
-export const useWidePlate = async (page: Page): Promise<void> => {
+export const useReferenceWorld = async (page: Page): Promise<void> => {
   await openSettings(page);
   for (const [name, value] of [
+    ["World scale", 1],
     ["Object width (m)", 2],
     ["Object height (m)", 1],
   ] as const)

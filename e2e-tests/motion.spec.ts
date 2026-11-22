@@ -6,7 +6,7 @@ import type {
   WorkerResponse,
 } from "../src/rigid/types";
 import { observeCrackEnergy, selectCustomMaterial } from "./material-fixture";
-import { openSettings } from "./settings";
+import { openSettings, useReferenceWorld } from "./settings";
 
 interface Reading3 {
   x: number;
@@ -66,6 +66,7 @@ test("accelerometer readings lift the plate upside down and preserve measured XY
     }, 40);
   });
   await page.goto("/");
+  await useReferenceWorld(page);
   await openSettings(page);
   await selectCustomMaterial(page);
   await expect(page.getByLabel("Device tilt")).toBeChecked();

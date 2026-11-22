@@ -2,7 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import type { Snapshot, WorkerResponse } from "../src/rigid/types";
 import { observeCrackEnergy, selectCustomMaterial } from "./material-fixture";
-import { closeSettings, openSettings, useWidePlate } from "./settings";
+import { closeSettings, openSettings, useReferenceWorld } from "./settings";
 
 declare global {
   interface Window {
@@ -68,7 +68,7 @@ test.beforeEach(async ({ page }) => {
   await observeWorker(page);
   await page.goto("/");
   await selectCustomMaterial(page);
-  await useWidePlate(page);
+  await useReferenceWorld(page);
   await expect
     .poll(() => page.evaluate(() => window.observedPhysics?.stats.sleeping))
     .toBe(1);

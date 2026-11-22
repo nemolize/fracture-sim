@@ -166,7 +166,7 @@ export class RigidWorld {
       case "throw": {
         if (this.shapes.filter((s) => !s.fixed).length >= MAX_BODIES)
           return false;
-        const radius = 0.12;
+        const radius = Math.min(0.12, this.environment.width / 20);
         const velocity = limitVelocity(action.velocity);
         const body = this.world.createRigidBody(
           RAPIER.RigidBodyDesc.dynamic()

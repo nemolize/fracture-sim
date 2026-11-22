@@ -21,6 +21,7 @@ for (const viewport of [
     });
     const widths: number[] = [];
     for (const { scale, metres } of [
+      { scale: 0.01, metres: 0.01 },
       { scale: 0.1, metres: 0.1 },
       { scale: 0.6, metres: 0.6 },
       { scale: 1, metres: 1 },

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { canvasSize, MAX_PIXEL_RATIO, visibleWorldHeight } from "./camera";
+import {
+  canvasSize,
+  floorMargin,
+  MAX_PIXEL_RATIO,
+  visibleWorldHeight,
+} from "./camera";
 
 describe("canvasSize", () => {
   it("follows the CSS size", () => {
@@ -54,4 +59,11 @@ it("uses the selected world width for pointer metres", async () => {
 it("caps tall and wide backing stores at the device limit", () => {
   expect(canvasSize(816, 5000, 2, 8192)).toEqual({ width: 1336, height: 8192 });
   expect(canvasSize(10000, 500, 2, 8192)).toEqual({ width: 8192, height: 409 });
+});
+
+it("keeps the floor margin in proportion in small worlds", () => {
+  expect(floorMargin(10)).toBe(0.4);
+  expect(floorMargin(30)).toBe(0.4);
+  expect(floorMargin(0.1)).toBeCloseTo(0.004);
+  expect(visibleWorldHeight(1000, 1000, 0.1)).toBeCloseTo(0.096);
 });
