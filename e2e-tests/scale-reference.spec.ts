@@ -34,7 +34,6 @@ for (const viewport of [
           )?.set?.call(input, String(value));
           input.dispatchEvent(new Event("input", { bubbles: true }));
         }, scale);
-      // The popup would cover the scale bar the checks below hit-test.
       await closeSettings(page);
       await canvas.scrollIntoViewIfNeeded();
       await expect(reference).toHaveText(`${String(metres)} m`);
