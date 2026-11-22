@@ -79,3 +79,31 @@ it("ignores an unknown select value", () => {
   });
   expect(onChange).not.toHaveBeenCalled();
 });
+
+it("adjusts the minimum fragment area on a log scale", () => {
+  const { onChange } = setup();
+  moveSlider("Min fragment area (m²)", "-4");
+  expect(onChange).toHaveBeenCalledWith({
+    ...DEFAULT_MATERIAL,
+    minFragmentArea: 10 ** -4,
+  });
+});
+
+it("shows the default minimum fragment area of 0.001 m²", () => {
+  setup();
+  expect(
+    screen.getByRole("slider", { name: "Min fragment area (m²)" }),
+  ).toHaveAttribute("aria-valuetext", "0.001 m²");
+});
+
+it("resets the minimum fragment area to the default", async () => {
+  const onChange = vi.fn();
+  const changed = { ...DEFAULT_MATERIAL, minFragmentArea: 0.01 };
+  render(
+    <MaterialControl value={changed} disabled={false} onChange={onChange} />,
+  );
+  await userEvent.click(
+    screen.getByRole("button", { name: "Reset Min fragment area (m²)" }),
+  );
+  expect(onChange).toHaveBeenCalledWith(DEFAULT_MATERIAL);
+});

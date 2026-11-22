@@ -15,10 +15,19 @@ export class ImpactFracture {
   private readonly pending = new Map<BodyShape, Piece[]>();
   private crackEnergy = DEFAULT_CRACK_ENERGY;
 
-  private readonly minFragmentArea: number;
+  private minFragmentArea: number;
 
   constructor(minFragmentArea: number) {
     this.minFragmentArea = minFragmentArea;
+  }
+
+  setMinFragmentArea(value: number): void {
+    if (!isCrackEnergy(value))
+      throw new Error("Minimum fragment area must be positive and finite");
+    if (value !== this.minFragmentArea) {
+      this.pending.clear();
+      this.minFragmentArea = value;
+    }
   }
 
   setCrackEnergy(value: number): void {

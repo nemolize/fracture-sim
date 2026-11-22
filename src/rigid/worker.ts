@@ -48,6 +48,7 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
             request.gravity,
             request.crackEnergy,
             request.friction,
+            request.minFragmentArea,
           );
           if (revision !== world.geometryRevision) {
             const vertices = world.vertices();

@@ -121,6 +121,44 @@ export const MaterialControl = ({ value, disabled, onChange }: Props) => {
           }}
         />
       </div>
+      <div className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+        <span className="flex justify-between gap-2">
+          <span>Min fragment area (m²)</span>
+          <span className="flex items-center gap-1">
+            {format(value.minFragmentArea)}
+            <ResetButton
+              label="Min fragment area (m²)"
+              atDefault={
+                value.minFragmentArea === DEFAULT_MATERIAL.minFragmentArea
+              }
+              onReset={() => {
+                onChange({
+                  ...value,
+                  minFragmentArea: DEFAULT_MATERIAL.minFragmentArea,
+                });
+              }}
+            />
+          </span>
+        </span>
+        <input
+          aria-label="Min fragment area (m²)"
+          type="range"
+          min={-5}
+          max={-2}
+          step={0.01}
+          value={Math.log10(value.minFragmentArea)}
+          aria-valuemin={0.00001}
+          aria-valuemax={0.01}
+          aria-valuenow={value.minFragmentArea}
+          aria-valuetext={`${format(value.minFragmentArea)} m²`}
+          onChange={(event) => {
+            onChange({
+              ...value,
+              minFragmentArea: 10 ** Number(event.target.value),
+            });
+          }}
+        />
+      </div>
       <p
         className="text-sm text-gray-700"
         role="status"
@@ -130,8 +168,9 @@ export const MaterialControl = ({ value, disabled, onChange }: Props) => {
       </p>
       <p className="text-xs text-gray-600">
         Fracture energy × thickness. Presets are representative measured values.
-        Changes apply to future impacts; Reset restores bodies with this
-        material.
+        Min fragment area is the reference at world scale ×1; smaller worlds
+        apply it times the square of the scale. Changes apply to future impacts;
+        Reset restores bodies with this material.
       </p>
     </fieldset>
   );

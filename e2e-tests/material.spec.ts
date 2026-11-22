@@ -6,6 +6,7 @@ import { openSettings } from "./settings";
 declare global {
   interface Window {
     materialCrackEnergy?: number;
+    materialMinArea?: number;
     materialBodyCount?: number;
     materialTime?: number;
   }
@@ -25,6 +26,8 @@ test("real material presets convert Gc and thickness before reaching the worker"
       ): void {
         if (message.type === "advance" && message.crackEnergy !== undefined)
           window.materialCrackEnergy = message.crackEnergy;
+        if (message.type === "advance" && message.minFragmentArea !== undefined)
+          window.materialMinArea = message.minFragmentArea;
         super.postMessage(
           message,
           Array.isArray(transfer) ? { transfer } : transfer,
@@ -85,6 +88,14 @@ test("real material presets convert Gc and thickness before reaching the worker"
   await expect
     .poll(() => page.evaluate(() => window.materialCrackEnergy))
     .toBeCloseTo(0.01515, 12);
+  const minArea = page.getByRole("slider", { name: "Min fragment area (m²)" });
+  await expect
+    .poll(() => page.evaluate(() => window.materialMinArea))
+    .toBe(0.001);
+  await minArea.press("ArrowRight");
+  await expect
+    .poll(() => page.evaluate(() => window.materialMinArea))
+    .toBeCloseTo(10 ** -2.99, 12);
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await openSettings(page);
   await expect(preset).toHaveValue("ice");

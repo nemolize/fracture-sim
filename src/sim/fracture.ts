@@ -3,7 +3,7 @@ import { polygonMoments } from "./polygon";
 import { type Piece, splitConvex } from "./split";
 import type { Vec2 } from "./vec2";
 
-export const MIN_FRAGMENT_AREA = 0.0005;
+export const MIN_FRAGMENT_AREA = 0.001;
 export const MAX_HIT_PIECES = 40;
 
 const perimeter = (ring: readonly Vec2[]): number =>

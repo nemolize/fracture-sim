@@ -36,6 +36,7 @@ export type WorkerRequest =
       gravity: { x: number; y: number };
       crackEnergy?: number;
       friction?: number;
+      minFragmentArea?: number;
     };
 
 export type WorkerResponse =
