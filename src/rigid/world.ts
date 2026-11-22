@@ -3,7 +3,7 @@ import RAPIER from "@dimforge/rapier2d-compat";
 import { MIN_FRAGMENT_AREA } from "@/sim/fracture";
 import { DEFAULT_CRACK_ENERGY } from "@/sim/material";
 
-import { type BodyShape, createBodyShape } from "./body";
+import { type BodyShape, centreExtent, createBodyShape } from "./body";
 import {
   TIME_STEP,
   WAKE_GRAVITY_DELTA,
@@ -91,7 +91,7 @@ export class RigidWorld {
       const plate = this.addBody(
         initialPolygon,
         width / 2,
-        -Math.min(...initialPolygon.map((point) => point[1])),
+        centreExtent(initialPolygon).bottom,
         false,
       );
       // New floor contacts wake bodies, so initialize them before sleeping.
@@ -308,7 +308,7 @@ export class RigidWorld {
 
   private returnSunkBodies(): void {
     const { width, height } = this.environment;
-    for (const { body, polygon, fixed } of this.shapes) {
+    for (const { body, polygon, fixed, ball } of this.shapes) {
       if (fixed || body.isSleeping()) continue;
       const { x, y } = body.translation();
       const inside = x > 0 && x < width && y > 0 && y < height;
@@ -318,14 +318,11 @@ export class RigidWorld {
         y > -WALL_THICKNESS &&
         y < height + WALL_THICKNESS;
       if (inside || !inWall) continue;
-      const xs = polygon.map(([px]) => px);
-      const ys = polygon.map(([, py]) => py);
-      const hx = (Math.max(...xs) - Math.min(...xs)) / 2;
-      const hy = (Math.max(...ys) - Math.min(...ys)) / 2;
+      const extent = centreExtent(polygon, ball ? 0 : body.rotation());
       body.setTranslation(
         {
-          x: Math.min(Math.max(x, hx), width - hx),
-          y: Math.min(Math.max(y, hy), height - hy),
+          x: Math.min(Math.max(x, extent.left), width - extent.right),
+          y: Math.min(Math.max(y, extent.bottom), height - extent.top),
         },
         true,
       );

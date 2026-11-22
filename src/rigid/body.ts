@@ -12,6 +12,29 @@ export interface BodyShape {
   ball: boolean;
 }
 
+export interface CentreExtent {
+  left: number;
+  right: number;
+  bottom: number;
+  top: number;
+}
+
+export const centreExtent = (
+  polygon: BodyShape["polygon"],
+  angle = 0,
+): CentreExtent => {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const xs = polygon.map(([x, y]) => x * cos - y * sin);
+  const ys = polygon.map(([x, y]) => x * sin + y * cos);
+  return {
+    left: -Math.min(...xs),
+    right: Math.max(...xs),
+    bottom: -Math.min(...ys),
+    top: Math.max(...ys),
+  };
+};
+
 const tryRawShape = (
   shape: RAPIER.Shape,
 ): ReturnType<RAPIER.Shape["intoRaw"]> | undefined => shape.intoRaw();
