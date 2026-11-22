@@ -9,9 +9,9 @@ import {
   DEFAULT_OBJECT_SIZE,
   fitObjectSize,
   maxObjectSize,
-  MIN_OBJECT_SIZE,
   OBJECT_AXES,
   type ObjectSize,
+  objectUnit,
 } from "@/rigid/object-size";
 import { DEFAULT_SETTINGS } from "@/settings";
 
@@ -76,7 +76,7 @@ export const ObjectControl = ({
         <span className="flex justify-between gap-2">
           <span>{LABELS[axis]}</span>
           <span className="flex items-center gap-1">
-            {value[axis].toLocaleString("en-US", { maximumFractionDigits: 2 })}
+            {value[axis].toLocaleString("en-US", { maximumFractionDigits: 3 })}
             <ResetButton
               label={LABELS[axis]}
               atDefault={value[axis] === DEFAULT_OBJECT_SIZE[axis]}
@@ -94,7 +94,7 @@ export const ObjectControl = ({
         <input
           type="range"
           aria-label={LABELS[axis]}
-          min={MIN_OBJECT_SIZE}
+          min={objectUnit(bounds)}
           max={maxObjectSize(bounds)[axis]}
           step="any"
           value={value[axis]}

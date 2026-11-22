@@ -58,7 +58,7 @@ it("applies absolute world scale without changing other physics inputs", () => {
 it("keeps every world scale slider position inside supported bounds", () => {
   const { min, max, step } = WORLD_SCALE_RANGE;
   for (let tick = 0; tick <= Math.round((max - min) / step); tick++) {
-    const scale = Number((min + tick * step).toFixed(1));
+    const scale = Number((min + tick * step).toFixed(2));
     const value = withWorldScale(DEFAULT_ENVIRONMENT, scale);
     expect(() => {
       validateEnvironment(value);

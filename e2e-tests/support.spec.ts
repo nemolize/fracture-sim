@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import type { WorkerResponse } from "../src/rigid/types";
-import { openSettings, useWidePlate } from "./settings";
+import { openSettings, useReferenceWorld } from "./settings";
 
 declare global {
   interface Window {
@@ -56,7 +56,7 @@ test("sensor noise and friction changes preserve Glass, while a real impact stil
     }, 40);
   });
   await page.goto("/");
-  await useWidePlate(page);
+  await useReferenceWorld(page);
   await openSettings(page);
   await expect(page.getByLabel("Device tilt")).toBeChecked();
   await expect(

@@ -6,7 +6,7 @@ import type {
   WorkerResponse,
 } from "../src/rigid/types";
 import { observeCrackEnergy, selectCustomMaterial } from "./material-fixture";
-import { openSettings, useWidePlate } from "./settings";
+import { openSettings, useReferenceWorld } from "./settings";
 
 declare global {
   interface Window {
@@ -62,7 +62,7 @@ test("world controls reach physics, resize rendering and preserve pointer metres
     };
   });
   await page.goto("/");
-  await useWidePlate(page);
+  await useReferenceWorld(page);
   await openSettings(page);
   await selectCustomMaterial(page);
   await page.getByRole("button", { name: "Pause", exact: true }).click();

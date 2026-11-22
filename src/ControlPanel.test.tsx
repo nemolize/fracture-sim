@@ -194,8 +194,8 @@ it("locks world controls after a solver or GPU failure", () => {
 });
 
 it.each([
-  ["Object width (m)", "4", { width: 4, height: 0.5 }],
-  ["Object height (m)", "2.4", { width: 0.5, height: 2.4 }],
+  ["Object width (m)", "1.5", { width: 1.5, height: 0.5 }],
+  ["Object height (m)", "0.9", { width: 0.5, height: 0.9 }],
 ])("changes %s while paused", (label, value, objectSize) => {
   const { onChange } = setup(true);
   setRange(screen.getByRole("slider", { name: label }), value);
@@ -255,7 +255,7 @@ it("shows one world scale multiplier instead of separate dimension sliders", () 
   expect(screen.getByRole("slider", { name: "World scale" })).toHaveValue(
     "1.8",
   );
-  expect(screen.getByText("×1.8")).toBeVisible();
+  expect(screen.getByText("×1.80")).toBeVisible();
   expect(
     screen.queryByRole("slider", { name: "World width (m)" }),
   ).not.toBeInTheDocument();

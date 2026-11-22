@@ -2,7 +2,7 @@ import { polygonMoments } from "@/sim/polygon";
 
 import type { BodyShape } from "./body";
 import type { EnvironmentSettings } from "./environment";
-import { fitObjectSize, MIN_OBJECT_SIZE, type ObjectSize } from "./object-size";
+import { fitObjectSize, type ObjectSize, objectUnit } from "./object-size";
 
 export const OBJECT_SHAPES = [
   "rectangle",
@@ -27,7 +27,7 @@ export const naturalObjectSize = (
   bounds: Pick<EnvironmentSettings, "width" | "height">,
 ): ObjectSize => {
   const ratio = HEIGHT_PER_WIDTH[shape];
-  const width = Math.max(currentWidth, MIN_OBJECT_SIZE / ratio);
+  const width = Math.max(currentWidth, objectUnit(bounds) / ratio);
   return fitObjectSize({ width, height: width * ratio }, bounds);
 };
 

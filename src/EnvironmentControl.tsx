@@ -1,8 +1,10 @@
 import { ResetButton } from "@/ResetButton";
 import {
   DEFAULT_ENVIRONMENT,
+  DEFAULT_WORLD_SCALE,
   ENVIRONMENT_RANGES,
   type EnvironmentSettings,
+  INITIAL_ENVIRONMENT,
   withWorldScale,
   WORLD_SCALE_RANGE,
   worldScale,
@@ -36,21 +38,21 @@ export const EnvironmentControl = ({
           <span>{LABELS[key]}</span>
           <span className="flex items-center gap-1">
             {key === "scale"
-              ? `×${worldScale(value).toFixed(1)}`
+              ? `×${worldScale(value).toFixed(2)}`
               : value[key].toLocaleString("en-US")}
             <ResetButton
               label={LABELS[key]}
               atDefault={
                 key === "scale"
-                  ? value.width === DEFAULT_ENVIRONMENT.width &&
-                    value.height === DEFAULT_ENVIRONMENT.height
-                  : value[key] === DEFAULT_ENVIRONMENT[key]
+                  ? value.width === INITIAL_ENVIRONMENT.width &&
+                    value.height === INITIAL_ENVIRONMENT.height
+                  : value[key] === INITIAL_ENVIRONMENT[key]
               }
               onReset={() => {
                 onChange(
                   key === "scale"
-                    ? withWorldScale(value, 1)
-                    : { ...value, [key]: DEFAULT_ENVIRONMENT[key] },
+                    ? withWorldScale(value, DEFAULT_WORLD_SCALE)
+                    : { ...value, [key]: INITIAL_ENVIRONMENT[key] },
                 );
               }}
             />

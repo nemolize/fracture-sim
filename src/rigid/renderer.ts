@@ -1,4 +1,4 @@
-import { FLOOR_MARGIN, visibleWorldHeight } from "@/gpu/camera";
+import { floorMargin, visibleWorldHeight } from "@/gpu/camera";
 import { BufferUsage } from "@/gpu/usage";
 
 import { DEFAULT_ENVIRONMENT, type EnvironmentSettings } from "./environment";
@@ -10,7 +10,7 @@ struct Vertex { @builtin(position) position: vec4f, @location(0) color: vec3f };
 @vertex fn vertex(@location(0) point: vec2f, @location(1) body: f32, @location(2) color: vec3f) -> Vertex {
   let pose = poses[u32(body)];
   let p = pose.xy + vec2f(pose.z * point.x - pose.w * point.y, pose.w * point.x + pose.z * point.y);
-  return Vertex(vec4f(p.x / ${bounds.width.toFixed(6)} * 2.0 - 1.0, (p.y + ${String(FLOOR_MARGIN)}) / (view.y + ${String(FLOOR_MARGIN)}) * 2.0 - 1.0, 0.0, 1.0), color);
+  return Vertex(vec4f(p.x / ${bounds.width.toFixed(6)} * 2.0 - 1.0, (p.y + ${String(floorMargin(bounds.width))}) / (view.y + ${String(floorMargin(bounds.width))}) * 2.0 - 1.0, 0.0, 1.0), color);
 }
 @fragment fn fragment(input: Vertex) -> @location(0) vec4f { return vec4f(input.color, 1.0); }
 `;

@@ -3,7 +3,7 @@ import RAPIER from "@dimforge/rapier2d-compat";
 import { DEFAULT_CRACK_ENERGY } from "@/sim/material";
 
 import { type BodyShape, createBodyShape } from "./body";
-import { TIME_STEP } from "./constants";
+import { TIME_STEP, WORLD_WIDTH } from "./constants";
 import {
   DEFAULT_ENVIRONMENT,
   type EnvironmentSettings,
@@ -61,6 +61,7 @@ export class RigidWorld {
     );
     const { width, height } = environment;
     this.world.timestep = TIME_STEP;
+    this.world.lengthUnit = Math.min(1, width / WORLD_WIDTH);
     this.box(width / 2, -0.2, width / 2 + 0.4, 0.2, true);
     this.box(-0.2, 0, 0.2, WALL_HALF_HEIGHT, true);
     this.box(width + 0.2, 0, 0.2, WALL_HALF_HEIGHT, true);
@@ -166,7 +167,7 @@ export class RigidWorld {
       case "throw": {
         if (this.shapes.filter((s) => !s.fixed).length >= MAX_BODIES)
           return false;
-        const radius = 0.12;
+        const radius = Math.min(0.12, this.environment.width / 20);
         const velocity = limitVelocity(action.velocity);
         const body = this.world.createRigidBody(
           RAPIER.RigidBodyDesc.dynamic()

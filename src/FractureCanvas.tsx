@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import {
   canvasSize,
-  FLOOR_MARGIN,
+  floorMargin,
   pointerToWorld,
   visibleWorldHeight,
 } from "@/gpu/camera";
@@ -276,7 +276,7 @@ export const FractureCanvas = ({
         aria-hidden
         className="w-full"
         style={{
-          aspectRatio: `${String(width)} / ${String(height + FLOOR_MARGIN)}`,
+          aspectRatio: `${String(width)} / ${String(height + floorMargin(width))}`,
         }}
       />
       <canvas

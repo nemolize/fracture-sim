@@ -68,7 +68,11 @@ test("plate bounding box controls update geometry, mass, reset and grab targets"
   });
   await expect(width).toHaveValue("0.5");
   await expect(height).toHaveValue("0.5");
+  await expect(
+    page.getByRole("slider", { name: "World scale", exact: true }),
+  ).toHaveValue("0.2");
   await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await setSlider(page, "World scale", 1);
   await setSlider(page, "Object width (m)", 4);
   await setSlider(page, "Object height (m)", 2.4);
   await expect

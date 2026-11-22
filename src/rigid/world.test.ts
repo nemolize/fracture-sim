@@ -239,7 +239,8 @@ it.each(["plate", "pile", "stress"] as const)(
       WORLD_SCALE_RANGE.min,
     );
     world = new RigidWorld(scene, environment);
-    expect(world.snapshot().stats.bodies).toBeGreaterThan(0);
+    for (let i = 0; i < 5; i++) world.advance(0.1, gravity);
+    expect(world.snapshot().poses.every(Number.isFinite)).toBe(true);
   },
 );
 
