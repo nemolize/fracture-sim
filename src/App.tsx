@@ -75,6 +75,15 @@ const App = () => {
       <div className="absolute top-4 right-4 z-10 flex gap-2">
         <button
           type="button"
+          className="rounded bg-white px-3 py-1.5 text-sm font-medium text-gray-800 shadow hover:bg-gray-100"
+          onClick={() => {
+            setPaused(!paused);
+          }}
+        >
+          {paused ? "Resume" : "Pause"}
+        </button>
+        <button
+          type="button"
           disabled={locked}
           className="rounded bg-white px-3 py-1.5 text-sm font-medium text-gray-800 shadow hover:bg-gray-100 disabled:opacity-50"
           onClick={() => {
@@ -97,7 +106,9 @@ const App = () => {
         </button>
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <h1 className="text-2xl font-bold text-gray-800">Fracture Sim</h1>
+        <h1 className="mt-10 text-2xl font-bold text-gray-800 sm:mt-0">
+          Fracture Sim
+        </h1>
         {gpu.status === "ready" && physicsError === null ? (
           <FractureCanvas
             device={gpu.device}
@@ -140,7 +151,6 @@ const App = () => {
             locked={locked}
             motion={motion}
             onChange={setSettings}
-            onPausedChange={setPaused}
           />
         </div>
       ) : null}

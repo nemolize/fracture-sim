@@ -69,6 +69,7 @@ test("plate bounding box controls update geometry, mass, reset and grab targets"
   await expect(width).toHaveValue("2");
   await expect(height).toHaveValue("1");
   await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await openSettings(page);
   await setSlider(page, "Object width (m)", 4);
   await setSlider(page, "Object height (m)", 2.4);
   await expect
@@ -84,6 +85,7 @@ test("plate bounding box controls update geometry, mass, reset and grab targets"
     .poll(() => page.evaluate(() => window.sizedObject?.poses[17]))
     .toBeCloseTo(1.2, 2);
   await page.getByRole("button", { name: "Resume", exact: true }).click();
+  await openSettings(page);
   await expect
     .poll(() => page.evaluate(() => window.sizedObject?.stats.time ?? 0))
     .toBeGreaterThan(2);

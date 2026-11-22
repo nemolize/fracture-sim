@@ -80,6 +80,7 @@ test("real material presets convert Gc and thickness before reaching the worker"
     fullPage: true,
   });
   await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await openSettings(page);
   await thickness.press("ArrowRight");
   await expect(thickness).toHaveValue("10.1");
   await expect
@@ -92,5 +93,6 @@ test("real material presets convert Gc and thickness before reaching the worker"
   await energy.press("ArrowRight");
   await expect(preset).toHaveValue("custom");
   await page.getByRole("button", { name: "Resume", exact: true }).click();
+  await openSettings(page);
   expect(errors).toEqual([]);
 });

@@ -97,7 +97,7 @@ test("release preserves pointer velocity and a cancelled grab stops following", 
   await page.mouse.up();
   await expect.poll(() => bodyX(page)).toBeGreaterThan(6);
   await openSettings(page);
-  await page.getByRole("button", { name: "Reset" }).click();
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
   await expect.poll(() => bodyX(page)).toBeCloseTo(5, 1);
   await expect.poll(() => bodyY(page)).toBeLessThan(0.7);
   await drag(page, await point(page, 5, 0.5), await point(page, 5, 2.5));
@@ -149,6 +149,7 @@ test("throw tool launches a visible ball that hits the plate", async ({
     .toBeGreaterThan(hitTime + 0.8);
   await openSettings(page);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await openSettings(page);
   await page.screenshot({ path: "test-results/throw-hit.png", fullPage: true });
   expect(errors).toEqual([]);
 });

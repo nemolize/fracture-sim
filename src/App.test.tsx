@@ -87,8 +87,8 @@ describe("without WebGPU", () => {
     for (const label of ["Scene"]) {
       expect(screen.getByLabelText(label)).toBeDisabled();
     }
-    expect(screen.getByRole("button", { name: "Reset" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Pause" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /^Reset$/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^Pause$/ })).toBeEnabled();
   });
 });
 
@@ -148,8 +148,8 @@ describe("with WebGPU", () => {
     await openSettings(user);
     await user.selectOptions(screen.getByLabelText("Scene"), "pile");
     expect(screen.getByLabelText("Scene")).toHaveValue("pile");
-    await user.click(screen.getByRole("button", { name: "Pause" }));
-    expect(screen.getByRole("button", { name: "Resume" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: /^Pause$/ }));
+    expect(screen.getByRole("button", { name: /^Resume$/ })).toBeVisible();
   });
 
   it("keeps Reset on the screen and closes the popup on a tap outside it", async () => {
@@ -158,7 +158,7 @@ describe("with WebGPU", () => {
     render(<App />);
     const canvas = await screen.findByLabelText("Fracture simulation");
     expect(canvas).toHaveAttribute("data-reset-token", "0");
-    await user.click(screen.getByRole("button", { name: "Reset" }));
+    await user.click(screen.getByRole("button", { name: /^Reset$/ }));
     expect(canvas).toHaveAttribute("data-reset-token", "1");
     await openSettings(user);
     await user.click(screen.getByLabelText("Scene"));
@@ -183,7 +183,7 @@ describe("with WebGPU", () => {
       "the GPU process crashed",
     );
     expect(screen.queryByLabelText("Fracture simulation")).toBeNull();
-    expect(screen.getByRole("button", { name: "Reset" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^Reset$/ })).toBeDisabled();
   });
 
   it("keeps running when the page destroys the device itself", async () => {
@@ -219,7 +219,7 @@ describe("with WebGPU", () => {
     );
     expect(screen.getByRole("alert")).toHaveTextContent("The physics stopped");
     expect(screen.getByRole("alert")).toHaveTextContent("WASM failed");
-    expect(screen.getByRole("button", { name: "Reset" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^Reset$/ })).toBeDisabled();
   });
 
   it("releases a device that arrives after the page is gone", async () => {

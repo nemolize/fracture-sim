@@ -57,6 +57,7 @@ for (const item of [
     await page.goto("/");
     await openSettings(page);
     await page.getByRole("button", { name: "Pause", exact: true }).click();
+    await openSettings(page);
     const select = page.getByRole("combobox", { name: "Object shape" });
     await select.selectOption(item.id);
     const { naturalHeight } = item;
@@ -116,6 +117,7 @@ for (const item of [
       page.getByRole("slider", { name: "Object height (m)", exact: true }),
     ).toHaveValue("1.5");
     await page.getByRole("button", { name: "Resume", exact: true }).click();
+    await openSettings(page);
     await expect
       .poll(() => page.evaluate(() => window.shapeFrame?.stats.time ?? 0))
       .toBeGreaterThan(1);
@@ -150,6 +152,7 @@ for (const item of [
     });
     await openSettings(page);
     await page.getByRole("button", { name: "Pause", exact: true }).click();
+    await openSettings(page);
     await setSize(page, "World scale", 3);
     await setSize(page, "Object width (m)", 29.9);
     await setSize(page, "Object height (m)", 0.1);
@@ -157,11 +160,13 @@ for (const item of [
       .poll(() => page.evaluate(() => window.shapeFrame?.stats.mass))
       .toBeCloseTo((item.area * 29.9 * 0.1 * 25) / 2, 8);
     await page.getByRole("button", { name: "Resume", exact: true }).click();
+    await openSettings(page);
     await expect
       .poll(() => page.evaluate(() => window.shapeFrame?.stats.time ?? 0))
       .toBeGreaterThan(1);
     expect(await page.evaluate(() => window.shapeFrame?.stats.bodies)).toBe(1);
     await page.getByRole("button", { name: "Pause", exact: true }).click();
+    await openSettings(page);
     await setSize(page, "World scale", 1);
     await setSize(page, "Object width (m)", 5);
     await select.selectOption("rectangle");

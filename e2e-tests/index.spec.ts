@@ -21,9 +21,11 @@ test("should load the rigid-body simulator", async ({ page }) => {
   await expect(page.getByLabel("Simulation statistics")).toContainText(
     /Bodies[1-9][0-9]*/,
   );
-  await page.getByRole("button", { name: "Pause" }).click();
-  await page.getByRole("button", { name: "Resume" }).click();
-  await page.getByRole("button", { name: "Reset" }).click();
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await openSettings(page);
+  await page.getByRole("button", { name: "Resume", exact: true }).click();
+  await openSettings(page);
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
   await openSettings(page);
   await expect(page.getByLabel("Simulation statistics")).toContainText(
     /Bodies[1-9][0-9]*/,
@@ -56,13 +58,35 @@ for (const viewport of [
   });
 }
 
+test("should reset one setting or every parameter from the popup", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await openSettings(page);
+  const gravity = page.getByRole("slider", { name: "Gravity (m/s²)" });
+  const friction = page.getByRole("slider", { name: "Friction coefficient" });
+  const defaults = {
+    gravity: await gravity.inputValue(),
+    friction: await friction.inputValue(),
+  };
+  await gravity.fill("3");
+  await friction.fill("1.5");
+  await page.getByRole("button", { name: "Reset Gravity (m/s²)" }).click();
+  await expect(gravity).toHaveValue(defaults.gravity);
+  await expect(friction).toHaveValue("1.5");
+  await page.getByRole("button", { name: "Reset parameters" }).click();
+  await expect(friction).toHaveValue(defaults.friction);
+});
+
 test.describe("without a usable WebGPU", () => {
   const expectNoSimulation = async (page: Page) => {
     await expect(
       page.getByRole("heading", { name: "WebGPU is required" }),
     ).toBeVisible();
     await expect(page.getByLabel("Fracture simulation")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Reset" })).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "Reset", exact: true }),
+    ).toBeDisabled();
     await expect(page.getByRole("combobox", { name: /^Scene/ })).toBeDisabled();
   };
 
@@ -138,9 +162,13 @@ test("should stop and say so when the GPU device is lost", async ({ page }) => {
     "the GPU process crashed",
   );
   await expect(page.getByLabel("Fracture simulation")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Reset" })).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Reset", exact: true }),
+  ).toBeDisabled();
   await expect(page.getByRole("combobox", { name: /^Scene/ })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Pause" })).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Pause", exact: true }),
+  ).toBeEnabled();
 });
 
 test("should serve the SPA shell for a deep route with no file on disk", async ({

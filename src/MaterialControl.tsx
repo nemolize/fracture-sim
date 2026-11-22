@@ -1,5 +1,7 @@
+import { ResetButton } from "@/ResetButton";
 import {
   crackEnergy,
+  DEFAULT_MATERIAL,
   findMaterialPreset,
   MATERIAL_PRESETS,
   materialFractureEnergy,
@@ -20,9 +22,19 @@ export const MaterialControl = ({ value, disabled, onChange }: Props) => {
   return (
     <fieldset className="flex flex-col gap-2" disabled={disabled}>
       <legend className="text-sm font-medium text-gray-700">Material</legend>
-      <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-        Fracture preset
+      <div className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+        <span className="flex items-center justify-between gap-2">
+          Fracture preset
+          <ResetButton
+            label="Fracture preset"
+            atDefault={value.preset === DEFAULT_MATERIAL.preset}
+            onReset={() => {
+              onChange({ ...value, preset: DEFAULT_MATERIAL.preset });
+            }}
+          />
+        </span>
         <select
+          aria-label="Fracture preset"
           className="rounded border border-gray-300 bg-white p-1.5 font-normal"
           value={value.preset}
           onChange={(event) => {
@@ -40,11 +52,24 @@ export const MaterialControl = ({ value, disabled, onChange }: Props) => {
           ))}
           <option value="custom">Custom</option>
         </select>
-      </label>
-      <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+      </div>
+      <div className="flex flex-col gap-1 text-sm font-medium text-gray-700">
         <span className="flex justify-between gap-2">
           <span>Fracture energy (J/m²)</span>
-          <span>{format(energy)}</span>
+          <span className="flex items-center gap-1">
+            {format(energy)}
+            <ResetButton
+              label="Fracture energy"
+              atDefault={energy === materialFractureEnergy(DEFAULT_MATERIAL)}
+              onReset={() => {
+                onChange({
+                  ...value,
+                  preset: DEFAULT_MATERIAL.preset,
+                  customFractureEnergy: DEFAULT_MATERIAL.customFractureEnergy,
+                });
+              }}
+            />
+          </span>
         </span>
         <input
           aria-label="Fracture energy (J/m²)"
@@ -65,11 +90,23 @@ export const MaterialControl = ({ value, disabled, onChange }: Props) => {
             });
           }}
         />
-      </label>
-      <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+      </div>
+      <div className="flex flex-col gap-1 text-sm font-medium text-gray-700">
         <span className="flex justify-between gap-2">
           <span>Thickness (mm)</span>
-          <span>{format(value.thicknessMm)}</span>
+          <span className="flex items-center gap-1">
+            {format(value.thicknessMm)}
+            <ResetButton
+              label="Thickness"
+              atDefault={value.thicknessMm === DEFAULT_MATERIAL.thicknessMm}
+              onReset={() => {
+                onChange({
+                  ...value,
+                  thicknessMm: DEFAULT_MATERIAL.thicknessMm,
+                });
+              }}
+            />
+          </span>
         </span>
         <input
           aria-label="Thickness (mm)"
@@ -83,7 +120,7 @@ export const MaterialControl = ({ value, disabled, onChange }: Props) => {
             onChange({ ...value, thicknessMm: Number(event.target.value) });
           }}
         />
-      </label>
+      </div>
       <p
         className="text-sm text-gray-700"
         role="status"
