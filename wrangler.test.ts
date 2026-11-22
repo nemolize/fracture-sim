@@ -21,30 +21,13 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-// wrangler re-exports its raw-config reader from @cloudflare/workers-utils,
-// which it does not ship, so the reader's type is unresolvable without this.
-function isRawConfigReader(
-  value: unknown,
-): value is (args: { config: string }) => { rawConfig: unknown } {
-  return typeof value === "function";
-}
-
 // wrangler's own reader, so the JSONC wrangler deploys from (comments,
 // trailing commas) parses here, and whatever wrangler rejects throws.
 function readConfig(path: string): object {
-  if (!isRawConfigReader(experimental_readRawConfig)) {
-    throw new Error("wrangler no longer exports experimental_readRawConfig");
-  }
-  const { rawConfig } = experimental_readRawConfig({ config: path });
-  if (typeof rawConfig !== "object" || rawConfig === null) {
-    throw new Error(`${path} is not a JSON object`);
-  }
-  return rawConfig;
+  return experimental_readRawConfig({ config: path }).rawConfig;
 }
 
-// wrangler's published types reference @cloudflare/workers-utils, which the
-// package does not ship, so the resolved config is only checkable as unknown.
-function resolvePreview(raw: object): unknown {
+function resolvePreview(raw: object) {
   const path = join(dir, "wrangler.json");
   writeFileSync(path, JSON.stringify(raw));
   return unstable_readConfig(
