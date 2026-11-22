@@ -28,7 +28,8 @@ import { limitVelocity, type ToolAction } from "./tools";
 import type { Scene, Snapshot } from "./types";
 
 const WALL_HALF_HEIGHT = 100;
-// Below this world scale bodies near Rapier's contact tolerance sink through the floor.
+const WALL_THICKNESS = 0.4;
+// Below this world scale bodies near Rapier's contact tolerance settle slowly and sink into the boundaries.
 const FULL_COUNT_SCALE = 0.05;
 
 let initialization: Promise<void> | undefined;
@@ -98,11 +99,8 @@ export class RigidWorld {
       plate.sleep();
     } else {
       const full = scene === "pile" ? 1000 : 2000;
-      const count = Math.max(
-        1,
-        Math.round(
-          full * Math.min(1, worldScale(environment) / FULL_COUNT_SCALE),
-        ),
+      const count = Math.round(
+        full * Math.min(1, worldScale(environment) / FULL_COUNT_SCALE),
       );
       const scale = Math.min(1, width / 10, height / 5.2);
       for (let i = 0; i < count; i++) {
@@ -309,13 +307,26 @@ export class RigidWorld {
   }
 
   private returnSunkBodies(): void {
+    const { width, height } = this.environment;
     for (const { body, polygon, fixed } of this.shapes) {
       if (fixed || body.isSleeping()) continue;
       const { x, y } = body.translation();
-      if (y > 0) continue;
+      const inside = x > 0 && x < width && y > 0 && y < height;
+      const inWall =
+        x > -WALL_THICKNESS &&
+        x < width + WALL_THICKNESS &&
+        y > -WALL_THICKNESS &&
+        y < height + WALL_THICKNESS;
+      if (inside || !inWall) continue;
+      const xs = polygon.map(([px]) => px);
       const ys = polygon.map(([, py]) => py);
+      const hx = (Math.max(...xs) - Math.min(...xs)) / 2;
+      const hy = (Math.max(...ys) - Math.min(...ys)) / 2;
       body.setTranslation(
-        { x, y: (Math.max(...ys) - Math.min(...ys)) / 2 },
+        {
+          x: Math.min(Math.max(x, hx), width - hx),
+          y: Math.min(Math.max(y, hy), height - hy),
+        },
         true,
       );
       body.setLinvel({ x: 0, y: 0 }, true);

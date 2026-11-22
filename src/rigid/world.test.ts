@@ -11,6 +11,7 @@ import {
 } from "./constants";
 import {
   DEFAULT_ENVIRONMENT,
+  DEFAULT_WORLD_SCALE,
   withWorldScale,
   WORLD_SCALE_RANGE,
 } from "./environment";
@@ -115,7 +116,7 @@ describe("rigid world", () => {
     });
   });
 
-  describe.each([1, 0.2, WORLD_SCALE_RANGE.min])(
+  describe.each([1, DEFAULT_WORLD_SCALE, WORLD_SCALE_RANGE.min])(
     "at world scale ×%s",
     (scale) => {
       it.each(["pile", "stress"] as const)(
@@ -143,15 +144,41 @@ describe("rigid world", () => {
   );
 });
 
-it("lifts a body that sank through the floor back onto it", () => {
+it.each(["pile", "stress"] as const)(
+  "keeps every %s body in the container at the minimum scale under sideways gravity",
+  (scene) => {
+    const environment = withWorldScale(
+      DEFAULT_ENVIRONMENT,
+      WORLD_SCALE_RANGE.min,
+    );
+    world = new RigidWorld(scene, environment);
+    for (let i = 0; i < 200; i++) world.advance(0.1, { x: GRAVITY, y: -0.1 });
+    const { poses } = world.snapshot();
+    for (let i = 16; i < poses.length; i += 4) {
+      expect(poses[i]).toBeGreaterThan(0);
+      expect(poses[i]).toBeLessThan(environment.width);
+    }
+  },
+);
+
+it.each([
+  ["floor", { x: 5, y: -0.3 }],
+  ["left wall", { x: -0.3, y: 1 }],
+  ["right wall", { x: WORLD_WIDTH + 0.3, y: 1 }],
+  ["ceiling", { x: 5, y: WORLD_HEIGHT + 0.3 }],
+])("lifts a body that sank into the %s back inside", (_side, position) => {
   world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
   const body = world["shapes"][4]?.body;
   if (body === undefined) throw new Error("Missing plate");
-  body.setTranslation({ x: 5, y: -0.3 }, true);
+  body.setTranslation(position, true);
   body.setLinvel({ x: 3, y: -3 }, true);
   world.advance(TIME_STEP, { x: 0, y: 0 }, 10000);
-  expect(body.translation().y).toBeGreaterThan(0);
-  expect(body.linvel().y).toBeGreaterThanOrEqual(0);
+  const { x, y } = body.translation();
+  expect(x).toBeGreaterThan(0);
+  expect(x).toBeLessThan(WORLD_WIDTH);
+  expect(y).toBeGreaterThan(0);
+  expect(y).toBeLessThan(WORLD_HEIGHT);
+  expect(body.linvel()).toEqual({ x: 0, y: 0 });
 });
 
 it("refuses invalid convex geometry", () => {
