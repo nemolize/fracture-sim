@@ -1,3 +1,4 @@
+import { ResetButton } from "@/ResetButton";
 import type { EnvironmentSettings } from "@/rigid/environment";
 import {
   asObjectShape,
@@ -5,11 +6,13 @@ import {
   type ObjectShape,
 } from "@/rigid/object-shape";
 import {
+  DEFAULT_OBJECT_SIZE,
   maxObjectSize,
   MIN_OBJECT_SIZE,
   OBJECT_AXES,
   type ObjectSize,
 } from "@/rigid/object-size";
+import { DEFAULT_SETTINGS } from "@/settings";
 
 const SHAPE_LABELS: Record<ObjectShape, string> = {
   rectangle: "Rectangle",
@@ -37,9 +40,19 @@ export const ObjectControl = ({
 }) => (
   <fieldset className="flex flex-col gap-2" disabled={disabled}>
     <legend className="text-sm font-medium text-gray-700">Object</legend>
-    <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-      Object shape
+    <div className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+      <span className="flex items-center justify-between gap-2">
+        Object shape
+        <ResetButton
+          label="Object shape"
+          atDefault={shape === DEFAULT_SETTINGS.objectShape}
+          onReset={() => {
+            onShapeChange(DEFAULT_SETTINGS.objectShape);
+          }}
+        />
+      </span>
       <select
+        aria-label="Object shape"
         className="rounded border border-gray-300 bg-white p-1.5 font-normal"
         value={shape}
         onChange={(event) => {
@@ -53,16 +66,23 @@ export const ObjectControl = ({
           </option>
         ))}
       </select>
-    </label>
+    </div>
     {OBJECT_AXES.map((axis) => (
-      <label
+      <div
         key={axis}
         className="flex flex-col gap-1 text-sm font-medium text-gray-700"
       >
         <span className="flex justify-between gap-2">
           <span>{LABELS[axis]}</span>
-          <span>
+          <span className="flex items-center gap-1">
             {value[axis].toLocaleString("en-US", { maximumFractionDigits: 2 })}
+            <ResetButton
+              label={LABELS[axis]}
+              atDefault={value[axis] === DEFAULT_OBJECT_SIZE[axis]}
+              onReset={() => {
+                onChange({ ...value, [axis]: DEFAULT_OBJECT_SIZE[axis] });
+              }}
+            />
           </span>
         </span>
         <input
@@ -76,7 +96,7 @@ export const ObjectControl = ({
             onChange({ ...value, [axis]: Number(event.target.value) });
           }}
         />
-      </label>
+      </div>
     ))}
     <p className="text-xs text-gray-600">
       Selecting Ellipse makes a circle; Triangle and Hexagon have equal sides.

@@ -1,3 +1,4 @@
+import { ResetButton } from "@/ResetButton";
 import {
   DEFAULT_ENVIRONMENT,
   ENVIRONMENT_RANGES,
@@ -27,16 +28,32 @@ export const EnvironmentControl = ({
   <fieldset className="flex flex-col gap-2" disabled={disabled}>
     <legend className="text-sm font-medium text-gray-700">World</legend>
     {CONTROLS.map((key) => (
-      <label
+      <div
         key={key}
         className="flex flex-col gap-1 text-sm font-medium text-gray-700"
       >
         <span className="flex justify-between gap-2">
           <span>{LABELS[key]}</span>
-          <span>
+          <span className="flex items-center gap-1">
             {key === "scale"
               ? `×${worldScale(value).toFixed(1)}`
               : value[key].toLocaleString("en-US")}
+            <ResetButton
+              label={LABELS[key]}
+              atDefault={
+                key === "scale"
+                  ? value.width === DEFAULT_ENVIRONMENT.width &&
+                    value.height === DEFAULT_ENVIRONMENT.height
+                  : value[key] === DEFAULT_ENVIRONMENT[key]
+              }
+              onReset={() => {
+                onChange(
+                  key === "scale"
+                    ? withWorldScale(value, 1)
+                    : { ...value, [key]: DEFAULT_ENVIRONMENT[key] },
+                );
+              }}
+            />
           </span>
         </span>
         <input
@@ -53,7 +70,7 @@ export const EnvironmentControl = ({
             );
           }}
         />
-      </label>
+      </div>
     ))}
     <p className="text-xs text-gray-600">
       World scale ×1 is {DEFAULT_ENVIRONMENT.width} ×{" "}

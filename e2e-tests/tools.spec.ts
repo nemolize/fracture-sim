@@ -97,7 +97,7 @@ test("release preserves pointer velocity and a cancelled grab stops following", 
   await page.mouse.up();
   await expect.poll(() => bodyX(page)).toBeGreaterThan(6);
   await openSettings(page);
-  await page.getByRole("button", { name: "Reset" }).click();
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
   await expect.poll(() => bodyX(page)).toBeCloseTo(5, 1);
   await expect.poll(() => bodyY(page)).toBeLessThan(0.7);
   await drag(page, await point(page, 5, 0.5), await point(page, 5, 2.5));

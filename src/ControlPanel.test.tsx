@@ -24,7 +24,6 @@ const setup = (
 ) => {
   const onChange = vi.fn<(next: Settings) => void>();
   const setEnabled = vi.fn();
-  const onPausedChange = vi.fn();
   render(
     <ControlPanel
       settings={{ ...DEFAULT_SETTINGS, ...settings }}
@@ -39,12 +38,10 @@ const setup = (
         ...motion,
       }}
       onChange={onChange}
-      onPausedChange={onPausedChange}
     />,
   );
   return {
     onChange,
-    onPausedChange,
     setEnabled,
     user: userEvent.setup(),
   };
@@ -74,12 +71,6 @@ describe("ControlPanel", () => {
       target: { value: "unknown" },
     });
     expect(onChange).not.toHaveBeenCalled();
-  });
-
-  it("changes the speed", () => {
-    const { onChange } = setup();
-    setRange(screen.getByLabelText(/^Speed/), "0.9");
-    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_SETTINGS, speed: 0.9 });
   });
 
   describe("motion", () => {
@@ -140,23 +131,18 @@ describe("ControlPanel", () => {
     });
   });
 
-  it("toggles pause", async () => {
-    const { onPausedChange, user } = setup();
-    await user.click(screen.getByRole("button", { name: "Pause" }));
-    expect(onPausedChange).toHaveBeenCalledWith(true);
+  it("keeps Pause out of the popup", () => {
+    setup();
+    expect(
+      screen.queryByRole("button", { name: /^(Pause|Resume)$/ }),
+    ).toBeNull();
   });
 
-  it("offers to resume while paused", () => {
-    setup(true);
-    expect(screen.getByRole("button", { name: "Resume" })).toBeVisible();
-  });
-
-  it("locks the settings that rebuild the solver, not Pause", () => {
+  it("locks the scene while the GPU is unavailable", () => {
     setup(false, true);
     for (const label of ["Scene"]) {
       expect(screen.getByLabelText(label)).toBeDisabled();
     }
-    expect(screen.getByRole("button", { name: "Pause" })).toBeEnabled();
   });
 });
 
@@ -298,5 +284,135 @@ it("stores the selected initial object shape", async () => {
     ...DEFAULT_SETTINGS,
     objectShape: "triangle",
     objectSize: { width: 2, height: Math.sqrt(3) },
+  });
+});
+
+describe("reset buttons", () => {
+  const moved: Partial<Settings> = {
+    environment: {
+      gravity: 3,
+      width: 20,
+      height: 10.4,
+      density: 7,
+      friction: 1.5,
+    },
+    objectShape: "hexagon",
+    objectSize: { width: 1, height: 0.8 },
+    material: { preset: "custom", customFractureEnergy: 50, thicknessMm: 3 },
+    inertiaScale: 2,
+    inertiaCap: 5,
+    tiltSmoothing: 0.5,
+  };
+
+  it("disables every per-setting reset at the defaults", () => {
+    setup(false, false, { enabled: true });
+    const buttons = screen.getAllByRole("button", {
+      name: /^Reset (?!parameters)/,
+    });
+    expect(buttons).toHaveLength(13);
+    for (const button of buttons) expect(button).toBeDisabled();
+  });
+
+  const cases: [string, Partial<Settings>][] = [
+    [
+      "Gravity (m/s²)",
+      { environment: { ...DEFAULT_SETTINGS.environment, gravity: 3 } },
+    ],
+    [
+      "World scale",
+      {
+        environment: {
+          ...DEFAULT_SETTINGS.environment,
+          width: 20,
+          height: 10.4,
+        },
+      },
+    ],
+    [
+      "Areal density (kg/m²)",
+      { environment: { ...DEFAULT_SETTINGS.environment, density: 7 } },
+    ],
+    [
+      "Friction coefficient",
+      { environment: { ...DEFAULT_SETTINGS.environment, friction: 1.5 } },
+    ],
+    ["Object width (m)", { objectSize: { width: 1, height: 1 } }],
+    ["Object height (m)", { objectSize: { width: 2, height: 0.8 } }],
+    [
+      "Fracture energy (J/m²)",
+      {
+        material: {
+          ...DEFAULT_SETTINGS.material,
+          preset: "custom",
+          customFractureEnergy: 50,
+        },
+      },
+    ],
+    [
+      "Thickness (mm)",
+      { material: { ...DEFAULT_SETTINGS.material, thicknessMm: 3 } },
+    ],
+    ["Shake strength", { inertiaScale: 2 }],
+    ["Shake limit", { inertiaCap: 5 }],
+    ["Tilt smoothing", { tiltSmoothing: 0.5 }],
+  ];
+
+  it.each(cases)("resets only %s", async (label, patch) => {
+    const { onChange, user } = setup(false, false, { enabled: true }, patch);
+    await user.click(screen.getByRole("button", { name: `Reset ${label}` }));
+    expect(onChange).toHaveBeenCalledWith(DEFAULT_SETTINGS);
+  });
+
+  it("disables the motion resets while the device tilt is off", () => {
+    setup(false, false, { enabled: false }, { inertiaScale: 2 });
+    expect(
+      screen.getByRole("button", { name: "Reset Shake strength" }),
+    ).toBeDisabled();
+  });
+
+  it("locks Reset parameters with the rest of the panel", () => {
+    setup(false, true);
+    expect(
+      screen.getByRole("button", { name: "Reset parameters" }),
+    ).toBeDisabled();
+  });
+
+  it("resets the shape and the fracture preset", async () => {
+    const { onChange, user } = setup(
+      false,
+      false,
+      {},
+      {
+        objectShape: "hexagon",
+        material: { ...DEFAULT_SETTINGS.material, preset: "ice" },
+      },
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Reset Object shape" }),
+    );
+    expect(onChange.mock.calls[0]?.[0].objectShape).toBe("rectangle");
+    await user.click(
+      screen.getByRole("button", { name: "Reset Fracture preset" }),
+    );
+    expect(onChange.mock.calls[1]?.[0].material.preset).toBe("glass");
+  });
+
+  it("resets all parameters but keeps the scene and tool", async () => {
+    const { onChange, user } = setup(
+      false,
+      false,
+      {},
+      {
+        ...moved,
+        scene: "pile",
+        tool: "throw",
+      },
+    );
+    await user.click(screen.getByRole("button", { name: "Reset parameters" }));
+    expect(onChange).toHaveBeenCalledWith({
+      ...DEFAULT_SETTINGS,
+      scene: "pile",
+      tool: "throw",
+    });
   });
 });

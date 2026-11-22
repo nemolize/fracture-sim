@@ -14,8 +14,6 @@ export interface Settings {
   objectSize: ObjectSize;
   objectShape: ObjectShape;
   tool: Tool;
-  /** Simulated seconds per real second. */
-  speed: number;
   material: MaterialSettings;
   inertiaScale: number;
   inertiaCap: number;
@@ -35,12 +33,17 @@ export const DEFAULT_SETTINGS: Settings = {
   objectSize: DEFAULT_OBJECT_SIZE,
   objectShape: "rectangle",
   tool: "grab",
-  speed: 1,
   material: DEFAULT_MATERIAL,
   inertiaScale: 1,
   inertiaCap: 20,
   tiltSmoothing: 0.1,
 };
+
+export const resetParameters = (settings: Settings): Settings => ({
+  ...DEFAULT_SETTINGS,
+  scene: settings.scene,
+  tool: settings.tool,
+});
 
 export const asScene = (value: string): Scene | undefined =>
   SCENES.find((name) => name === value);

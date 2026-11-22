@@ -3,11 +3,18 @@ import type { ReactNode } from "react";
 import { EnvironmentControl } from "@/EnvironmentControl";
 import { MaterialControl } from "@/MaterialControl";
 import { ObjectControl } from "@/ObjectControl";
+import { ResetButton } from "@/ResetButton";
 import { naturalObjectSize } from "@/rigid/object-shape";
 import { fitObjectSize } from "@/rigid/object-size";
 import { TOOL_HINTS, TOOL_LABELS, TOOLS } from "@/rigid/tools";
 import { SCENES, type WorldStats } from "@/rigid/types";
-import { asScene, MOTION_RANGES, type Settings } from "@/settings";
+import {
+  asScene,
+  DEFAULT_SETTINGS,
+  MOTION_RANGES,
+  resetParameters,
+  type Settings,
+} from "@/settings";
 import type { MotionControl } from "@/useMotion";
 
 interface Props {
@@ -17,7 +24,6 @@ interface Props {
   locked: boolean;
   motion: Pick<MotionControl, "support" | "enabled" | "notice" | "setEnabled">;
   onChange: (next: Settings) => void;
-  onPausedChange: (paused: boolean) => void;
 }
 
 const Field = ({ label, children }: { label: string; children: ReactNode }) => (
@@ -41,6 +47,7 @@ const MotionSlider = ({
   format,
   range,
   value,
+  defaultValue,
   disabled,
   onChange,
 }: {
@@ -48,12 +55,28 @@ const MotionSlider = ({
   format: (value: number) => string;
   range: { min: number; max: number; step: number };
   value: number;
+  defaultValue: number;
   disabled: boolean;
   onChange: (value: number) => void;
 }) => (
-  <Field label={`${label} ${format(value)}`}>
+  <div className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+    <span className="flex items-center justify-between gap-2">
+      {label}
+      <span className="flex items-center gap-1">
+        {format(value)}
+        <ResetButton
+          label={label}
+          atDefault={value === defaultValue}
+          disabled={disabled}
+          onReset={() => {
+            onChange(defaultValue);
+          }}
+        />
+      </span>
+    </span>
     <input
       type="range"
+      aria-label={label}
       {...range}
       value={value}
       disabled={disabled}
@@ -61,7 +84,7 @@ const MotionSlider = ({
         onChange(Number(event.target.value));
       }}
     />
-  </Field>
+  </div>
 );
 
 const SELECT_CLASS =
@@ -74,9 +97,19 @@ export const ControlPanel = ({
   locked,
   motion,
   onChange,
-  onPausedChange,
 }: Props) => (
   <aside className="flex w-full flex-col gap-4 rounded-lg bg-white/95 p-4 shadow-lg">
+    <button
+      type="button"
+      disabled={locked}
+      className="rounded border border-gray-300 p-1.5 text-sm disabled:opacity-50"
+      onClick={() => {
+        onChange(resetParameters(settings));
+      }}
+    >
+      Reset parameters
+    </button>
+
     <div className="grid grid-cols-1 gap-3">
       <Field label="Scene">
         <select
@@ -116,19 +149,6 @@ export const ControlPanel = ({
       </div>
       <p className="text-xs text-gray-600">{TOOL_HINTS[settings.tool]}</p>
     </fieldset>
-
-    <Field label={`Speed ×${settings.speed.toFixed(2)}`}>
-      <input
-        type="range"
-        min={0.05}
-        max={1}
-        step={0.05}
-        value={settings.speed}
-        onChange={(event) => {
-          onChange({ ...settings, speed: Number(event.target.value) });
-        }}
-      />
-    </Field>
 
     <EnvironmentControl
       value={settings.environment}
@@ -192,6 +212,7 @@ export const ControlPanel = ({
         format={(value) => `×${value.toFixed(1)}`}
         range={MOTION_RANGES.inertiaScale}
         value={settings.inertiaScale}
+        defaultValue={DEFAULT_SETTINGS.inertiaScale}
         disabled={!motion.enabled}
         onChange={(inertiaScale) => {
           onChange({ ...settings, inertiaScale });
@@ -202,6 +223,7 @@ export const ControlPanel = ({
         format={(value) => `${value.toFixed(0)} m/s²`}
         range={MOTION_RANGES.inertiaCap}
         value={settings.inertiaCap}
+        defaultValue={DEFAULT_SETTINGS.inertiaCap}
         disabled={!motion.enabled}
         onChange={(inertiaCap) => {
           onChange({ ...settings, inertiaCap });
@@ -212,22 +234,13 @@ export const ControlPanel = ({
         format={(value) => `${value.toFixed(2)} s`}
         range={MOTION_RANGES.tiltSmoothing}
         value={settings.tiltSmoothing}
+        defaultValue={DEFAULT_SETTINGS.tiltSmoothing}
         disabled={!motion.enabled}
         onChange={(tiltSmoothing) => {
           onChange({ ...settings, tiltSmoothing });
         }}
       />
     </fieldset>
-
-    <button
-      type="button"
-      className="rounded border border-gray-300 p-1.5"
-      onClick={() => {
-        onPausedChange(!paused);
-      }}
-    >
-      {paused ? "Resume" : "Pause"}
-    </button>
 
     <dl
       aria-label="Simulation statistics"

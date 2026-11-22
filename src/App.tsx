@@ -41,6 +41,7 @@ const App = () => {
   const [physicsError, setPhysicsError] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
+  const pauseRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const { gpu, unsupported } = useGpu();
   const motion = useMotion(settings);
@@ -57,7 +58,10 @@ const App = () => {
       const inside = event
         .composedPath()
         .some(
-          (node) => node === popupRef.current || node === toggleRef.current,
+          (node) =>
+            node === popupRef.current ||
+            node === toggleRef.current ||
+            node === pauseRef.current,
         );
       if (inside) return;
       setPanelOpen(false);
@@ -73,6 +77,16 @@ const App = () => {
   return (
     <main className="relative mx-auto flex min-h-dvh max-w-6xl flex-col gap-4 bg-gray-50 p-4">
       <div className="absolute top-4 right-4 z-10 flex gap-2">
+        <button
+          ref={pauseRef}
+          type="button"
+          className="rounded bg-white px-3 py-1.5 text-sm font-medium text-gray-800 shadow hover:bg-gray-100"
+          onClick={() => {
+            setPaused(!paused);
+          }}
+        >
+          {paused ? "Resume" : "Pause"}
+        </button>
         <button
           type="button"
           disabled={locked}
@@ -97,7 +111,9 @@ const App = () => {
         </button>
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <h1 className="text-2xl font-bold text-gray-800">Fracture Sim</h1>
+        <h1 className="mt-10 text-2xl font-bold text-gray-800 sm:mt-0">
+          Fracture Sim
+        </h1>
         {gpu.status === "ready" && physicsError === null ? (
           <FractureCanvas
             device={gpu.device}
@@ -140,7 +156,6 @@ const App = () => {
             locked={locked}
             motion={motion}
             onChange={setSettings}
-            onPausedChange={setPaused}
           />
         </div>
       ) : null}

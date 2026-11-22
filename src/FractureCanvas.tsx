@@ -195,7 +195,7 @@ export const FractureCanvas = ({
         const input = latest.current;
         send({
           type: "advance",
-          seconds: input.paused ? 0 : seconds * input.settings.speed,
+          seconds: input.paused ? 0 : seconds,
           gravity: tracker.gravity(
             { ...input.settings, gravity: input.settings.environment.gravity },
             now,
