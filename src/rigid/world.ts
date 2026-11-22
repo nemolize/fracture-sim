@@ -28,6 +28,8 @@ import { limitVelocity, type ToolAction } from "./tools";
 import type { Scene, Snapshot } from "./types";
 
 const WALL_HALF_HEIGHT = 100;
+// Below this world scale bodies near Rapier's contact tolerance sink through the floor.
+const FULL_COUNT_SCALE = 0.05;
 
 let initialization: Promise<void> | undefined;
 export const initializePhysics = (): Promise<void> =>
@@ -95,7 +97,13 @@ export class RigidWorld {
       this.world.step();
       plate.sleep();
     } else {
-      const count = scene === "pile" ? 1000 : 2000;
+      const full = scene === "pile" ? 1000 : 2000;
+      const count = Math.max(
+        1,
+        Math.round(
+          full * Math.min(1, worldScale(environment) / FULL_COUNT_SCALE),
+        ),
+      );
       const scale = Math.min(1, width / 10, height / 5.2);
       for (let i = 0; i < count; i++) {
         const x = 0.8 + (i % 60) * 0.14;
@@ -291,12 +299,27 @@ export class RigidWorld {
         })
       )
         this.geometryRevision++;
+      this.returnSunkBodies();
       this.elapsed += TIME_STEP;
       this.remainder -= TIME_STEP;
       steps++;
     }
     if (steps > 0) this.stepMs = (performance.now() - start) / steps;
     return this.snapshot();
+  }
+
+  private returnSunkBodies(): void {
+    for (const { body, polygon, fixed } of this.shapes) {
+      if (fixed || body.isSleeping()) continue;
+      const { x, y } = body.translation();
+      if (y > 0) continue;
+      const ys = polygon.map(([, py]) => py);
+      body.setTranslation(
+        { x, y: (Math.max(...ys) - Math.min(...ys)) / 2 },
+        true,
+      );
+      body.setLinvel({ x: 0, y: 0 }, true);
+    }
   }
 
   snapshot(): Snapshot {
