@@ -12,6 +12,24 @@ export interface BodyShape {
   ball: boolean;
 }
 
+export interface CentreExtent {
+  left: number;
+  right: number;
+  bottom: number;
+  top: number;
+}
+
+export const centreExtent = (polygon: BodyShape["polygon"]): CentreExtent => {
+  const xs = polygon.map(([x]) => x);
+  const ys = polygon.map(([, y]) => y);
+  return {
+    left: -Math.min(...xs),
+    right: Math.max(...xs),
+    bottom: -Math.min(...ys),
+    top: Math.max(...ys),
+  };
+};
+
 const tryRawShape = (
   shape: RAPIER.Shape,
 ): ReturnType<RAPIER.Shape["intoRaw"]> | undefined => shape.intoRaw();
