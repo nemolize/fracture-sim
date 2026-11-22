@@ -314,3 +314,19 @@ it("rejects a non-positive minimum fragment area", () => {
     world.advance(0, { x: 0, y: -9.81 }, undefined, undefined, 0),
   ).toThrow("Minimum fragment area");
 });
+
+it("cancels a capacity-deferred split when the minimum fragment area changes", () => {
+  const world = makeRaisedPlateWorld();
+  for (let i = 1; i < MAX_BODIES; i++)
+    world.apply({
+      type: "throw",
+      point: { x: 1, y: 4 },
+      velocity: { x: 0, y: 0 },
+    });
+  for (const [i, s] of world["shapes"].slice(5).entries())
+    s.body.setTranslation({ x: 100 + i, y: 100 }, true);
+  for (let i = 0; i < 50; i++) world.advance(TIME_STEP, { x: 0, y: -9.8 }, 12);
+  expect(world["fracture"]["pending"].size).toBe(1);
+  world.advance(0, { x: 0, y: -9.8 }, 12, undefined, 0.004);
+  expect(world["fracture"]["pending"].size).toBe(0);
+});

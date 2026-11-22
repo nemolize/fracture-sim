@@ -168,8 +168,9 @@ export const MaterialControl = ({ value, disabled, onChange }: Props) => {
       </p>
       <p className="text-xs text-gray-600">
         Fracture energy × thickness. Presets are representative measured values.
-        Changes apply to future impacts; Reset restores bodies with this
-        material.
+        Min fragment area is the reference at world scale ×1; smaller worlds
+        apply it times the square of the scale. Changes apply to future impacts;
+        Reset restores bodies with this material.
       </p>
     </fieldset>
   );
