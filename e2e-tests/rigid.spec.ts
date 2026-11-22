@@ -14,7 +14,10 @@ test("worker fractures a plate explicitly lifted 2 m and transfers matching geom
 }) => {
   await page.goto("/harness.html");
   const result = await page.evaluate(async () => {
-    const initial = await window.harness.reset("plate");
+    const initial = await window.harness.reset("plate", undefined, {
+      width: 2,
+      height: 1,
+    });
     await window.harness.action({ type: "grab", point: { x: 5, y: 0.5 } });
     await window.harness.action({ type: "move", point: { x: 5, y: 2.5 } });
     for (let i = 0; i < 20; i++)

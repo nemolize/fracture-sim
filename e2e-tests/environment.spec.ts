@@ -6,7 +6,7 @@ import type {
   WorkerResponse,
 } from "../src/rigid/types";
 import { observeCrackEnergy, selectCustomMaterial } from "./material-fixture";
-import { openSettings } from "./settings";
+import { openSettings, useWidePlate } from "./settings";
 
 declare global {
   interface Window {
@@ -62,6 +62,7 @@ test("world controls reach physics, resize rendering and preserve pointer metres
     };
   });
   await page.goto("/");
+  await useWidePlate(page);
   await openSettings(page);
   await selectCustomMaterial(page);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
@@ -150,7 +151,7 @@ test.describe("high-DPI world bounds", () => {
     await page.goto("/");
     await openSettings(page);
     await page.getByRole("button", { name: "Pause", exact: true }).click();
-    await setSlider(page, "World scale", 0.6);
+    await setSlider(page, "World scale", 0.1);
     await setSlider(page, "World scale", 3);
     const limit = await page.evaluate(async () => {
       const adapter = await navigator.gpu.requestAdapter();

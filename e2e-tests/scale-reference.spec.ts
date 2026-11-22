@@ -21,6 +21,7 @@ for (const viewport of [
     });
     const widths: number[] = [];
     for (const { scale, metres } of [
+      { scale: 0.1, metres: 0.1 },
       { scale: 0.6, metres: 0.6 },
       { scale: 1, metres: 1 },
       { scale: 3, metres: 3 },
@@ -40,6 +41,7 @@ for (const viewport of [
       const bar = page.getByRole("img", {
         name: `${String(metres)} m scale bar`,
       });
+      await bar.scrollIntoViewIfNeeded();
       const worldBox = await canvas.boundingBox();
       const barBox = await bar.boundingBox();
       // eslint-disable-next-line playwright/no-conditional-in-test -- Bounding boxes are nullable in Playwright.

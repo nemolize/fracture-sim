@@ -5,6 +5,7 @@ import { DEFAULT_ENVIRONMENT } from "./environment";
 import { initializePhysics, RigidWorld } from "./world";
 
 beforeAll(initializePhysics);
+const PLATE = { width: 2, height: 1 };
 let world: RigidWorld | undefined;
 afterEach(() => {
   vi.restoreAllMocks();
@@ -17,7 +18,7 @@ it.each([
   ["vertical sensor noise", { x: 0, y: -9.81 }, 0.5],
   ["friction update", { x: 0, y: -9.8 }, 0.51],
 ])("keeps awake Glass intact under %s", (_label, gravity, friction) => {
-  world = new RigidWorld("plate");
+  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
   for (let i = 0; i < 600; i++)
     world.advance(1 / 60, gravity, undefined, friction);
   expect(world.snapshot().stats.bodies).toBe(1);
@@ -49,7 +50,7 @@ it.each([
 );
 
 it("still breaks real Glass after a physical 15 cm drop", () => {
-  world = new RigidWorld("plate");
+  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
   world["shapes"][4]?.body.setTranslation({ x: 5, y: 0.65 }, true);
   for (let i = 0; i < 120; i++) world.advance(1 / 60, { x: 0, y: -9.8 });
   expect(world.snapshot().stats.bodies).toBeGreaterThan(1);
@@ -57,7 +58,7 @@ it("still breaks real Glass after a physical 15 cm drop", () => {
 });
 
 it("handles a real manifold whose requested collider order is reversed", () => {
-  world = new RigidWorld("plate");
+  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
   world["shapes"][4]?.body.setTranslation({ x: 5, y: 0.65 }, true);
   const engine = world["world"];
   const contact = engine.contactPair.bind(engine);

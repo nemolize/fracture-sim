@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { ControlPanel } from "./ControlPanel";
+import { withWorldScale } from "./rigid/environment";
 import { DEFAULT_SETTINGS, type Settings } from "./settings";
 
 // userEvent cannot drag a range input, so set it the way a browser reports it.
@@ -193,8 +194,8 @@ it("locks world controls after a solver or GPU failure", () => {
 });
 
 it.each([
-  ["Object width (m)", "4", { width: 4, height: 1 }],
-  ["Object height (m)", "2.4", { width: 2, height: 2.4 }],
+  ["Object width (m)", "4", { width: 4, height: 0.5 }],
+  ["Object height (m)", "2.4", { width: 0.5, height: 2.4 }],
 ])("changes %s while paused", (label, value, objectSize) => {
   const { onChange } = setup(true);
   setRange(screen.getByRole("slider", { name: label }), value);
@@ -272,7 +273,7 @@ it("stores the selected initial object shape", async () => {
   expect(onChange).toHaveBeenCalledWith({
     ...DEFAULT_SETTINGS,
     objectShape: "triangle",
-    objectSize: { width: 2, height: Math.sqrt(3) },
+    objectSize: { width: 0.5, height: Math.sqrt(3) / 4 },
   });
 });
 
@@ -325,8 +326,8 @@ describe("reset buttons", () => {
       "Friction coefficient",
       { environment: { ...DEFAULT_SETTINGS.environment, friction: 1.5 } },
     ],
-    ["Object width (m)", { objectSize: { width: 1, height: 1 } }],
-    ["Object height (m)", { objectSize: { width: 2, height: 0.8 } }],
+    ["Object width (m)", { objectSize: { width: 1, height: 0.5 } }],
+    ["Object height (m)", { objectSize: { width: 0.5, height: 0.8 } }],
     [
       "Fracture energy (J/m²)",
       {
@@ -350,6 +351,21 @@ describe("reset buttons", () => {
     const { onChange, user } = setup(false, false, { enabled: true }, patch);
     await user.click(screen.getByRole("button", { name: `Reset ${label}` }));
     expect(onChange).toHaveBeenCalledWith(DEFAULT_SETTINGS);
+  });
+
+  it("resets an object axis to the default fitted to a small world", async () => {
+    const small = withWorldScale(DEFAULT_SETTINGS.environment, 0.1);
+    const { onChange, user } = setup(
+      false,
+      false,
+      { enabled: true },
+      { environment: small, objectSize: { width: 0.42, height: 0.3 } },
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Reset Object height (m)" }),
+    );
+    const next = onChange.mock.calls[0]?.[0];
+    expect(next?.objectSize.height).toBeCloseTo(0.42, 6);
   });
 
   it("disables the motion resets while the device tilt is off", () => {

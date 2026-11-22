@@ -3,7 +3,11 @@ import RAPIER from "@dimforge/rapier2d-compat";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { GRAVITY, TIME_STEP, WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
-import { DEFAULT_ENVIRONMENT } from "./environment";
+import {
+  DEFAULT_ENVIRONMENT,
+  withWorldScale,
+  WORLD_SCALE_RANGE,
+} from "./environment";
 import { initializePhysics, RigidWorld } from "./world";
 
 beforeAll(async () => {
@@ -16,11 +20,12 @@ afterEach(() => {
   world?.dispose();
   world = undefined;
 });
+const PLATE = { width: 2, height: 1 };
 const gravity = { x: 0, y: -GRAVITY };
 
 describe("rigid world", () => {
   it("keeps the real-glass default plate intact at floor level", () => {
-    world = new RigidWorld("plate");
+    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
     const vertices = world.vertices();
     expect(vertices).toHaveLength(5 * 6 * 6);
     expect(world.snapshot().poses[17]).toBeCloseTo(0.5, 2);
@@ -34,7 +39,7 @@ describe("rigid world", () => {
   });
 
   it("advances at a fixed 60 Hz, clamps stalls and leaves paused frames unchanged", () => {
-    world = new RigidWorld("plate");
+    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
     const initial = world.snapshot();
     expect(world.advance(0, gravity)).toEqual(initial);
     expect(world.advance(-1, gravity)).toEqual(initial);
@@ -44,7 +49,7 @@ describe("rigid world", () => {
   });
 
   it("wakes sleeping bodies when gravity tilts", () => {
-    world = new RigidWorld("plate");
+    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
     for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity, 10000);
     expect(world.snapshot().stats.sleeping).toBe(world.snapshot().stats.bodies);
     const moved = world.advance(0.1, { x: GRAVITY, y: 0 }, 10000);
@@ -79,17 +84,19 @@ describe("rigid world", () => {
 
 it("refuses invalid convex geometry", () => {
   vi.spyOn(RAPIER.ColliderDesc, "convexHull").mockReturnValueOnce(null);
-  expect(() => new RigidWorld("plate")).toThrow("Invalid convex body");
+  expect(() => new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE)).toThrow(
+    "Invalid convex body",
+  );
 });
 
 it("reports a non-finite engine state", () => {
-  world = new RigidWorld("plate");
+  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
   vi.spyOn(RAPIER.RigidBody.prototype, "rotation").mockReturnValueOnce(NaN);
   expect(() => world?.snapshot()).toThrow("Non-finite rigid-body state");
 });
 
 it("routes pointer actions and appends a ball with matching geometry and poses", () => {
-  world = new RigidWorld("plate");
+  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
   expect(world.apply({ type: "grab", point: { x: 5, y: 0.5 } })).toBe(false);
   world.apply({ type: "move", point: { x: 5, y: 3.5 } });
   for (let i = 0; i < 60; i++) world.advance(TIME_STEP, gravity);
@@ -111,7 +118,7 @@ it("routes pointer actions and appends a ball with matching geometry and poses",
 });
 
 it("keeps thrown balls inside even when the launch starts in the floor margin", () => {
-  world = new RigidWorld("plate");
+  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
   world.apply({
     type: "throw",
     point: { x: 5, y: -0.35 },
@@ -123,7 +130,7 @@ it("keeps thrown balls inside even when the launch starts in the floor margin", 
 });
 
 it("keeps a grabbed plate above the floor when capture drags below the canvas", () => {
-  world = new RigidWorld("plate");
+  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
   world["shapes"][4]?.body.setTranslation({ x: 5, y: 0.501 }, true);
   for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity, 10000);
   world.apply({ type: "grab", point: { x: 5, y: 0.5 } });
@@ -133,7 +140,7 @@ it("keeps a grabbed plate above the floor when capture drags below the canvas", 
 });
 
 it("can grab a thrown ball and keep it in the container", () => {
-  world = new RigidWorld("plate");
+  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
   world.apply({
     type: "throw",
     point: { x: 1, y: 1 },
@@ -148,14 +155,18 @@ it("can grab a thrown ball and keep it in the container", () => {
 });
 
 it("builds selected walls, plate mass and throws within the new bounds", () => {
-  world = new RigidWorld("plate", {
-    ...DEFAULT_ENVIRONMENT,
-    width: 18,
-    height: 8,
-    density: 50,
-    gravity: 0,
-    friction: 0.8,
-  });
+  world = new RigidWorld(
+    "plate",
+    {
+      ...DEFAULT_ENVIRONMENT,
+      width: 18,
+      height: 8,
+      density: 50,
+      gravity: 0,
+      friction: 0.8,
+    },
+    PLATE,
+  );
   expect(world.snapshot().poses[16]).toBe(9);
   expect(world.snapshot().poses[17]).toBeCloseTo(0.5, 2);
   expect(world.snapshot().stats.mass).toBe(100);
@@ -174,7 +185,7 @@ it("builds selected walls, plate mass and throws within the new bounds", () => {
 });
 
 it("keeps friction on recursively created fragments", () => {
-  world = new RigidWorld("plate");
+  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
   world["shapes"][4]?.body.setTranslation({ x: 5, y: 2.5 }, true);
   for (let i = 0; i < 120; i++) world.advance(TIME_STEP, gravity, 0.07, 0.83);
   expect(world.snapshot().stats.bodies).toBeGreaterThan(1);
@@ -183,11 +194,15 @@ it("keeps friction on recursively created fragments", () => {
 });
 
 it("uses selected grab limits beyond the old right wall and ceiling", () => {
-  world = new RigidWorld("plate", {
-    ...DEFAULT_ENVIRONMENT,
-    width: 18,
-    height: 8,
-  });
+  world = new RigidWorld(
+    "plate",
+    {
+      ...DEFAULT_ENVIRONMENT,
+      width: 18,
+      height: 8,
+    },
+    PLATE,
+  );
   world.apply({ type: "grab", point: { x: 9, y: 0.5 } });
   world.apply({ type: "move", point: { x: 16, y: 7 } });
   for (let i = 0; i < 240; i++) world.advance(TIME_STEP, { x: 0, y: 0 }, 10000);
@@ -216,10 +231,22 @@ it.each(["pile", "stress"] as const)(
   },
 );
 
+it.each(["plate", "pile", "stress"] as const)(
+  "builds %s at the minimum world scale with the default object size",
+  (scene) => {
+    const environment = withWorldScale(
+      DEFAULT_ENVIRONMENT,
+      WORLD_SCALE_RANGE.min,
+    );
+    world = new RigidWorld(scene, environment);
+    expect(world.snapshot().stats.bodies).toBeGreaterThan(0);
+  },
+);
+
 it.each([NaN, Infinity, -0.1, 2.1])(
   "rejects invalid live friction %s",
   (friction) => {
-    world = new RigidWorld("plate");
+    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
     expect(() => world?.advance(0, gravity, 10000, friction)).toThrow(
       "Invalid environment setting: friction",
     );
@@ -229,7 +256,7 @@ it.each([NaN, Infinity, -0.1, 2.1])(
 it("live friction slows a sliding plate while zero friction preserves its speed", () => {
   const distances: number[] = [];
   for (const friction of [0, 1]) {
-    world = new RigidWorld("plate");
+    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
     for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity, 10000);
     const body = world["shapes"][4]?.body;
     if (body === undefined) throw new Error("Missing plate");
@@ -247,7 +274,7 @@ it("live friction slows a sliding plate while zero friction preserves its speed"
 
 describe("visible height", () => {
   it("lets a body rise to a ceiling raised to the visible height", () => {
-    world = new RigidWorld("plate");
+    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
     world.setVisibleHeight(12);
     world.apply({ type: "grab", point: { x: 5, y: 0.5 } });
     world.apply({ type: "move", point: { x: 5, y: 11 } });
@@ -257,7 +284,7 @@ describe("visible height", () => {
   });
 
   it("clamps throws to the visible height", () => {
-    world = new RigidWorld("plate");
+    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
     world.setVisibleHeight(12);
     world.apply({
       type: "throw",
@@ -268,7 +295,7 @@ describe("visible height", () => {
   });
 
   it("keeps the configured height when the view is shorter", () => {
-    world = new RigidWorld("plate");
+    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
     world.setVisibleHeight(2);
     world.apply({
       type: "throw",
@@ -281,7 +308,7 @@ describe("visible height", () => {
   });
 
   it("keeps the walls tall enough after the ceiling moves", () => {
-    world = new RigidWorld("plate");
+    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
     world.setVisibleHeight(20);
     world["shapes"][4]?.body.setTranslation({ x: 9.7, y: 15 }, true);
     world["shapes"][4]?.body.setLinvel({ x: 30, y: 0 }, true);
@@ -291,7 +318,7 @@ describe("visible height", () => {
   });
 
   it("rejects an invalid height and ignores an unchanged one", () => {
-    world = new RigidWorld("plate");
+    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
     expect(() => {
       world?.setVisibleHeight(Number.NaN);
     }).toThrow("Invalid visible height");

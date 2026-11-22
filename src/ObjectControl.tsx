@@ -7,6 +7,7 @@ import {
 } from "@/rigid/object-shape";
 import {
   DEFAULT_OBJECT_SIZE,
+  fitObjectSize,
   maxObjectSize,
   MIN_OBJECT_SIZE,
   OBJECT_AXES,
@@ -80,7 +81,12 @@ export const ObjectControl = ({
               label={LABELS[axis]}
               atDefault={value[axis] === DEFAULT_OBJECT_SIZE[axis]}
               onReset={() => {
-                onChange({ ...value, [axis]: DEFAULT_OBJECT_SIZE[axis] });
+                onChange(
+                  fitObjectSize(
+                    { ...value, [axis]: DEFAULT_OBJECT_SIZE[axis] },
+                    bounds,
+                  ),
+                );
               }}
             />
           </span>

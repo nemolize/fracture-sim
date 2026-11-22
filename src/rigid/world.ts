@@ -14,6 +14,7 @@ import { RigidTools } from "./interactions";
 import { objectPolygon, type ObjectShape } from "./object-shape";
 import {
   DEFAULT_OBJECT_SIZE,
+  fitObjectSize,
   type ObjectSize,
   validateObjectSize,
 } from "./object-size";
@@ -43,7 +44,7 @@ export class RigidWorld {
   constructor(
     scene: Scene,
     environment: EnvironmentSettings = DEFAULT_ENVIRONMENT,
-    objectSize: ObjectSize = DEFAULT_OBJECT_SIZE,
+    objectSize: ObjectSize = fitObjectSize(DEFAULT_OBJECT_SIZE, environment),
     objectShape: ObjectShape = "rectangle",
   ) {
     validateEnvironment(environment);
