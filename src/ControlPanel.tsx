@@ -96,7 +96,7 @@ export const ControlPanel = ({
   motion,
   onChange,
 }: Props) => (
-  <aside className="flex w-full flex-col gap-4 rounded-lg bg-white/95 p-4 shadow-lg">
+  <aside className="flex w-full flex-col gap-4 rounded-lg bg-white/60 p-4 shadow-lg backdrop-blur-md">
     <button
       type="button"
       disabled={locked}
