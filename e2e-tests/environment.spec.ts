@@ -5,7 +5,7 @@ import type {
   WorkerRequest,
   WorkerResponse,
 } from "../src/rigid/types";
-import { observeCrackEnergy, selectCustomMaterial } from "./material-fixture";
+import { makePlateUnbreakable, observeCrackEnergy } from "./material-fixture";
 import { openSettings, useReferenceWorld } from "./settings";
 
 declare global {
@@ -64,7 +64,7 @@ test("world controls reach physics, resize rendering and preserve pointer metres
   await page.goto("/");
   await useReferenceWorld(page);
   await openSettings(page);
-  await selectCustomMaterial(page);
+  await makePlateUnbreakable(page);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await setSlider(page, "Gravity (m/s²)", 0);
   await expect

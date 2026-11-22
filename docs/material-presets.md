@@ -26,16 +26,15 @@ names the preset again. The Gc slider spans 0.1–1,000,000 J/m² on a
 logarithmic scale; thickness spans 0.1–100 mm. These are empirical UI bounds.
 
 Only the fracture energies are sourced. The densities, friction and
-restitution of the presets, and every floor preset (Default, Concrete, Wood,
-Steel, Rubber, Ice), are representative values chosen empirically with no fixed
+restitution of the presets, and every floor preset in `src/sim/floor-material.ts`, are representative values chosen empirically with no fixed
 source. Glass and the Default floor keep the friction 0.5 and restitution 0 the
 app had before materials existed.
 
 Areal density is `density × thickness / 1000` kg/m², so glass at 2500 kg/m³ and
 10 mm is the former 25 kg/m². Thickness therefore scales both mass and crack
 energy; for a simple impact on the floor the two largely cancel. The supported
-areal density is 0.05–2000 kg/m², which every density and thickness slider
-position stays inside.
+areal density is the product of the density and thickness slider limits, so
+every slider position stays inside it.
 
 The normal-impact energy rule and minimum fragment area remain simplified;
 these values do not calibrate the simulation's full dynamic response to an

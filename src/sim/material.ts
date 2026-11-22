@@ -74,7 +74,7 @@ export interface MaterialSettings extends Surface {
 }
 
 export const MATERIAL_RANGES = {
-  density: { min: 500, max: 20_000, step: 10 },
+  density: { min: 500, max: 20_000, step: 1 },
   thicknessMm: { min: 0.1, max: 100, step: 0.1 },
 } as const;
 export const FRACTURE_ENERGY_LOG_RANGE = {
@@ -89,16 +89,16 @@ export const MIN_FRAGMENT_AREA_LOG_RANGE = {
   step: 0.01,
 } as const;
 
-/**
- * Areal density (kg/m²) the 2D bodies need; chosen empirically, no fixed
- * source. Wide enough for every density and thickness slider position.
- */
-export const AREAL_DENSITY_RANGE = { min: 0.05, max: 2000 } as const;
+export const AREAL_DENSITY_RANGE = {
+  min: (MATERIAL_RANGES.density.min * MATERIAL_RANGES.thicknessMm.min) / 1000,
+  max: (MATERIAL_RANGES.density.max * MATERIAL_RANGES.thicknessMm.max) / 1000,
+};
 
 export const findMaterialPreset = (id: string) =>
   MATERIAL_PRESETS.find((preset) => preset.id === id);
 
 const GLASS = MATERIAL_PRESETS[0];
+export const DEFAULT_MATERIAL_PRESET = GLASS;
 export const DEFAULT_MATERIAL: MaterialSettings = {
   preset: GLASS.id,
   fractureEnergy: GLASS.fractureEnergy,
@@ -123,6 +123,14 @@ export const materialFromPreset = (
     minFragmentArea: current.minFragmentArea,
   };
 };
+
+/** The slider grid never lands exactly on a preset's energy, so a position within half a step of it snaps to it. */
+export const fractureEnergyAt = (position: number): number =>
+  MATERIAL_PRESETS.find(
+    (preset) =>
+      Math.abs(Math.log10(preset.fractureEnergy) - position) <
+      FRACTURE_ENERGY_LOG_RANGE.step / 2,
+  )?.fractureEnergy ?? 10 ** position;
 
 export const matchPreset = (material: MaterialSettings): MaterialSettings => ({
   ...material,
@@ -160,6 +168,13 @@ export const crackEnergy = (material: MaterialSettings): number => {
 };
 
 export const DEFAULT_CRACK_ENERGY = crackEnergy(DEFAULT_MATERIAL);
+
+export const liveMaterials = (materials: WorldMaterials): LiveMaterials => ({
+  crackEnergy: crackEnergy(materials.object),
+  minFragmentArea: materials.object.minFragmentArea,
+  floor: materials.floor,
+  object: materials.object,
+});
 
 export interface WorldMaterials {
   floor: FloorMaterialSettings;

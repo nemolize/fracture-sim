@@ -7,6 +7,8 @@ import {
   DEFAULT_CRACK_ENERGY,
   DEFAULT_MATERIAL,
   findMaterialPreset,
+  fractureEnergyAt,
+  liveMaterials,
   MATERIAL_PRESETS,
   MATERIAL_RANGES,
   materialFromPreset,
@@ -150,4 +152,25 @@ it("rejects unrepresentable conversions", () => {
       thicknessMm: Number.MAX_VALUE,
     }),
   ).toThrow("Thickness and crack energy must be positive and finite");
+});
+
+it("derives what the world reads each frame from the two materials", () => {
+  const object = {
+    ...DEFAULT_MATERIAL,
+    thicknessMm: 20,
+    minFragmentArea: 0.01,
+  };
+  const floor = { preset: "custom" as const, friction: 1, restitution: 0.5 };
+  expect(liveMaterials({ floor, object })).toEqual({
+    crackEnergy: crackEnergy(object),
+    minFragmentArea: 0.01,
+    floor,
+    object,
+  });
+});
+
+it("snaps a slider position next to a preset's fracture energy to it", () => {
+  expect(fractureEnergyAt(0.85)).toBe(7);
+  expect(fractureEnergyAt(0.18)).toBe(1.5);
+  expect(fractureEnergyAt(1)).toBe(10);
 });

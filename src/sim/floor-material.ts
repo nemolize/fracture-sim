@@ -1,7 +1,6 @@
 import type { Surface } from "./material";
 
-// Representative values; chosen empirically, no fixed source. "Default" is the
-// friction 0.5 / restitution 0 the floor had before floor materials existed.
+// Representative values; chosen empirically, no fixed source.
 export const FLOOR_PRESETS = [
   { id: "default", label: "Default", friction: 0.5, restitution: 0 },
   { id: "concrete", label: "Concrete", friction: 0.7, restitution: 0.1 },

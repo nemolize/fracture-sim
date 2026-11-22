@@ -169,7 +169,7 @@ test("the floor and the object materials reach the real worker, and density rest
   const density = page.getByRole("slider", { name: "Object density (kg/m³)" });
   await density.press("ArrowRight");
   await expect(page.getByRole("status", { name: "Areal density" })).toHaveText(
-    "Areal density: 9.3 kg/m²",
+    "Areal density: 9.18 kg/m²",
   );
   await expect
     .poll(() => page.evaluate(() => window.materialTime ?? 0))

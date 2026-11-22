@@ -1,13 +1,12 @@
 import RAPIER from "@dimforge/rapier2d-compat";
 
 import { DEFAULT_FLOOR_MATERIAL } from "@/sim/floor-material";
-import { MIN_FRAGMENT_AREA } from "@/sim/fracture";
 import {
   arealDensity,
   BOUNDARY_SURFACE,
-  crackEnergy,
   DEFAULT_MATERIAL,
   type LiveMaterials,
+  liveMaterials,
   type Surface,
   validateMaterial,
   validateSurface,
@@ -87,14 +86,11 @@ export class RigidWorld {
     this.environment = { ...environment };
     const lengthScale = Math.min(1, worldScale(environment));
     this.areaScale = lengthScale ** 2;
-    this.fracture = new ImpactFracture(MIN_FRAGMENT_AREA * this.areaScale);
+    this.fracture = new ImpactFracture(
+      materials.object.minFragmentArea * this.areaScale,
+    );
     this.arealDensity = arealDensity(materials.object);
-    this.live = {
-      crackEnergy: crackEnergy(materials.object),
-      minFragmentArea: materials.object.minFragmentArea,
-      floor: materials.floor,
-      object: materials.object,
-    };
+    this.live = liveMaterials(materials);
     this.wakeGravity = { x: 0, y: -environment.gravity };
     this.averageGravity = { ...this.wakeGravity };
     this.world = new RAPIER.World({ ...this.wakeGravity });
@@ -308,11 +304,7 @@ export class RigidWorld {
     return new Float32Array(vertices);
   }
 
-  advance(
-    seconds: number,
-    gravity: { x: number; y: number },
-    materials: LiveMaterials = this.live,
-  ): Snapshot {
+  private applyMaterials(materials: LiveMaterials): void {
     validateSurface(materials.floor);
     validateSurface(materials.object);
     if (!sameSurface(materials.floor, this.live.floor)) {
@@ -333,6 +325,14 @@ export class RigidWorld {
     this.fracture.setMinFragmentArea(
       materials.minFragmentArea * this.areaScale,
     );
+  }
+
+  advance(
+    seconds: number,
+    gravity: { x: number; y: number },
+    materials: LiveMaterials = this.live,
+  ): Snapshot {
+    this.applyMaterials(materials);
     this.world.gravity = gravity;
     // A raw sample as the reference would bounce between noise extremes, so average first.
     const blend =

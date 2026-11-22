@@ -169,3 +169,13 @@ it("resets the minimum fragment area to the default", async () => {
   );
   expect(onChange).toHaveBeenCalledWith(DEFAULT_MATERIAL);
 });
+
+it("returns to a preset when the fracture-energy slider lands on its energy", () => {
+  const { onChange } = setup({
+    ...DEFAULT_MATERIAL,
+    preset: "custom",
+    fractureEnergy: 7.24,
+  });
+  moveSlider("Fracture energy (J/m²)", "0.85");
+  expect(onChange).toHaveBeenCalledWith(DEFAULT_MATERIAL);
+});

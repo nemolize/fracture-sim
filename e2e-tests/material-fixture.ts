@@ -29,7 +29,7 @@ export const observeCrackEnergy = async (page: Page): Promise<void> => {
 };
 
 /** Leaves the settings popup as it found it, so pointer tests keep the canvas clear. */
-export const selectCustomMaterial = async (page: Page): Promise<void> => {
+export const makePlateUnbreakable = async (page: Page): Promise<void> => {
   const toggle = page.getByRole("button", { name: "Settings", exact: true });
   const wasOpen = (await toggle.getAttribute("aria-expanded")) === "true";
   await openSettings(page);

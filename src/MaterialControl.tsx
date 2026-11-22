@@ -4,8 +4,10 @@ import {
   arealDensity,
   crackEnergy,
   DEFAULT_MATERIAL,
+  DEFAULT_MATERIAL_PRESET,
   findMaterialPreset,
   FRACTURE_ENERGY_LOG_RANGE,
+  fractureEnergyAt,
   matchPreset,
   MATERIAL_PRESETS,
   MATERIAL_RANGES,
@@ -22,7 +24,7 @@ interface Props {
 }
 
 export const MaterialControl = ({ value, disabled, onChange }: Props) => {
-  const custom = (patch: Partial<MaterialSettings>): void => {
+  const editField = (patch: Partial<MaterialSettings>): void => {
     onChange(matchPreset({ ...value, ...patch }));
   };
   return (
@@ -37,7 +39,7 @@ export const MaterialControl = ({ value, disabled, onChange }: Props) => {
             label="Object material preset"
             atDefault={value.preset === DEFAULT_MATERIAL.preset}
             onReset={() => {
-              onChange(materialFromPreset(MATERIAL_PRESETS[0], value));
+              onChange(materialFromPreset(DEFAULT_MATERIAL_PRESET, value));
             }}
           />
         </span>
@@ -68,10 +70,10 @@ export const MaterialControl = ({ value, disabled, onChange }: Props) => {
         range={MATERIAL_RANGES.density}
         atDefault={value.density === DEFAULT_MATERIAL.density}
         onReset={() => {
-          custom({ density: DEFAULT_MATERIAL.density });
+          editField({ density: DEFAULT_MATERIAL.density });
         }}
         onChange={(density) => {
-          custom({ density });
+          editField({ density });
         }}
       />
       <MaterialSlider
@@ -80,10 +82,10 @@ export const MaterialControl = ({ value, disabled, onChange }: Props) => {
         range={SURFACE_RANGES.friction}
         atDefault={value.friction === DEFAULT_MATERIAL.friction}
         onReset={() => {
-          custom({ friction: DEFAULT_MATERIAL.friction });
+          editField({ friction: DEFAULT_MATERIAL.friction });
         }}
         onChange={(friction) => {
-          custom({ friction });
+          editField({ friction });
         }}
       />
       <MaterialSlider
@@ -92,10 +94,10 @@ export const MaterialControl = ({ value, disabled, onChange }: Props) => {
         range={SURFACE_RANGES.restitution}
         atDefault={value.restitution === DEFAULT_MATERIAL.restitution}
         onReset={() => {
-          custom({ restitution: DEFAULT_MATERIAL.restitution });
+          editField({ restitution: DEFAULT_MATERIAL.restitution });
         }}
         onChange={(restitution) => {
-          custom({ restitution });
+          editField({ restitution });
         }}
       />
       <MaterialSlider
@@ -106,10 +108,10 @@ export const MaterialControl = ({ value, disabled, onChange }: Props) => {
         range={FRACTURE_ENERGY_LOG_RANGE}
         atDefault={value.fractureEnergy === DEFAULT_MATERIAL.fractureEnergy}
         onReset={() => {
-          custom({ fractureEnergy: DEFAULT_MATERIAL.fractureEnergy });
+          editField({ fractureEnergy: DEFAULT_MATERIAL.fractureEnergy });
         }}
         onChange={(position) => {
-          custom({ fractureEnergy: 10 ** position });
+          editField({ fractureEnergy: fractureEnergyAt(position) });
         }}
       />
       <MaterialSlider

@@ -5,9 +5,10 @@ import type { ToolAction } from "@/rigid/tools";
 import type { Scene, WorkerRequest, WorkerResponse } from "@/rigid/types";
 import { DEFAULT_FLOOR_MATERIAL } from "@/sim/floor-material";
 import {
-  DEFAULT_CRACK_ENERGY,
+  crackEnergy as crackEnergyOf,
   DEFAULT_MATERIAL,
   type LiveMaterials,
+  liveMaterials,
   type WorldMaterials,
 } from "@/sim/material";
 
@@ -57,19 +58,14 @@ const harness = {
   step: (
     seconds: number,
     gravity = { x: 0, y: -9.8 },
-    crackEnergy = DEFAULT_CRACK_ENERGY,
+    crackEnergy = crackEnergyOf(built.object),
     live: Partial<LiveMaterials> = {},
   ) =>
     request({
       type: "advance",
       seconds,
       gravity,
-      materials: {
-        ...built,
-        crackEnergy,
-        minFragmentArea: built.object.minFragmentArea,
-        ...live,
-      },
+      materials: { ...liveMaterials(built), crackEnergy, ...live },
     }),
 };
 Object.assign(window, { harness });
