@@ -7,7 +7,7 @@ import { ResetButton } from "@/ResetButton";
 import { naturalObjectSize } from "@/rigid/object-shape";
 import { fitObjectSize } from "@/rigid/object-size";
 import { TOOL_HINTS, TOOL_LABELS, TOOLS } from "@/rigid/tools";
-import { SCENES, type WorldStats } from "@/rigid/types";
+import { SCENES } from "@/rigid/types";
 import {
   asScene,
   DEFAULT_SETTINGS,
@@ -19,7 +19,6 @@ import type { MotionControl } from "@/useMotion";
 
 interface Props {
   settings: Settings;
-  stats: WorldStats;
   paused: boolean;
   locked: boolean;
   motion: Pick<MotionControl, "support" | "enabled" | "notice" | "setEnabled">;
@@ -92,7 +91,6 @@ const SELECT_CLASS =
 
 export const ControlPanel = ({
   settings,
-  stats,
   paused,
   locked,
   motion,
@@ -241,17 +239,5 @@ export const ControlPanel = ({
         }}
       />
     </fieldset>
-
-    <dl
-      aria-label="Simulation statistics"
-      className="grid grid-cols-2 gap-1 text-sm text-gray-700"
-    >
-      <dt>Bodies</dt>
-      <dd className="text-right">{stats.bodies}</dd>
-      <dt>Sleeping</dt>
-      <dd className="text-right">{stats.sleeping}</dd>
-      <dt>Physics step</dt>
-      <dd className="text-right">{stats.stepMs.toFixed(2)} ms</dd>
-    </dl>
   </aside>
 );

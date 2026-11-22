@@ -14,13 +14,16 @@ vi.mock("@/FractureCanvas", () => ({
     onContextUnavailable,
     onPhysicsError,
     resetToken,
+    children,
   }: {
     resetToken: number;
+    children?: React.ReactNode;
     onStats: (stats: WorldStats) => void;
     onContextUnavailable: (message: string) => void;
     onPhysicsError: (message: string) => void;
   }) => (
     <div aria-label="Fracture simulation" data-reset-token={resetToken}>
+      {children}
       <button
         type="button"
         onClick={() => {
@@ -131,13 +134,11 @@ describe("with WebGPU", () => {
     expect(screen.getByRole("button", { name: "Settings" })).toHaveFocus();
   });
 
-  it("renders the canvas with its controls and the statistics", async () => {
+  it("shows the statistics over the canvas without opening settings", async () => {
     setGpu(fakeGpu().gpu);
-    const user = userEvent.setup();
     render(<App />);
     expect(screen.getByRole("heading", { name: "Fracture Sim" })).toBeVisible();
     expect(await screen.findByLabelText("Fracture simulation")).toBeVisible();
-    await openSettings(user);
     expect(screen.getByLabelText("Simulation statistics")).toHaveTextContent(
       "Bodies0",
     );
