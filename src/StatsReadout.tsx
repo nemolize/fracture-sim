@@ -3,7 +3,7 @@ import type { WorldStats } from "@/rigid/types";
 export const StatsReadout = ({ stats }: { stats: WorldStats }) => (
   <dl
     aria-label="Simulation statistics"
-    className="pointer-events-none absolute top-3 left-3 grid grid-cols-[auto_auto] gap-x-3 rounded bg-gray-500/40 px-2 py-1 text-xs text-gray-800"
+    className="pointer-events-none absolute top-3 left-3 grid min-w-48 grid-cols-[1fr_auto] gap-x-3 rounded bg-gray-500/40 px-2 py-1 text-xs text-gray-800"
   >
     <dt>Bodies</dt>
     <dd className="text-right tabular-nums">{stats.bodies}</dd>

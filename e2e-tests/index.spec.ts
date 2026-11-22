@@ -207,3 +207,29 @@ test("should serve the app from hashed production assets", async ({ page }) => {
     "24px",
   );
 });
+
+for (const viewport of [
+  { name: "desktop", width: 1280, height: 900 },
+  { name: "phone", width: 390, height: 844 },
+]) {
+  test(`should keep the stats panel width steady on a ${viewport.name} window as the body count grows`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    const stats = page.getByLabel("Simulation statistics");
+    await expect(stats).toContainText(/Bodies[1-9][0-9]*/);
+    const widthOf = async (): Promise<number> =>
+      (await stats.boundingBox())?.width ?? NaN;
+    const before = await widthOf();
+    await openSettings(page);
+    await page.getByRole("combobox", { name: /^Scene/ }).selectOption("pile");
+    await expect(stats).toContainText(/Bodies[0-9]{3,}/);
+    expect(await widthOf()).toBe(before);
+    const rem = await page.evaluate(() =>
+      parseFloat(getComputedStyle(document.documentElement).fontSize),
+    );
+    const minWidth = 12 * rem;
+    expect(before).toBeGreaterThanOrEqual(minWidth);
+  });
+}
