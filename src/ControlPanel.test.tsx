@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { ControlPanel } from "./ControlPanel";
+import { withWorldScale } from "./rigid/environment";
 import { DEFAULT_SETTINGS, type Settings } from "./settings";
 
 // userEvent cannot drag a range input, so set it the way a browser reports it.
@@ -350,6 +351,21 @@ describe("reset buttons", () => {
     const { onChange, user } = setup(false, false, { enabled: true }, patch);
     await user.click(screen.getByRole("button", { name: `Reset ${label}` }));
     expect(onChange).toHaveBeenCalledWith(DEFAULT_SETTINGS);
+  });
+
+  it("resets an object axis to the default fitted to a small world", async () => {
+    const small = withWorldScale(DEFAULT_SETTINGS.environment, 0.1);
+    const { onChange, user } = setup(
+      false,
+      false,
+      { enabled: true },
+      { environment: small, objectSize: { width: 0.42, height: 0.3 } },
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Reset Object height (m)" }),
+    );
+    const next = onChange.mock.calls[0]?.[0];
+    expect(next?.objectSize.height).toBeCloseTo(0.42, 6);
   });
 
   it("disables the motion resets while the device tilt is off", () => {

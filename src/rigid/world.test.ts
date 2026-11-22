@@ -3,7 +3,11 @@ import RAPIER from "@dimforge/rapier2d-compat";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { GRAVITY, TIME_STEP, WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
-import { DEFAULT_ENVIRONMENT } from "./environment";
+import {
+  DEFAULT_ENVIRONMENT,
+  withWorldScale,
+  WORLD_SCALE_RANGE,
+} from "./environment";
 import { initializePhysics, RigidWorld } from "./world";
 
 beforeAll(async () => {
@@ -224,6 +228,18 @@ it.each(["pile", "stress"] as const)(
         expect(center.y + y).toBeLessThan(3);
       }
     }
+  },
+);
+
+it.each(["plate", "pile", "stress"] as const)(
+  "builds %s at the minimum world scale with the default object size",
+  (scene) => {
+    const environment = withWorldScale(
+      DEFAULT_ENVIRONMENT,
+      WORLD_SCALE_RANGE.min,
+    );
+    world = new RigidWorld(scene, environment);
+    expect(world.snapshot().stats.bodies).toBeGreaterThan(0);
   },
 );
 
