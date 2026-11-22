@@ -14,8 +14,6 @@ const setRange = (slider: HTMLElement, value: string): void => {
   slider.dispatchEvent(new Event("input", { bubbles: true }));
 };
 
-const stats = { mass: 360, bodies: 1000, sleeping: 987, stepMs: 0.5, time: 0 };
-
 const setup = (
   paused = false,
   locked = false,
@@ -27,7 +25,6 @@ const setup = (
   render(
     <ControlPanel
       settings={{ ...DEFAULT_SETTINGS, ...settings }}
-      stats={stats}
       paused={paused}
       locked={locked}
       motion={{
@@ -48,14 +45,6 @@ const setup = (
 };
 
 describe("ControlPanel", () => {
-  it("shows the statistics", () => {
-    setup();
-    const list = screen.getByLabelText("Simulation statistics");
-    expect(list).toHaveTextContent("1000");
-    expect(list).toHaveTextContent("987");
-    expect(list).toHaveTextContent("0.50 ms");
-  });
-
   it.each([["Scene", "pile", { scene: "pile" }]])(
     "changes %s from the select",
     async (label, value, patch) => {

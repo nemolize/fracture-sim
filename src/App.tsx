@@ -5,6 +5,7 @@ import { FractureCanvas } from "@/FractureCanvas";
 import { useGpu } from "@/gpu/useGpu";
 import type { WorldStats } from "@/rigid/types";
 import { DEFAULT_SETTINGS, type Settings } from "@/settings";
+import { StatsReadout } from "@/StatsReadout";
 import { useMotion } from "@/useMotion";
 
 const INITIAL_STATS: WorldStats = {
@@ -124,7 +125,9 @@ const App = () => {
             onStats={setStats}
             onPhysicsError={setPhysicsError}
             onContextUnavailable={unsupported}
-          />
+          >
+            <StatsReadout stats={stats} />
+          </FractureCanvas>
         ) : null}
         {physicsError !== null ? (
           <Notice title="The physics stopped">
@@ -151,7 +154,6 @@ const App = () => {
         >
           <ControlPanel
             settings={settings}
-            stats={stats}
             paused={paused}
             locked={locked}
             motion={motion}

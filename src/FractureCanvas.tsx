@@ -24,6 +24,7 @@ interface Props {
   onStats: (stats: WorldStats) => void;
   onContextUnavailable: (message: string) => void;
   onPhysicsError: (message: string) => void;
+  children?: React.ReactNode;
 }
 
 export const FractureCanvas = ({
@@ -35,6 +36,7 @@ export const FractureCanvas = ({
   onStats,
   onContextUnavailable,
   onPhysicsError,
+  children,
 }: Props) => {
   const cancelGesture = useRef<() => void>(() => undefined);
   useEffect(() => {
@@ -282,6 +284,7 @@ export const FractureCanvas = ({
         aria-label="Fracture simulation"
         className="absolute inset-0 block h-full w-full touch-none rounded-lg bg-gray-100 shadow"
       />
+      {children}
       <ScaleBar environment={settings.environment} />
     </div>
   );
