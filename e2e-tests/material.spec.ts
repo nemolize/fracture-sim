@@ -91,11 +91,11 @@ test("real material presets convert Gc and thickness before reaching the worker"
   const minArea = page.getByRole("slider", { name: "Min fragment area (m²)" });
   await expect
     .poll(() => page.evaluate(() => window.materialMinArea))
-    .toBe(0.001);
+    .toBe(0.01);
   await minArea.press("ArrowRight");
   await expect
     .poll(() => page.evaluate(() => window.materialMinArea))
-    .toBeCloseTo(10 ** -2.99, 12);
+    .toBeCloseTo(10 ** -1.99, 12);
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await openSettings(page);
   await expect(preset).toHaveValue("ice");
