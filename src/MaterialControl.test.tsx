@@ -80,13 +80,23 @@ it("ignores an unknown select value", () => {
   expect(onChange).not.toHaveBeenCalled();
 });
 
-it("adjusts the minimum fragment area on a log scale", () => {
+it.each([
+  ["-3", 10 ** -3],
+  ["-1", 10 ** -1],
+])("adjusts the minimum fragment area to log10 %s", (position, area) => {
   const { onChange } = setup();
-  moveSlider("Min fragment area (m²)", "-1.5");
+  moveSlider("Min fragment area (m²)", position);
   expect(onChange).toHaveBeenCalledWith({
     ...DEFAULT_MATERIAL,
-    minFragmentArea: 10 ** -1.5,
+    minFragmentArea: area,
   });
+});
+
+it("limits the minimum fragment area slider to 0.001–0.1 m²", () => {
+  setup();
+  const slider = screen.getByRole("slider", { name: "Min fragment area (m²)" });
+  expect(slider).toHaveAttribute("aria-valuemin", "0.001");
+  expect(slider).toHaveAttribute("aria-valuemax", "0.1");
 });
 
 it("shows the default minimum fragment area of 0.01 m²", () => {
