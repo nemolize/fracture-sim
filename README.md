@@ -14,7 +14,7 @@ stops the simulation with an explanation; reload to restart.
 ## Using it
 
 Choose `plate` to place a single glass plate at rest on the floor, `pile` for
-1,000 small bodies, or `stress` for 2,000. Pause freezes physics; Reset rebuilds
+1,000 small bodies, or `stress` for 2,000 (below world scale ×0.05 the count shrinks in proportion). Pause freezes physics; Reset rebuilds
 the selected scene. The default glass plate starts intact; lift and release it or throw a ball to fracture it. Bodies collide with each other and the container and sleep
 when they settle. `Grab` lifts a body and releases it with the pointer velocity;
 `Throw ball` launches from the start of a drag toward its end; `Blast` pushes

@@ -11,6 +11,7 @@ import {
 } from "./constants";
 import {
   DEFAULT_ENVIRONMENT,
+  DEFAULT_WORLD_SCALE,
   withWorldScale,
   WORLD_SCALE_RANGE,
 } from "./environment";
@@ -115,29 +116,69 @@ describe("rigid world", () => {
     });
   });
 
-  it.each(["pile", "stress"] as const)(
-    "keeps every %s body in the container through 20 seconds",
-    (scene) => {
-      world = new RigidWorld(scene);
-      for (let i = 0; i < 200; i++) world.advance(0.1, gravity);
-      const { poses, stats } = world.snapshot();
-      expect(stats.bodies).toBeGreaterThanOrEqual(
-        scene === "pile" ? 1000 : 2000,
+  describe.each([1, DEFAULT_WORLD_SCALE, WORLD_SCALE_RANGE.min])(
+    "at world scale ×%s",
+    (scale) => {
+      it.each(["pile", "stress"] as const)(
+        "keeps every %s body in the container through 20 seconds",
+        (scene) => {
+          const environment = withWorldScale(DEFAULT_ENVIRONMENT, scale);
+          world = new RigidWorld(scene, environment);
+          const full = scene === "pile" ? 1000 : 2000;
+          expect(world.snapshot().stats.bodies).toBe(
+            Math.round(full * Math.min(1, scale / 0.05)),
+          );
+          for (let i = 0; i < 200; i++) world.advance(0.1, gravity);
+          const { poses, stats } = world.snapshot();
+          expect(stats.bodies).toBeLessThanOrEqual(2000);
+          expect(stats.sleeping).toBe(stats.bodies);
+          for (let i = 16; i < poses.length; i += 4) {
+            expect(poses[i]).toBeGreaterThan(0);
+            expect(poses[i]).toBeLessThan(environment.width);
+            expect(poses[i + 1]).toBeGreaterThan(0);
+            expect(poses[i + 1]).toBeLessThan(environment.height);
+          }
+        },
       );
-      expect(stats.bodies).toBeLessThanOrEqual(2000);
-      expect(stats.mass).toBeCloseTo(
-        (scene === "pile" ? 1000 : 2000) * 0.36,
-        10,
-      );
-      expect(stats.sleeping).toBe(stats.bodies);
-      for (let i = 16; i < poses.length; i += 4) {
-        expect(poses[i]).toBeGreaterThan(0);
-        expect(poses[i]).toBeLessThan(WORLD_WIDTH);
-        expect(poses[i + 1]).toBeGreaterThan(0);
-        expect(poses[i + 1]).toBeLessThan(WORLD_HEIGHT);
-      }
     },
   );
+});
+
+it.each(["pile", "stress"] as const)(
+  "keeps every %s body in the container at the minimum scale under sideways gravity",
+  (scene) => {
+    const environment = withWorldScale(
+      DEFAULT_ENVIRONMENT,
+      WORLD_SCALE_RANGE.min,
+    );
+    world = new RigidWorld(scene, environment);
+    for (let i = 0; i < 200; i++) world.advance(0.1, { x: GRAVITY, y: -0.1 });
+    const { poses } = world.snapshot();
+    for (let i = 16; i < poses.length; i += 4) {
+      expect(poses[i]).toBeGreaterThan(0);
+      expect(poses[i]).toBeLessThan(environment.width);
+    }
+  },
+);
+
+it.each([
+  ["floor", { x: 5, y: -0.3 }],
+  ["left wall", { x: -0.3, y: 1 }],
+  ["right wall", { x: WORLD_WIDTH + 0.3, y: 1 }],
+  ["ceiling", { x: 5, y: WORLD_HEIGHT + 0.3 }],
+])("lifts a body that sank into the %s back inside", (_side, position) => {
+  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+  const body = world["shapes"][4]?.body;
+  if (body === undefined) throw new Error("Missing plate");
+  body.setTranslation(position, true);
+  body.setLinvel({ x: 3, y: -3 }, true);
+  world.advance(TIME_STEP, { x: 0, y: 0 }, 10000);
+  const { x, y } = body.translation();
+  expect(x).toBeGreaterThan(0);
+  expect(x).toBeLessThan(WORLD_WIDTH);
+  expect(y).toBeGreaterThan(0);
+  expect(y).toBeLessThan(WORLD_HEIGHT);
+  expect(body.linvel()).toEqual({ x: 0, y: 0 });
 });
 
 it("refuses invalid convex geometry", () => {
