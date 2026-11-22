@@ -30,6 +30,32 @@ test("should load the rigid-body simulator", async ({ page }) => {
   );
 });
 
+for (const viewport of [
+  { name: "desktop", width: 1280, height: 900 },
+  { name: "phone", width: 390, height: 844 },
+]) {
+  test(`should fill the ${viewport.name} window height with the canvas`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    const canvas = page.getByLabel("Fracture simulation");
+    await expect(canvas).toBeVisible();
+    await expect
+      .poll(async () => {
+        const box = await canvas.boundingBox();
+        return box === null ? 0 : box.y + box.height;
+      })
+      .toBeGreaterThanOrEqual(viewport.height - 16);
+    const overflow = await page.evaluate(
+      () =>
+        document.documentElement.scrollHeight -
+        document.documentElement.clientHeight,
+    );
+    expect(overflow).toBe(0);
+  });
+}
+
 test.describe("without a usable WebGPU", () => {
   const expectNoSimulation = async (page: Page) => {
     await expect(

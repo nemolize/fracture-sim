@@ -97,7 +97,7 @@ test("world controls reach physics, resize rendering and preserve pointer metres
   const box = await canvas.boundingBox();
   // eslint-disable-next-line playwright/no-conditional-in-test -- Bounding boxes are nullable in Playwright.
   if (box === null) throw new Error("Canvas missing");
-  expect(box.width / box.height).toBeCloseTo(18 / 9.76, 2);
+  expect(box.width / box.height).toBeLessThanOrEqual(18 / 9.76 + 0.005);
   await page.getByRole("complementary").evaluate((panel) => {
     panel.scrollTop = 0;
   });
@@ -163,6 +163,7 @@ test.describe("high-DPI world bounds", () => {
     const canvas = page.getByLabel("Fracture simulation");
     await canvas.evaluate((el) => {
       el.style.width = "10000px";
+      el.style.height = `${String((10000 * 16) / 30)}px`;
     });
     await expect
       .poll(() => canvas.evaluate((el: HTMLCanvasElement) => el.width))

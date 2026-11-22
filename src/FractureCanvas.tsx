@@ -164,11 +164,8 @@ export const FractureCanvas = ({
     const resize = (): void => {
       const size = canvasSize(
         canvas.clientWidth,
+        canvas.clientHeight,
         window.devicePixelRatio,
-        {
-          width,
-          height,
-        },
         device.limits.maxTextureDimension2D,
       );
       if (canvas.width !== size.width) canvas.width = size.width;
@@ -210,7 +207,7 @@ export const FractureCanvas = ({
         pending = true;
       }
       if (renderer !== undefined && poses !== undefined) {
-        renderer.draw(context.getCurrentTexture().createView(), poses);
+        renderer.draw(context.getCurrentTexture().createView(), poses, canvas);
       }
       animation = requestAnimationFrame(frame);
     };
@@ -258,16 +255,18 @@ export const FractureCanvas = ({
   ]);
 
   return (
-    <div className="relative">
-      <canvas
-        ref={canvasRef}
-        aria-label="Fracture simulation"
-        width={width * 100}
-        height={(height + FLOOR_MARGIN) * 100}
+    <div className="relative flex-1">
+      <div
+        aria-hidden
+        className="w-full"
         style={{
           aspectRatio: `${String(width)} / ${String(height + FLOOR_MARGIN)}`,
         }}
-        className="block w-full touch-none rounded-lg bg-gray-100 shadow"
+      />
+      <canvas
+        ref={canvasRef}
+        aria-label="Fracture simulation"
+        className="absolute inset-0 block h-full w-full touch-none rounded-lg bg-gray-100 shadow"
       />
       <ScaleBar environment={settings.environment} />
     </div>
