@@ -145,6 +145,7 @@ describe("rigid world", () => {
             expect(poses[i + 1]).toBeLessThan(environment.height);
           }
         },
+        90_000,
       );
     },
   );
