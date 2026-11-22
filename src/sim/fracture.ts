@@ -29,18 +29,19 @@ export const fracturePieces = (
   contact: Vec2,
   energy: number,
   crackEnergy: number,
+  minFragmentArea = MIN_FRAGMENT_AREA,
 ): Piece[] => {
   const budget = energy / crackEnergy;
   const area = polygonMoments(domain).area;
-  if (!(budget > narrowestWidth(domain)) || area < 2 * MIN_FRAGMENT_AREA)
+  if (!(budget > narrowestWidth(domain)) || area < 2 * minFragmentArea)
     return [];
   const minX = Math.min(...domain.map((p) => p.x));
   const maxX = Math.max(...domain.map((p) => p.x));
   const minY = Math.min(...domain.map((p) => p.y));
   const maxY = Math.max(...domain.map((p) => p.y));
-  // Empirical sampling density and radial spacing; the crack cost is measured from actual cell edges.
+  // Empirical sampling density and radial spacing.
   const grid = Math.max(
-    Math.sqrt(MIN_FRAGMENT_AREA) / 2,
+    Math.sqrt(minFragmentArea) / 2,
     Math.max(maxX - minX, maxY - minY) / 64,
   );
   const candidates: Vec2[] = [];
@@ -66,8 +67,7 @@ export const fracturePieces = (
   let pieces: Piece[] = [];
   const outer = perimeter(domain);
   for (const candidate of candidates) {
-    const spacing =
-      Math.sqrt(MIN_FRAGMENT_AREA) / 2 + distance(candidate) * 0.5;
+    const spacing = Math.sqrt(minFragmentArea) / 2 + distance(candidate) * 0.5;
     if (
       seeds.some(
         (s) => Math.hypot(s.x - candidate.x, s.y - candidate.y) < spacing,
@@ -75,7 +75,7 @@ export const fracturePieces = (
     )
       continue;
     const next = splitConvex(domain, [...seeds, candidate]);
-    if (next.some((p) => p.area < MIN_FRAGMENT_AREA)) continue;
+    if (next.some((p) => p.area < minFragmentArea)) continue;
     const cost =
       (next.reduce((sum, p) => sum + perimeter(p.domain), 0) - outer) / 2;
     if (cost > budget) continue;

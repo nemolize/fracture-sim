@@ -1,13 +1,15 @@
 import RAPIER from "@dimforge/rapier2d-compat";
 
+import { MIN_FRAGMENT_AREA } from "@/sim/fracture";
 import { DEFAULT_CRACK_ENERGY } from "@/sim/material";
 
 import { type BodyShape, createBodyShape } from "./body";
-import { TIME_STEP, WORLD_WIDTH } from "./constants";
+import { TIME_STEP } from "./constants";
 import {
   DEFAULT_ENVIRONMENT,
   type EnvironmentSettings,
   validateEnvironment,
+  worldScale,
 } from "./environment";
 import { ImpactFracture, MAX_BODIES } from "./fracture";
 import { RigidTools } from "./interactions";
@@ -51,7 +53,8 @@ export class RigidWorld {
     validateObjectSize(objectSize, environment);
     const initialPolygon = objectPolygon(objectShape, objectSize);
     this.environment = { ...environment };
-    this.fracture = new ImpactFracture();
+    const lengthScale = Math.min(1, worldScale(environment));
+    this.fracture = new ImpactFracture(MIN_FRAGMENT_AREA * lengthScale ** 2);
     this.friction = environment.friction;
     this.world = new RAPIER.World({ x: 0, y: -environment.gravity });
     this.tools = new RigidTools(
@@ -61,7 +64,7 @@ export class RigidWorld {
     );
     const { width, height } = environment;
     this.world.timestep = TIME_STEP;
-    this.world.lengthUnit = Math.min(1, width / WORLD_WIDTH);
+    this.world.lengthUnit = lengthScale;
     this.box(width / 2, -0.2, width / 2 + 0.4, 0.2, true);
     this.box(-0.2, 0, 0.2, WALL_HALF_HEIGHT, true);
     this.box(width + 0.2, 0, 0.2, WALL_HALF_HEIGHT, true);
