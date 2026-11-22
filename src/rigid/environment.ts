@@ -27,14 +27,14 @@ export const DEFAULT_ENVIRONMENT: EnvironmentSettings = {
 // Empirical physics bounds; density is mass per area for the 2D bodies.
 export const ENVIRONMENT_RANGES = {
   gravity: { min: 0, max: 40, step: 0.1 },
-  width: { min: 4, max: 30, step: 0.1 },
-  height: { min: 3, max: 20, step: 0.1 },
+  width: { min: 1, max: 30, step: 0.1 },
+  height: { min: 0.5, max: 20, step: 0.1 },
   density: { min: 1, max: 100, step: 1 },
   friction: { min: 0, max: 2, step: 0.01 },
 } as const;
 
 // Scale limits keep both dimensions inside the empirical world bounds.
-export const WORLD_SCALE_RANGE = { min: 0.6, max: 3, step: 0.1 } as const;
+export const WORLD_SCALE_RANGE = { min: 0.1, max: 3, step: 0.1 } as const;
 
 export const withWorldScale = (
   settings: EnvironmentSettings,

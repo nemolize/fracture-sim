@@ -11,7 +11,7 @@ import {
 } from "./object-size";
 
 it("fits object dimensions to the world without enlarging them", () => {
-  expect(fitObjectSize(DEFAULT_OBJECT_SIZE, DEFAULT_ENVIRONMENT)).toEqual({
+  expect(fitObjectSize({ width: 2, height: 1 }, DEFAULT_ENVIRONMENT)).toEqual({
     width: 2,
     height: 1,
   });

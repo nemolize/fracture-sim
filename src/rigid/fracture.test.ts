@@ -4,10 +4,12 @@ import { afterEach, beforeAll, expect, it, vi } from "vitest";
 
 import { type BodyShape, polygonCollider } from "./body";
 import { TIME_STEP } from "./constants";
+import { DEFAULT_ENVIRONMENT } from "./environment";
 import { ImpactFracture, MAX_BODIES } from "./fracture";
 import { initializePhysics, RigidWorld } from "./world";
 
 beforeAll(initializePhysics);
+const PLATE = { width: 2, height: 1 };
 const worlds: RigidWorld[] = [];
 afterEach(() => {
   vi.restoreAllMocks();
@@ -16,7 +18,7 @@ afterEach(() => {
   });
 });
 const makeRaisedPlateWorld = () => {
-  const world = new RigidWorld("plate");
+  const world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
   world["shapes"][4]?.body.setTranslation({ x: 5, y: 2.5 }, true);
   world["world"].propagateModifiedBodyPositionsToColliders();
   worlds.push(world);

@@ -193,8 +193,8 @@ it("locks world controls after a solver or GPU failure", () => {
 });
 
 it.each([
-  ["Object width (m)", "4", { width: 4, height: 1 }],
-  ["Object height (m)", "2.4", { width: 2, height: 2.4 }],
+  ["Object width (m)", "4", { width: 4, height: 0.5 }],
+  ["Object height (m)", "2.4", { width: 0.5, height: 2.4 }],
 ])("changes %s while paused", (label, value, objectSize) => {
   const { onChange } = setup(true);
   setRange(screen.getByRole("slider", { name: label }), value);
@@ -272,7 +272,7 @@ it("stores the selected initial object shape", async () => {
   expect(onChange).toHaveBeenCalledWith({
     ...DEFAULT_SETTINGS,
     objectShape: "triangle",
-    objectSize: { width: 2, height: Math.sqrt(3) },
+    objectSize: { width: 0.5, height: Math.sqrt(3) / 4 },
   });
 });
 
@@ -325,8 +325,8 @@ describe("reset buttons", () => {
       "Friction coefficient",
       { environment: { ...DEFAULT_SETTINGS.environment, friction: 1.5 } },
     ],
-    ["Object width (m)", { objectSize: { width: 1, height: 1 } }],
-    ["Object height (m)", { objectSize: { width: 2, height: 0.8 } }],
+    ["Object width (m)", { objectSize: { width: 1, height: 0.5 } }],
+    ["Object height (m)", { objectSize: { width: 0.5, height: 0.8 } }],
     [
       "Fracture energy (J/m²)",
       {

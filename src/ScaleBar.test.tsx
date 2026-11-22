@@ -5,6 +5,7 @@ import { DEFAULT_ENVIRONMENT, withWorldScale } from "./rigid/environment";
 import { ScaleBar } from "./ScaleBar";
 
 it.each([
+  { scale: 0.1, metres: 0.1 },
   { scale: 0.6, metres: 0.6 },
   { scale: 1, metres: 1 },
   { scale: 3, metres: 3 },

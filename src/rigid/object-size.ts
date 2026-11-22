@@ -5,7 +5,7 @@ export interface ObjectSize {
   height: number;
 }
 
-export const DEFAULT_OBJECT_SIZE: ObjectSize = { width: 2, height: 1 };
+export const DEFAULT_OBJECT_SIZE: ObjectSize = { width: 0.5, height: 0.5 };
 // Empirical lower bound for the initial object controls, in metres.
 export const MIN_OBJECT_SIZE = 0.1;
 export const OBJECT_AXES = ["width", "height"] as const;
