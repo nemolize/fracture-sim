@@ -35,6 +35,13 @@ export const MaterialSlider = ({
       type="range"
       {...range}
       value={position}
+      {...(position === value
+        ? {}
+        : {
+            "aria-valuemin": 10 ** range.min,
+            "aria-valuemax": 10 ** range.max,
+            "aria-valuenow": value,
+          })}
       aria-valuetext={`${formatNumber(value)}${unit}`}
       onChange={(event) => {
         onChange(Number(event.target.value));

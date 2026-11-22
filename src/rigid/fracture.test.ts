@@ -272,7 +272,11 @@ const dropOnlyPileBox = (speed: number) => {
   box.body.setLinvel({ x: 0, y: -speed }, true);
   let lowest = Infinity;
   for (let i = 0; i < 30; i++) {
-    world.advance(TIME_STEP, { x: 0, y: 0 });
+    world.advance(
+      TIME_STEP,
+      { x: 0, y: 0 },
+      live(undefined, { minFragmentArea: MIN_FRAGMENT_AREA / 20 }),
+    );
     if (world["shapes"].includes(box))
       lowest = Math.min(lowest, box.body.translation().y);
   }

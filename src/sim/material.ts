@@ -84,8 +84,8 @@ export const FRACTURE_ENERGY_LOG_RANGE = {
 } as const;
 
 export const MIN_FRAGMENT_AREA_LOG_RANGE = {
-  min: -5,
-  max: -2,
+  min: -3,
+  max: -1,
   step: 0.01,
 } as const;
 

@@ -45,7 +45,7 @@ it("starts as glass, with the density, friction and restitution the app had befo
     friction: 0.5,
     restitution: 0,
     thicknessMm: 10,
-    minFragmentArea: 0.001,
+    minFragmentArea: 0.01,
   });
   expect(arealDensity(DEFAULT_MATERIAL)).toBe(25);
   expect(DEFAULT_CRACK_ENERGY).toBeCloseTo(0.07, 14);
@@ -63,7 +63,7 @@ it("keeps the thickness of the specimen when a preset is chosen", () => {
     friction: 0.1,
     restitution: 0.05,
     thicknessMm: 3,
-    minFragmentArea: 0.001,
+    minFragmentArea: 0.01,
   });
   expect(findMaterialPreset("unknown")).toBeUndefined();
 });
