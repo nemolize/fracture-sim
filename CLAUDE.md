@@ -9,6 +9,8 @@ The app requires WebGPU for rendering. Rapier2D runs in a browser Web Worker at
 geometry and pose messages. The React canvas owns worker lifecycle, resize,
 pause, and motion input. GPU and worker failures stop the app with a notice.
 `src/sim/motion.ts` handles device sensors independently of the physics engine.
+Fragments too small to be bodies are render-only particles from `src/sim/particles.ts`,
+sent to the renderer in the snapshot.
 The old FEM solver, erosion model, material controls and mesh settings are gone.
 
 Coverage is 100% for pure TypeScript, including the real Rapier world. Browser
@@ -88,14 +90,14 @@ issue the answer produces, not to the question.
 layers; a project that grows different ones updates its labels and the Area
 dropdown in each form together.
 
-| Label        | Covers                                                                 |
-| ------------ | ---------------------------------------------------------------------- |
-| `area:ui`    | Screens, components, styles                                            |
-| `area:sim`   | Rigid-body physics under `src/rigid` and device motion under `src/sim` |
-| `area:build` | Build, compile, lint/format config, dependencies                       |
-| `area:ci`    | CI pipelines and git hooks                                             |
-| `area:test`  | Test suites and coverage config                                        |
-| `area:infra` | Deployment target and runtime environment                              |
+| Label        | Covers                                                                                     |
+| ------------ | ------------------------------------------------------------------------------------------ |
+| `area:ui`    | Screens, components, styles                                                                |
+| `area:sim`   | Rigid-body physics under `src/rigid`; device motion and fragment particles under `src/sim` |
+| `area:build` | Build, compile, lint/format config, dependencies                                           |
+| `area:ci`    | CI pipelines and git hooks                                                                 |
+| `area:test`  | Test suites and coverage config                                                            |
+| `area:infra` | Deployment target and runtime environment                                                  |
 
 When a change spans layers, label the one a fix starts in rather than every one
 it touches.

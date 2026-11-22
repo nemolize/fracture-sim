@@ -2,7 +2,9 @@
 import RAPIER from "@dimforge/rapier2d-compat";
 import { afterEach, beforeAll, expect, it, vi } from "vitest";
 
-import { MIN_FRAGMENT_AREA } from "@/sim/fracture";
+import { MIN_FRAGMENT_AREA, splittableArea } from "@/sim/fracture";
+import { ParticleField } from "@/sim/particles";
+import { polygonMoments } from "@/sim/polygon";
 
 import { type BodyShape, polygonCollider } from "./body";
 import { TIME_STEP } from "./constants";
@@ -48,7 +50,8 @@ it("separates drops below and above the crack threshold using real Rapier impuls
 
 it("breaks two chunks colliding at 4 m/s and keeps their mass through subsequent impacts", () => {
   const engine = new RAPIER.World({ x: 0, y: 0 });
-  const fracture = new ImpactFracture(MIN_FRAGMENT_AREA);
+  const particles = new ParticleField();
+  const fracture = new ImpactFracture(MIN_FRAGMENT_AREA, particles);
   fracture.setCrackEnergy(12);
   const shapes: BodyShape[] = [];
   const polygon = [
@@ -83,6 +86,55 @@ it("breaks two chunks colliding at 4 m/s and keeps their mass through subsequent
     expect(shapes.length).toBeGreaterThan(2);
     expect(shapes.every((s) => !originals.includes(s.body.handle))).toBe(true);
     expect(shapes.reduce((s, p) => s + p.mass, 0)).toBeCloseTo(20, 12);
+  } finally {
+    fracture.dispose();
+    engine.free();
+  }
+});
+
+it("turns tiny pieces into massless particles and gives their mass to the rigid pieces", () => {
+  const engine = new RAPIER.World({ x: 0, y: 0 });
+  // A small floor, so the 0.01 m² chunks can split into pieces that count as dust.
+  const minFragmentArea = 0.0005;
+  const particles = new ParticleField();
+  const fracture = new ImpactFracture(minFragmentArea, particles);
+  fracture.setCrackEnergy(0.5);
+  const shapes: BodyShape[] = [];
+  const polygon = [
+    [-0.05, -0.05],
+    [0.05, -0.05],
+    [0.05, 0.05],
+    [-0.05, 0.05],
+  ] as const;
+  for (const [x, speed] of [
+    [5, 2],
+    [5.2, -2],
+  ]) {
+    const body = engine.createRigidBody(
+      RAPIER.RigidBodyDesc.dynamic()
+        .setTranslation(x ?? 0, 2)
+        .setLinvel(speed ?? 0, 0)
+        .setCcdEnabled(true),
+    );
+    engine.createCollider(polygonCollider(polygon).setMass(0.25), body);
+    shapes.push({
+      body,
+      polygon,
+      domain: polygon.map(([x, y]) => ({ x, y })),
+      mass: 0.25,
+      fixed: false,
+      ball: false,
+    });
+  }
+  try {
+    for (let i = 0; i < 30; i++) fracture.step(engine, shapes, () => undefined);
+    expect(particles.size).toBeGreaterThan(0);
+    expect(shapes.length).toBeGreaterThan(2);
+    expect(shapes.reduce((s, p) => s + p.mass, 0)).toBeCloseTo(0.5, 12);
+    for (const { domain } of shapes)
+      expect(polygonMoments(domain).area).toBeGreaterThanOrEqual(
+        splittableArea(minFragmentArea),
+      );
   } finally {
     fracture.dispose();
     engine.free();

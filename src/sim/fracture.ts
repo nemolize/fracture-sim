@@ -5,6 +5,22 @@ import type { Vec2 } from "./vec2";
 
 export const MIN_FRAGMENT_AREA = 0.01;
 export const MAX_HIT_PIECES = 40;
+// Below this a body can no longer split, and a fragment this small is dust, not a rigid body.
+export const splittableArea = (minFragmentArea: number): number =>
+  2 * minFragmentArea;
+
+/** The pieces that stay rigid bodies; the largest always does, so a split never leaves only dust. */
+export const rigidPieces = (
+  pieces: readonly Piece[],
+  minFragmentArea: number,
+): Piece[] => {
+  const large = pieces.filter(
+    (piece) => piece.area >= splittableArea(minFragmentArea),
+  );
+  return large.length > 0
+    ? large
+    : [pieces.reduce((a, b) => (b.area > a.area ? b : a))];
+};
 
 const perimeter = (ring: readonly Vec2[]): number =>
   ring.reduce((sum, a, i) => {
@@ -33,7 +49,10 @@ export const fracturePieces = (
 ): Piece[] => {
   const budget = energy / crackEnergy;
   const area = polygonMoments(domain).area;
-  if (!(budget > narrowestWidth(domain)) || area < 2 * minFragmentArea)
+  if (
+    !(budget > narrowestWidth(domain)) ||
+    area < splittableArea(minFragmentArea)
+  )
     return [];
   const minX = Math.min(...domain.map((p) => p.x));
   const maxX = Math.max(...domain.map((p) => p.x));

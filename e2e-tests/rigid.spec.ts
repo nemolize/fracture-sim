@@ -155,6 +155,53 @@ test("WebGPU renders the plate, follows motion, and rebuilds scenes without diag
   await page.screenshot({ path: "test-results/rigid-world.png" });
 });
 
+test("worker turns tiny fragments into particles and ships them with the snapshot", async ({
+  page,
+}) => {
+  await page.goto("/harness.html");
+  const result = await page.evaluate(async () => {
+    await window.harness.reset("plate", undefined, { width: 2, height: 1 });
+    let peak = 0;
+    let mass = 0;
+    for (let i = 0; i < 6; i++) {
+      await window.harness.action({
+        type: "blast",
+        point: { x: 5, y: 0.2 },
+      });
+      for (let j = 0; j < 10; j++) {
+        const frame = await window.harness.step(0.1, { x: 0, y: -9.8 }, 12);
+        if (frame.type !== "frame") throw new Error("Worker failed");
+        peak = Math.max(peak, frame.snapshot.particles.length / 4);
+        mass = frame.snapshot.stats.mass;
+      }
+    }
+    return { peak, mass };
+  });
+  expect(result.peak).toBeGreaterThan(0);
+  expect(result.mass).toBeCloseTo(50, 12);
+});
+
+test("WebGPU renders a blasted plate and its particles without diagnostics", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  await page.goto("/");
+  await openSettings(page);
+  await page.getByRole("radio", { name: "Blast" }).check();
+  const canvas = page.getByLabel("Fracture simulation");
+  for (let i = 0; i < 6; i++)
+    await canvas.click({ position: { x: 400, y: 560 }, delay: 100 });
+  await expect(page.getByLabel("Simulation statistics")).toContainText(
+    /Bodies\d{2,}/,
+  );
+  await page.screenshot({ path: "test-results/rigid-particles.png" });
+  expect(errors).toEqual([]);
+});
+
 test("physics worker failure stops the app and explains the failure", async ({
   page,
 }) => {
