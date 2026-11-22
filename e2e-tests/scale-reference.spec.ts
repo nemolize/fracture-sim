@@ -34,7 +34,6 @@ for (const viewport of [
           )?.set?.call(input, String(value));
           input.dispatchEvent(new Event("input", { bubbles: true }));
         }, scale);
-      // The popup would cover the scale bar the checks below hit-test.
       await closeSettings(page);
       await canvas.scrollIntoViewIfNeeded();
       await expect(reference).toHaveText(`${String(metres)} m`);
@@ -62,10 +61,7 @@ for (const viewport of [
         (worldBox.width * metres) / (10 * scale),
         1,
       );
-      expect(barBox.x + barBox.width).toBeCloseTo(
-        worldBox.x + worldBox.width - 12,
-        1,
-      );
+      expect(barBox.x).toBeCloseTo(worldBox.x + 12, 1);
       expect(barBox.y).toBeGreaterThan(worldBox.y);
       expect(barBox.y + barBox.height).toBeLessThan(
         worldBox.y + worldBox.height,
