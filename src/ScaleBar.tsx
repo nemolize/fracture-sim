@@ -13,13 +13,13 @@ export const ScaleBar = ({
     <div
       role="group"
       aria-label="World scale reference"
-      className="pointer-events-none absolute inset-x-0 bottom-3 flex flex-col items-end gap-1 text-xs text-gray-800"
+      className="pointer-events-none absolute inset-x-0 bottom-3 flex flex-col items-start gap-1 text-xs text-gray-800"
     >
-      <span className="mr-3 rounded bg-gray-500/40 px-2 py-1">{label}</span>
+      <span className="ml-3 rounded bg-gray-500/40 px-2 py-1">{label}</span>
       <div
         role="img"
         aria-label={`${label} scale bar`}
-        className="mr-3 h-2 border-x-2 border-b-2 border-black"
+        className="ml-3 h-2 border-x-2 border-b-2 border-black"
         style={{
           width: "10%",
           filter:

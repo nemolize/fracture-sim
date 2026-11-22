@@ -62,10 +62,7 @@ for (const viewport of [
         (worldBox.width * metres) / (10 * scale),
         1,
       );
-      expect(barBox.x + barBox.width).toBeCloseTo(
-        worldBox.x + worldBox.width - 12,
-        1,
-      );
+      expect(barBox.x).toBeCloseTo(worldBox.x + 12, 1);
       expect(barBox.y).toBeGreaterThan(worldBox.y);
       expect(barBox.y + barBox.height).toBeLessThan(
         worldBox.y + worldBox.height,

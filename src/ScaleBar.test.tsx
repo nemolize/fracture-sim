@@ -34,3 +34,12 @@ it("updates the physical length without changing bar width", () => {
     screen.queryByRole("img", { name: "1 m scale bar" }),
   ).not.toBeInTheDocument();
 });
+
+it("anchors the reference at the bottom-left", () => {
+  render(<ScaleBar environment={DEFAULT_ENVIRONMENT} />);
+  const group = screen.getByRole("group", { name: "World scale reference" });
+  expect(group).toHaveClass("bottom-3", "items-start");
+  expect(screen.getByRole("img", { name: "1 m scale bar" })).toHaveClass(
+    "ml-3",
+  );
+});
