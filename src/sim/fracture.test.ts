@@ -86,14 +86,6 @@ describe("impact crack budget", () => {
     expect(pieces.every((p) => p.area >= MIN_FRAGMENT_AREA)).toBe(true);
   });
 
-  it("splits a body below the former 0.005 m² floor into smaller fragments", () => {
-    const small = plate.map((p) => ({ x: p.x * 0.05, y: p.y * 0.1 }));
-    const pieces = fracturePieces(small, { x: 0, y: 0 }, 100);
-    expect(pieces.length).toBeGreaterThan(1);
-    expect(pieces.every((p) => p.area >= MIN_FRAGMENT_AREA)).toBe(true);
-    expect(Math.min(...pieces.map((p) => p.area))).toBeLessThan(0.005);
-  });
-
   it("applies a caller-supplied minimum fragment area", () => {
     const small = plate.map((p) => ({ x: p.x * 0.05, y: p.y * 0.1 }));
     const minimum = 2e-5;

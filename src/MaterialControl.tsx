@@ -143,12 +143,12 @@ export const MaterialControl = ({ value, disabled, onChange }: Props) => {
         <input
           aria-label="Min fragment area (m²)"
           type="range"
-          min={-5}
-          max={-2}
+          min={-3}
+          max={-1}
           step={0.01}
           value={Math.log10(value.minFragmentArea)}
-          aria-valuemin={0.00001}
-          aria-valuemax={0.01}
+          aria-valuemin={0.001}
+          aria-valuemax={0.1}
           aria-valuenow={value.minFragmentArea}
           aria-valuetext={`${format(value.minFragmentArea)} m²`}
           onChange={(event) => {
