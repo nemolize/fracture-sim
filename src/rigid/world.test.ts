@@ -2,7 +2,13 @@
 import RAPIER from "@dimforge/rapier2d-compat";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { GRAVITY, TIME_STEP, WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
+import {
+  GRAVITY,
+  TIME_STEP,
+  WAKE_GRAVITY_DELTA,
+  WORLD_HEIGHT,
+  WORLD_WIDTH,
+} from "./constants";
 import {
   DEFAULT_ENVIRONMENT,
   withWorldScale,
@@ -55,6 +61,58 @@ describe("rigid world", () => {
     const moved = world.advance(0.1, { x: GRAVITY, y: 0 }, 10000);
     expect(moved.stats.sleeping).toBe(0);
     expect(moved.poses[16]).toBeGreaterThan(5);
+  });
+
+  describe("gravity jitter", () => {
+    const settle = (): RigidWorld => {
+      const settled = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+      for (let i = 0; i < 600; i++) settled.advance(TIME_STEP, gravity, 10000);
+      return settled;
+    };
+
+    it("keeps bodies asleep under jitter below the wake delta while applying the exact gravity", () => {
+      world = settle();
+      const jitter = WAKE_GRAVITY_DELTA / 3;
+      for (let i = 0; i < 120; i++)
+        world.advance(
+          TIME_STEP,
+          { x: i % 2 ? jitter : -jitter, y: -GRAVITY },
+          10000,
+        );
+      expect(world.snapshot().stats.sleeping).toBe(1);
+      expect(world["world"].gravity.x).toBeCloseTo(jitter, 12);
+    });
+
+    it("settles again under tilted-device jitter that exceeds half the wake delta", () => {
+      world = settle();
+      const amplitude = WAKE_GRAVITY_DELTA * 0.6;
+      for (let i = 0; i < 900; i++)
+        world.advance(
+          TIME_STEP,
+          { x: 0.3 + (i % 2 ? amplitude : -amplitude), y: -GRAVITY },
+          10000,
+        );
+      expect(world.snapshot().stats.sleeping).toBe(1);
+    });
+
+    it("wakes on a slow drift once it passes the wake delta from the last wake", () => {
+      world = settle();
+      for (let i = 1; i <= 5; i++)
+        for (let frame = 0; frame < 10; frame++)
+          world.advance(
+            TIME_STEP,
+            { x: i * WAKE_GRAVITY_DELTA * 0.4, y: -GRAVITY },
+            10000,
+          );
+      expect(world.snapshot().stats.sleeping).toBe(0);
+    });
+
+    it("wakes within a fraction of a second on a single step of the Gravity setting", () => {
+      world = settle();
+      for (let frame = 0; frame < 10; frame++)
+        world.advance(TIME_STEP, { x: 0, y: -(GRAVITY + 0.1) }, 10000);
+      expect(world.snapshot().stats.sleeping).toBe(0);
+    });
   });
 
   it.each(["pile", "stress"] as const)(

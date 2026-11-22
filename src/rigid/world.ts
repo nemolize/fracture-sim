@@ -3,7 +3,12 @@ import RAPIER from "@dimforge/rapier2d-compat";
 import { DEFAULT_CRACK_ENERGY } from "@/sim/material";
 
 import { type BodyShape, createBodyShape } from "./body";
-import { TIME_STEP, WORLD_WIDTH } from "./constants";
+import {
+  TIME_STEP,
+  WAKE_GRAVITY_DELTA,
+  WAKE_GRAVITY_SMOOTHING,
+  WORLD_WIDTH,
+} from "./constants";
 import {
   DEFAULT_ENVIRONMENT,
   type EnvironmentSettings,
@@ -34,6 +39,8 @@ export class RigidWorld {
   private readonly fracture: ImpactFracture;
   geometryRevision = 0;
   private friction: number;
+  private wakeGravity: { x: number; y: number };
+  private averageGravity: { x: number; y: number };
   private readonly environment: EnvironmentSettings;
   private readonly ceiling: RAPIER.RigidBody;
   private readonly baseHeight: number;
@@ -53,7 +60,9 @@ export class RigidWorld {
     this.environment = { ...environment };
     this.fracture = new ImpactFracture();
     this.friction = environment.friction;
-    this.world = new RAPIER.World({ x: 0, y: -environment.gravity });
+    this.wakeGravity = { x: 0, y: -environment.gravity };
+    this.averageGravity = { ...this.wakeGravity };
+    this.world = new RAPIER.World({ ...this.wakeGravity });
     this.tools = new RigidTools(
       this.world,
       () => this.shapes.filter((shape) => !shape.fixed),
@@ -253,13 +262,20 @@ export class RigidWorld {
       }
     }
     this.fracture.setCrackEnergy(crackEnergy);
-    const changed =
-      Math.hypot(
-        this.world.gravity.x - gravity.x,
-        this.world.gravity.y - gravity.y,
-      ) > 0.001;
     this.world.gravity = gravity;
-    if (changed) {
+    // A raw sample as the reference would bounce between noise extremes, so average first.
+    const blend =
+      1 -
+      Math.exp(-Math.min(Math.max(seconds, 0), 0.1) / WAKE_GRAVITY_SMOOTHING);
+    this.averageGravity.x += (gravity.x - this.averageGravity.x) * blend;
+    this.averageGravity.y += (gravity.y - this.averageGravity.y) * blend;
+    if (
+      Math.hypot(
+        this.wakeGravity.x - this.averageGravity.x,
+        this.wakeGravity.y - this.averageGravity.y,
+      ) > WAKE_GRAVITY_DELTA
+    ) {
+      this.wakeGravity = { ...this.averageGravity };
       for (const { body, fixed } of this.shapes) if (!fixed) body.wakeUp();
     }
     this.remainder += Math.min(Math.max(seconds, 0), 0.1);
