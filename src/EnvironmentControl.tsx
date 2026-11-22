@@ -10,12 +10,10 @@ import {
   worldScale,
 } from "@/rigid/environment";
 
-const CONTROLS = ["gravity", "scale", "density", "friction"] as const;
+const CONTROLS = ["gravity", "scale"] as const;
 const LABELS = {
   gravity: "Gravity (m/s²)",
   scale: "World scale",
-  density: "Areal density (kg/m²)",
-  friction: "Friction coefficient",
 };
 
 export const EnvironmentControl = ({
@@ -76,9 +74,9 @@ export const EnvironmentControl = ({
     ))}
     <p className="text-xs text-gray-600">
       World scale ×1 is {DEFAULT_ENVIRONMENT.width} ×{" "}
-      {DEFAULT_ENVIRONMENT.height} m; width and height scale together. Scale and
-      density changes restart the scene. Gravity and friction apply immediately.
-      Sensor gravity scales by g / 9.8; shake stays independent.
+      {DEFAULT_ENVIRONMENT.height} m; width and height scale together. Scale
+      changes restart the scene. Gravity applies immediately. Sensor gravity
+      scales by g / 9.8; shake stays independent.
     </p>
   </fieldset>
 );

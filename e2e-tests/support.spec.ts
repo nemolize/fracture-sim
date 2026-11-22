@@ -60,14 +60,14 @@ test("sensor noise and friction changes preserve Glass, while a real impact stil
   await openSettings(page);
   await expect(page.getByLabel("Device tilt")).toBeChecked();
   await expect(
-    page.getByRole("combobox", { name: "Fracture preset" }),
+    page.getByRole("combobox", { name: "Object material preset" }),
   ).toHaveValue("glass");
   await expect
     .poll(() => page.evaluate(() => window.supportTime))
     .toBeGreaterThan(2);
   expect(await page.evaluate(() => window.supportMaxBodies)).toBe(1);
   await page
-    .getByRole("slider", { name: "Friction coefficient", exact: true })
+    .getByRole("slider", { name: "Floor friction coefficient", exact: true })
     .evaluate((input) => {
       Object.getOwnPropertyDescriptor(
         HTMLInputElement.prototype,
@@ -80,7 +80,7 @@ test("sensor noise and friction changes preserve Glass, while a real impact stil
     .toBeGreaterThan(4);
   expect(await page.evaluate(() => window.supportMaxBodies)).toBe(1);
   await page
-    .getByRole("group", { name: "Material", exact: true })
+    .getByRole("group", { name: "Object material", exact: true })
     .scrollIntoViewIfNeeded();
   await page.screenshot({
     path: "test-results/support-stable.png",

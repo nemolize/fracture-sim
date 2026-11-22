@@ -41,8 +41,6 @@ it("applies absolute world scale without changing other physics inputs", () => {
   const source = {
     ...DEFAULT_ENVIRONMENT,
     gravity: 1.6,
-    density: 50,
-    friction: 0.83,
   };
   const larger = withWorldScale(source, 1.8);
   expect(larger).toEqual({ ...source, width: 18, height: 9.36 });
@@ -51,8 +49,6 @@ it("applies absolute world scale without changing other physics inputs", () => {
   expect(source).toEqual({
     ...DEFAULT_ENVIRONMENT,
     gravity: 1.6,
-    density: 50,
-    friction: 0.83,
   });
 });
 it("keeps every world scale slider position inside supported bounds", () => {

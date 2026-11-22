@@ -18,6 +18,7 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
           request.environment,
           request.objectSize,
           request.objectShape,
+          request.materials,
         );
         if (request.visibleHeight !== undefined)
           world.setVisibleHeight(request.visibleHeight);
@@ -46,9 +47,7 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
           const snapshot = world.advance(
             request.seconds,
             request.gravity,
-            request.crackEnergy,
-            request.friction,
-            request.minFragmentArea,
+            request.materials,
           );
           if (revision !== world.geometryRevision) {
             const vertices = world.vertices();

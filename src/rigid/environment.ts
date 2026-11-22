@@ -1,36 +1,23 @@
-import { GLASS_DENSITY, GRAVITY, WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
+import { GRAVITY, WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
 
 export interface EnvironmentSettings {
   gravity: number;
   width: number;
   height: number;
-  density: number;
-  friction: number;
 }
 
-export const ENVIRONMENT_KEYS = [
-  "gravity",
-  "width",
-  "height",
-  "density",
-  "friction",
-] as const;
+export const ENVIRONMENT_KEYS = ["gravity", "width", "height"] as const;
 
 export const DEFAULT_ENVIRONMENT: EnvironmentSettings = {
   gravity: GRAVITY,
   width: WORLD_WIDTH,
   height: WORLD_HEIGHT,
-  density: GLASS_DENSITY,
-  friction: 0.5,
 };
 
-// Empirical physics bounds; density is mass per area for the 2D bodies.
 export const ENVIRONMENT_RANGES = {
   gravity: { min: 0, max: 40, step: 0.1 },
   width: { min: 0.1, max: 30, step: 0.1 },
   height: { min: 0.05, max: 20, step: 0.1 },
-  density: { min: 1, max: 100, step: 1 },
-  friction: { min: 0, max: 2, step: 0.01 },
 } as const;
 
 // Scale limits keep both dimensions inside the empirical world bounds.

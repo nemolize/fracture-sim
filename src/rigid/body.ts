@@ -1,5 +1,6 @@
 import RAPIER from "@dimforge/rapier2d-compat";
 
+import type { Surface } from "@/sim/material";
 import { polygonMoments } from "@/sim/polygon";
 import type { Vec2 } from "@/sim/vec2";
 
@@ -83,14 +84,15 @@ export const createBodyShape = (
   polygon: BodyShape["polygon"],
   position: Vec2,
   density: number,
-  friction: number,
+  surface: Surface,
   fixed: boolean,
 ): BodyShape => {
   const domain = polygon.map(([x, y]) => ({ x, y }));
   const { area, centroid, polarAreaMoment } = polygonMoments(domain);
   const collider = polygonCollider(polygon)
     .setMassProperties(area * density, centroid, polarAreaMoment * density)
-    .setFriction(friction);
+    .setFriction(surface.friction)
+    .setRestitution(surface.restitution);
   const desc = fixed
     ? RAPIER.RigidBodyDesc.fixed()
     : RAPIER.RigidBodyDesc.dynamic().setCcdEnabled(true);

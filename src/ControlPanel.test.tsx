@@ -155,7 +155,7 @@ it("changes material toughness while paused without requiring a Reset", () => {
     material: {
       ...DEFAULT_SETTINGS.material,
       preset: "custom",
-      customFractureEnergy: 100,
+      fractureEnergy: 100,
     },
   });
 });
@@ -167,28 +167,30 @@ it("locks material editing when physics is unavailable", () => {
   ).toBeDisabled();
 });
 
-it.each([
-  ["Gravity (m/s²)", "1.6", "gravity", 1.6],
-  ["Areal density (kg/m²)", "50", "density", 50],
-  ["Friction coefficient", "0", "friction", 0],
-])("changes %s while paused", (label, input, key, value) => {
-  const { onChange } = setup(true);
-  const slider = screen.getByRole("slider", { name: label });
-  expect(slider).toBeEnabled();
-  setRange(slider, input);
-  expect(onChange).toHaveBeenCalledWith({
-    ...DEFAULT_SETTINGS,
-    environment: { ...DEFAULT_SETTINGS.environment, [key]: value },
-  });
-});
+it.each([["Gravity (m/s²)", "1.6", "gravity", 1.6]])(
+  "changes %s while paused",
+  (label, input, key, value) => {
+    const { onChange } = setup(true);
+    const slider = screen.getByRole("slider", { name: label });
+    expect(slider).toBeEnabled();
+    setRange(slider, input);
+    expect(onChange).toHaveBeenCalledWith({
+      ...DEFAULT_SETTINGS,
+      environment: { ...DEFAULT_SETTINGS.environment, [key]: value },
+    });
+  },
+);
 
 it("locks world controls after a solver or GPU failure", () => {
   setup(false, true);
   for (const label of [
     "Gravity (m/s²)",
     "World scale",
-    "Areal density (kg/m²)",
-    "Friction coefficient",
+    "Object density (kg/m³)",
+    "Object friction coefficient",
+    "Object restitution coefficient",
+    "Floor friction coefficient",
+    "Floor restitution coefficient",
   ])
     expect(screen.getByRole("slider", { name: label })).toBeDisabled();
 });
@@ -283,17 +285,16 @@ describe("reset buttons", () => {
       gravity: 3,
       width: 20,
       height: 10.4,
-      density: 7,
-      friction: 1.5,
     },
     objectShape: "hexagon",
     objectSize: { width: 1, height: 0.8 },
     material: {
       ...DEFAULT_SETTINGS.material,
       preset: "custom",
-      customFractureEnergy: 50,
+      fractureEnergy: 50,
       thicknessMm: 3,
     },
+    floorMaterial: { preset: "custom", friction: 1.2, restitution: 0.5 },
     inertiaScale: 2,
     inertiaCap: 5,
     tiltSmoothing: 0.5,
@@ -304,7 +305,7 @@ describe("reset buttons", () => {
     const buttons = screen.getAllByRole("button", {
       name: /^Reset (?!parameters)/,
     });
-    expect(buttons).toHaveLength(14);
+    expect(buttons).toHaveLength(18);
     for (const button of buttons) expect(button).toBeDisabled();
   });
 
@@ -324,12 +325,26 @@ describe("reset buttons", () => {
       },
     ],
     [
-      "Areal density (kg/m²)",
-      { environment: { ...DEFAULT_SETTINGS.environment, density: 7 } },
+      "Object density (kg/m³)",
+      { material: { ...DEFAULT_SETTINGS.material, density: 900 } },
     ],
     [
-      "Friction coefficient",
-      { environment: { ...DEFAULT_SETTINGS.environment, friction: 1.5 } },
+      "Object friction coefficient",
+      { material: { ...DEFAULT_SETTINGS.material, friction: 0.1 } },
+    ],
+    [
+      "Object restitution coefficient",
+      { material: { ...DEFAULT_SETTINGS.material, restitution: 0.5 } },
+    ],
+    [
+      "Floor friction coefficient",
+      { floorMaterial: { ...DEFAULT_SETTINGS.floorMaterial, friction: 1.5 } },
+    ],
+    [
+      "Floor restitution coefficient",
+      {
+        floorMaterial: { ...DEFAULT_SETTINGS.floorMaterial, restitution: 0.5 },
+      },
     ],
     ["Object width (m)", { objectSize: { width: 1, height: 0.5 } }],
     ["Object height (m)", { objectSize: { width: 0.5, height: 0.8 } }],
@@ -339,7 +354,7 @@ describe("reset buttons", () => {
         material: {
           ...DEFAULT_SETTINGS.material,
           preset: "custom",
-          customFractureEnergy: 50,
+          fractureEnergy: 50,
         },
       },
     ],
@@ -387,7 +402,7 @@ describe("reset buttons", () => {
     ).toBeDisabled();
   });
 
-  it("resets the shape and the fracture preset", async () => {
+  it("resets the shape and both material presets", async () => {
     const { onChange, user } = setup(
       false,
       false,
@@ -395,6 +410,7 @@ describe("reset buttons", () => {
       {
         objectShape: "hexagon",
         material: { ...DEFAULT_SETTINGS.material, preset: "ice" },
+        floorMaterial: { ...DEFAULT_SETTINGS.floorMaterial, preset: "wood" },
       },
     );
     await user.click(
@@ -402,9 +418,13 @@ describe("reset buttons", () => {
     );
     expect(onChange.mock.calls[0]?.[0].objectShape).toBe("rectangle");
     await user.click(
-      screen.getByRole("button", { name: "Reset Fracture preset" }),
+      screen.getByRole("button", { name: "Reset Object material preset" }),
     );
     expect(onChange.mock.calls[1]?.[0].material.preset).toBe("glass");
+    await user.click(
+      screen.getByRole("button", { name: "Reset Floor material preset" }),
+    );
+    expect(onChange.mock.calls[2]?.[0].floorMaterial.preset).toBe("default");
   });
 
   it("resets all parameters but keeps the scene and tool", async () => {

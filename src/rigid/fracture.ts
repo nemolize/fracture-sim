@@ -177,6 +177,7 @@ export class ImpactFracture {
         ]);
         const collider = polygonCollider(polygon)
           .setFriction(parent.body.collider(0).friction())
+          .setRestitution(parent.body.collider(0).restitution())
           .setMassProperties(
             mass,
             { x: 0, y: 0 },

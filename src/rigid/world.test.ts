@@ -2,6 +2,9 @@
 import RAPIER from "@dimforge/rapier2d-compat";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
+import { DEFAULT_FLOOR_MATERIAL } from "@/sim/floor-material";
+import { DEFAULT_MATERIAL } from "@/sim/material";
+
 import {
   GRAVITY,
   TIME_STEP,
@@ -15,6 +18,7 @@ import {
   withWorldScale,
   WORLD_SCALE_RANGE,
 } from "./environment";
+import { live } from "./live";
 import { initializePhysics, RigidWorld } from "./world";
 
 beforeAll(async () => {
@@ -57,9 +61,10 @@ describe("rigid world", () => {
 
   it("wakes sleeping bodies when gravity tilts", () => {
     world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
-    for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity, 10000);
+    for (let i = 0; i < 600; i++)
+      world.advance(TIME_STEP, gravity, live(10000));
     expect(world.snapshot().stats.sleeping).toBe(world.snapshot().stats.bodies);
-    const moved = world.advance(0.1, { x: GRAVITY, y: 0 }, 10000);
+    const moved = world.advance(0.1, { x: GRAVITY, y: 0 }, live(10000));
     expect(moved.stats.sleeping).toBe(0);
     expect(moved.poses[16]).toBeGreaterThan(5);
   });
@@ -67,7 +72,8 @@ describe("rigid world", () => {
   describe("gravity jitter", () => {
     const settle = (): RigidWorld => {
       const settled = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
-      for (let i = 0; i < 600; i++) settled.advance(TIME_STEP, gravity, 10000);
+      for (let i = 0; i < 600; i++)
+        settled.advance(TIME_STEP, gravity, live(10000));
       return settled;
     };
 
@@ -78,7 +84,7 @@ describe("rigid world", () => {
         world.advance(
           TIME_STEP,
           { x: i % 2 ? jitter : -jitter, y: -GRAVITY },
-          10000,
+          live(10000),
         );
       expect(world.snapshot().stats.sleeping).toBe(1);
       expect(world["world"].gravity.x).toBeCloseTo(jitter, 12);
@@ -91,7 +97,7 @@ describe("rigid world", () => {
         world.advance(
           TIME_STEP,
           { x: 0.3 + (i % 2 ? amplitude : -amplitude), y: -GRAVITY },
-          10000,
+          live(10000),
         );
       expect(world.snapshot().stats.sleeping).toBe(1);
     });
@@ -103,7 +109,7 @@ describe("rigid world", () => {
           world.advance(
             TIME_STEP,
             { x: i * WAKE_GRAVITY_DELTA * 0.4, y: -GRAVITY },
-            10000,
+            live(10000),
           );
       expect(world.snapshot().stats.sleeping).toBe(0);
     });
@@ -111,7 +117,7 @@ describe("rigid world", () => {
     it("wakes within a fraction of a second on a single step of the Gravity setting", () => {
       world = settle();
       for (let frame = 0; frame < 10; frame++)
-        world.advance(TIME_STEP, { x: 0, y: -(GRAVITY + 0.1) }, 10000);
+        world.advance(TIME_STEP, { x: 0, y: -(GRAVITY + 0.1) }, live(10000));
       expect(world.snapshot().stats.sleeping).toBe(0);
     });
   });
@@ -172,7 +178,7 @@ it.each([
   if (body === undefined) throw new Error("Missing plate");
   body.setTranslation(position, true);
   body.setLinvel({ x: 3, y: -3 }, true);
-  world.advance(TIME_STEP, { x: 0, y: 0 }, 10000);
+  world.advance(TIME_STEP, { x: 0, y: 0 }, live(10000));
   const { x, y } = body.translation();
   expect(x).toBeGreaterThan(0);
   expect(x).toBeLessThan(WORLD_WIDTH);
@@ -231,10 +237,10 @@ it("keeps thrown balls inside even when the launch starts in the floor margin", 
 it("keeps a grabbed plate above the floor when capture drags below the canvas", () => {
   world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
   world["shapes"][4]?.body.setTranslation({ x: 5, y: 0.501 }, true);
-  for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity, 10000);
+  for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity, live(10000));
   world.apply({ type: "grab", point: { x: 5, y: 0.5 } });
   world.apply({ type: "move", point: { x: 5, y: -3 } });
-  for (let i = 0; i < 120; i++) world.advance(TIME_STEP, gravity, 10000);
+  for (let i = 0; i < 120; i++) world.advance(TIME_STEP, gravity, live(10000));
   expect(world.snapshot().poses[17]).toBeGreaterThan(0.45);
 });
 
@@ -254,17 +260,18 @@ it("can grab a thrown ball and keep it in the container", () => {
 });
 
 it("builds selected walls, plate mass and throws within the new bounds", () => {
+  const object = {
+    ...DEFAULT_MATERIAL,
+    density: 5000,
+    friction: 0.8,
+    restitution: 0.4,
+  };
   world = new RigidWorld(
     "plate",
-    {
-      ...DEFAULT_ENVIRONMENT,
-      width: 18,
-      height: 8,
-      density: 50,
-      gravity: 0,
-      friction: 0.8,
-    },
+    { ...DEFAULT_ENVIRONMENT, width: 18, height: 8, gravity: 0 },
     PLATE,
+    "rectangle",
+    { floor: DEFAULT_FLOOR_MATERIAL, object },
   );
   expect(world.snapshot().poses[16]).toBe(9);
   expect(world.snapshot().poses[17]).toBeCloseTo(0.5, 2);
@@ -278,18 +285,20 @@ it("builds selected walls, plate mass and throws within the new bounds", () => {
   expect(ball?.body.translation().x).toBeCloseTo(17.88);
   expect(ball?.body.translation().y).toBeCloseTo(7.88);
   expect(ball?.body.collider(0).friction()).toBeCloseTo(0.8);
-  world.advance(0, { x: 0, y: 0 }, 10000, 0);
-  for (const shape of world["shapes"])
-    expect(shape.body.collider(0).friction()).toBe(0);
+  expect(ball?.body.collider(0).restitution()).toBeCloseTo(0.4);
 });
 
-it("keeps friction on recursively created fragments", () => {
+it("keeps friction and restitution on recursively created fragments", () => {
   world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
   world["shapes"][4]?.body.setTranslation({ x: 5, y: 2.5 }, true);
-  for (let i = 0; i < 120; i++) world.advance(TIME_STEP, gravity, 0.07, 0.83);
+  const object = { ...DEFAULT_MATERIAL, friction: 0.83, restitution: 0.4 };
+  for (let i = 0; i < 120; i++)
+    world.advance(TIME_STEP, gravity, live(0.07, { object }));
   expect(world.snapshot().stats.bodies).toBeGreaterThan(1);
-  for (const shape of world["shapes"])
+  for (const shape of world["shapes"].filter((s) => !s.fixed)) {
     expect(shape.body.collider(0).friction()).toBeCloseTo(0.83);
+    expect(shape.body.collider(0).restitution()).toBeCloseTo(0.4);
+  }
 });
 
 it("uses selected grab limits beyond the old right wall and ceiling", () => {
@@ -304,7 +313,8 @@ it("uses selected grab limits beyond the old right wall and ceiling", () => {
   );
   world.apply({ type: "grab", point: { x: 9, y: 0.5 } });
   world.apply({ type: "move", point: { x: 16, y: 7 } });
-  for (let i = 0; i < 240; i++) world.advance(TIME_STEP, { x: 0, y: 0 }, 10000);
+  for (let i = 0; i < 240; i++)
+    world.advance(TIME_STEP, { x: 0, y: 0 }, live(10000));
   expect(world.snapshot().poses[16]).toBeCloseTo(16, 1);
   expect(world.snapshot().poses[17]).toBeCloseTo(7, 1);
 });
@@ -343,27 +353,155 @@ it.each(["plate", "pile", "stress"] as const)(
   },
 );
 
-it.each([NaN, Infinity, -0.1, 2.1])(
-  "rejects invalid live friction %s",
-  (friction) => {
+const surfaceCases = [
+  ["friction", NaN],
+  ["friction", Infinity],
+  ["friction", -0.1],
+  ["friction", 2.1],
+  ["restitution", -0.1],
+  ["restitution", 1.1],
+] as const;
+
+it.each(surfaceCases)(
+  "rejects an invalid live floor and object %s of %s",
+  (key, value) => {
     world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
-    expect(() => world?.advance(0, gravity, 10000, friction)).toThrow(
-      "Invalid environment setting: friction",
-    );
+    const bad = { ...DEFAULT_MATERIAL, [key]: value };
+    expect(() =>
+      world?.advance(0, gravity, live(10000, { object: bad })),
+    ).toThrow(`Invalid material setting: ${key}`);
+    expect(() =>
+      world?.advance(0, gravity, live(10000, { floor: bad })),
+    ).toThrow(`Invalid material setting: ${key}`);
   },
 );
+
+it("rejects an invalid material at construction", () => {
+  expect(
+    () =>
+      new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE, "rectangle", {
+        floor: DEFAULT_FLOOR_MATERIAL,
+        object: { ...DEFAULT_MATERIAL, density: 1 },
+      }),
+  ).toThrow("Invalid material setting: areal density");
+  expect(
+    () =>
+      new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE, "rectangle", {
+        floor: { ...DEFAULT_FLOOR_MATERIAL, friction: 3 },
+        object: DEFAULT_MATERIAL,
+      }),
+  ).toThrow("Invalid material setting: friction");
+});
+
+it("gives the floor, the object and the boundary their own surfaces", () => {
+  const floor = { ...DEFAULT_FLOOR_MATERIAL, friction: 1.2, restitution: 0.8 };
+  const object = { ...DEFAULT_MATERIAL, friction: 0.2, restitution: 0.1 };
+  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE, "rectangle", {
+    floor,
+    object,
+  });
+  const surfaces = world["shapes"].map(({ body }) => [
+    body.collider(0).friction(),
+    body.collider(0).restitution(),
+  ]);
+  const expected = [
+    [1.2, 0.8],
+    [0.5, 0],
+    [0.5, 0],
+    [0.5, 0],
+    [0.2, 0.1],
+  ];
+  surfaces.forEach(([friction, restitution], i) => {
+    expect(friction).toBeCloseTo(expected[i]?.[0] ?? NaN, 5);
+    expect(restitution).toBeCloseTo(expected[i]?.[1] ?? NaN, 5);
+  });
+});
+
+it("scales body mass with the object's density and thickness", () => {
+  const masses = [10, 20].map((thicknessMm) => {
+    const built = new RigidWorld(
+      "plate",
+      DEFAULT_ENVIRONMENT,
+      PLATE,
+      "rectangle",
+      {
+        floor: DEFAULT_FLOOR_MATERIAL,
+        object: { ...DEFAULT_MATERIAL, thicknessMm },
+      },
+    );
+    const { mass } = built.snapshot().stats;
+    built.dispose();
+    return mass;
+  });
+  expect(masses[0]).toBeCloseTo(25 * 2 * 1);
+  expect(masses[1]).toBeCloseTo(2 * (masses[0] ?? NaN));
+});
+
+it("applies a live floor change to the floor only and wakes the bodies", () => {
+  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+  const floor = { ...DEFAULT_FLOOR_MATERIAL, friction: 1.5, restitution: 0.6 };
+  expect(world["shapes"][4]?.body.isSleeping()).toBe(true);
+  world.advance(0, gravity, live(10000, { floor }));
+  const [floorShape, , , , plate] = world["shapes"];
+  expect(floorShape?.body.collider(0).friction()).toBeCloseTo(1.5, 5);
+  expect(floorShape?.body.collider(0).restitution()).toBeCloseTo(0.6, 5);
+  expect(plate?.body.collider(0).friction()).toBe(0.5);
+  expect(plate?.body.isSleeping()).toBe(false);
+});
+
+it("applies a live object change to every dynamic body but not the walls", () => {
+  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+  const object = { ...DEFAULT_MATERIAL, friction: 0, restitution: 0.7 };
+  world.advance(0, gravity, live(10000, { object }));
+  for (const { body, fixed } of world["shapes"]) {
+    expect(body.collider(0).friction()).toBe(fixed ? 0.5 : 0);
+    expect(body.collider(0).restitution()).toBeCloseTo(fixed ? 0 : 0.7, 5);
+  }
+});
+
+it("a bouncier floor and object make a dropped plate rebound", () => {
+  const rebound = [0, 0.9].map((restitution) => {
+    const floor = { ...DEFAULT_FLOOR_MATERIAL, restitution };
+    const object = { ...DEFAULT_MATERIAL, restitution };
+    const built = new RigidWorld(
+      "plate",
+      DEFAULT_ENVIRONMENT,
+      PLATE,
+      "rectangle",
+      { floor, object },
+    );
+    const body = built["shapes"][4]?.body;
+    if (body === undefined) throw new Error("Missing plate");
+    body.setTranslation({ x: 5, y: 2 }, true);
+    let top = 0;
+    for (let i = 0; i < 180; i++) {
+      built.advance(TIME_STEP, gravity, live(1e9, { floor, object }));
+      if (i >= 36) top = Math.max(top, body.translation().y);
+    }
+    built.dispose();
+    return top;
+  });
+  expect(rebound[1]).toBeGreaterThan((rebound[0] ?? NaN) + 0.2);
+});
 
 it("live friction slows a sliding plate while zero friction preserves its speed", () => {
   const distances: number[] = [];
   for (const friction of [0, 1]) {
     world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
-    for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity, 10000);
+    for (let i = 0; i < 600; i++)
+      world.advance(TIME_STEP, gravity, live(10000));
     const body = world["shapes"][4]?.body;
     if (body === undefined) throw new Error("Missing plate");
     const start = body.translation().x;
     body.setLinvel({ x: 5, y: 0 }, true);
+    const surface = { ...DEFAULT_MATERIAL, friction };
+    const floor = { ...DEFAULT_FLOOR_MATERIAL, friction };
     for (let i = 0; i < 30; i++)
-      world.advance(TIME_STEP, gravity, 10000, friction);
+      world.advance(
+        TIME_STEP,
+        gravity,
+        live(10000, { object: surface, floor }),
+      );
     distances.push(body.translation().x - start);
     world.dispose();
     world = undefined;
@@ -379,7 +517,7 @@ describe("visible height", () => {
     world.apply({ type: "grab", point: { x: 5, y: 0.5 } });
     world.apply({ type: "move", point: { x: 5, y: 11 } });
     for (let i = 0; i < 240; i++)
-      world.advance(TIME_STEP, { x: 0, y: 0 }, 10000);
+      world.advance(TIME_STEP, { x: 0, y: 0 }, live(10000));
     expect(world.snapshot().poses[17]).toBeCloseTo(11, 1);
   });
 
@@ -413,7 +551,7 @@ describe("visible height", () => {
     world["shapes"][4]?.body.setTranslation({ x: 9.7, y: 15 }, true);
     world["shapes"][4]?.body.setLinvel({ x: 30, y: 0 }, true);
     for (let i = 0; i < 120; i++)
-      world.advance(TIME_STEP, { x: 0, y: 0 }, 10000);
+      world.advance(TIME_STEP, { x: 0, y: 0 }, live(10000));
     expect(world.snapshot().poses[16]).toBeLessThan(WORLD_WIDTH);
   });
 

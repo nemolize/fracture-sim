@@ -33,6 +33,7 @@ export default defineConfig({
         "src/main.tsx",
         // Test doubles, used only by the unit tests.
         "src/gpu/fakes.ts",
+        "src/rigid/live.ts",
         // Needs a real canvas and requestAnimationFrame; e2e-tests/index.spec.ts drives it.
         "src/FractureCanvas.tsx",
         // WebGPU render pipeline, driven by e2e-tests/rigid.spec.ts.

@@ -1,6 +1,7 @@
 import { afterEach, beforeAll, expect, it } from "vitest";
 
 import { DEFAULT_ENVIRONMENT } from "./environment";
+import { live } from "./live";
 import { initializePhysics, RigidWorld } from "./world";
 
 beforeAll(initializePhysics);
@@ -45,7 +46,8 @@ it("grabs the enlarged plate beyond the old bounding box", () => {
   world.apply({ type: "grab", point: { x: 6.5, y: 1 } });
   const before = world.snapshot().poses[16] ?? NaN;
   world.apply({ type: "release", velocity: { x: 3, y: 1 } });
-  const after = world.advance(1 / 60, { x: 0, y: 0 }, 10000).poses[16] ?? NaN;
+  const after =
+    world.advance(1 / 60, { x: 0, y: 0 }, live(10000)).poses[16] ?? NaN;
   expect((after - before) * 60).toBeCloseTo(3, 2);
 });
 

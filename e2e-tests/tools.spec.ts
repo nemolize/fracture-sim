@@ -145,7 +145,7 @@ test("throw tool launches a visible ball that hits the plate", async ({
   });
   await openSettings(page);
   await page
-    .getByRole("combobox", { name: "Fracture preset" })
+    .getByRole("combobox", { name: "Object material preset" })
     .selectOption("glass");
   await page.getByLabel("Throw ball").check();
   await closeSettings(page);

@@ -1,7 +1,18 @@
 import RAPIER from "@dimforge/rapier2d-compat";
 
+import { DEFAULT_FLOOR_MATERIAL } from "@/sim/floor-material";
 import { MIN_FRAGMENT_AREA } from "@/sim/fracture";
-import { DEFAULT_CRACK_ENERGY } from "@/sim/material";
+import {
+  arealDensity,
+  BOUNDARY_SURFACE,
+  crackEnergy,
+  DEFAULT_MATERIAL,
+  type LiveMaterials,
+  type Surface,
+  validateMaterial,
+  validateSurface,
+  type WorldMaterials,
+} from "@/sim/material";
 
 import { type BodyShape, centreExtent, createBodyShape } from "./body";
 import {
@@ -28,6 +39,9 @@ import { limitVelocity, type ToolAction } from "./tools";
 import type { Scene, Snapshot } from "./types";
 
 const WALL_HALF_HEIGHT = 100;
+const sameSurface = (a: Surface, b: Surface): boolean =>
+  a.friction === b.friction && a.restitution === b.restitution;
+
 const WALL_THICKNESS = 0.4;
 // Below this world scale bodies near Rapier's contact tolerance settle slowly and sink into the boundaries.
 const FULL_COUNT_SCALE = 0.05;
@@ -43,7 +57,9 @@ export class RigidWorld {
   private readonly fracture: ImpactFracture;
   private readonly areaScale: number;
   geometryRevision = 0;
-  private friction: number;
+  private live: LiveMaterials;
+  private readonly floor: RAPIER.RigidBody;
+  private readonly arealDensity: number;
   private wakeGravity: { x: number; y: number };
   private averageGravity: { x: number; y: number };
   private readonly environment: EnvironmentSettings;
@@ -58,15 +74,27 @@ export class RigidWorld {
     environment: EnvironmentSettings = DEFAULT_ENVIRONMENT,
     objectSize: ObjectSize = fitObjectSize(DEFAULT_OBJECT_SIZE, environment),
     objectShape: ObjectShape = "rectangle",
+    materials: WorldMaterials = {
+      floor: DEFAULT_FLOOR_MATERIAL,
+      object: DEFAULT_MATERIAL,
+    },
   ) {
     validateEnvironment(environment);
+    validateMaterial(materials.object);
+    validateSurface(materials.floor);
     validateObjectSize(objectSize, environment);
     const initialPolygon = objectPolygon(objectShape, objectSize);
     this.environment = { ...environment };
     const lengthScale = Math.min(1, worldScale(environment));
     this.areaScale = lengthScale ** 2;
     this.fracture = new ImpactFracture(MIN_FRAGMENT_AREA * this.areaScale);
-    this.friction = environment.friction;
+    this.arealDensity = arealDensity(materials.object);
+    this.live = {
+      crackEnergy: crackEnergy(materials.object),
+      minFragmentArea: materials.object.minFragmentArea,
+      floor: materials.floor,
+      object: materials.object,
+    };
     this.wakeGravity = { x: 0, y: -environment.gravity };
     this.averageGravity = { ...this.wakeGravity };
     this.world = new RAPIER.World({ ...this.wakeGravity });
@@ -78,14 +106,22 @@ export class RigidWorld {
     const { width, height } = environment;
     this.world.timestep = TIME_STEP;
     this.world.lengthUnit = lengthScale;
-    this.box(width / 2, -0.2, width / 2 + 0.4, 0.2, true);
-    this.box(-0.2, 0, 0.2, WALL_HALF_HEIGHT, true);
-    this.box(width + 0.2, 0, 0.2, WALL_HALF_HEIGHT, true);
+    this.floor = this.box(
+      width / 2,
+      -0.2,
+      width / 2 + 0.4,
+      0.2,
+      this.live.floor,
+      true,
+    );
+    this.box(-0.2, 0, 0.2, WALL_HALF_HEIGHT, BOUNDARY_SURFACE, true);
+    this.box(width + 0.2, 0, 0.2, WALL_HALF_HEIGHT, BOUNDARY_SURFACE, true);
     this.ceiling = this.box(
       width / 2,
       height + 0.2,
       width / 2 + 0.4,
       0.2,
+      BOUNDARY_SURFACE,
       true,
     );
     this.baseHeight = height;
@@ -94,6 +130,7 @@ export class RigidWorld {
         initialPolygon,
         width / 2,
         centreExtent(initialPolygon).bottom,
+        this.live.object,
         false,
       );
       // New floor contacts wake bodies, so initialize them before sleeping.
@@ -108,7 +145,14 @@ export class RigidWorld {
       for (let i = 0; i < count; i++) {
         const x = 0.8 + (i % 60) * 0.14;
         const y = 0.065 + Math.floor(i / 60) * 0.14;
-        this.box(x * scale, y * scale, 0.06 * scale, 0.06 * scale, false);
+        this.box(
+          x * scale,
+          y * scale,
+          0.06 * scale,
+          0.06 * scale,
+          this.live.object,
+          false,
+        );
       }
     }
   }
@@ -123,6 +167,10 @@ export class RigidWorld {
       { x: this.environment.width / 2, y: height + 0.2 },
       true,
     );
+    this.wakeBodies();
+  }
+
+  private wakeBodies(): void {
     for (const { body, fixed } of this.shapes) if (!fixed) body.wakeUp();
   }
 
@@ -131,6 +179,7 @@ export class RigidWorld {
     y: number,
     hx: number,
     hy: number,
+    surface: Surface,
     fixed: boolean,
   ): RAPIER.RigidBody {
     return this.addBody(
@@ -142,6 +191,7 @@ export class RigidWorld {
       ],
       x,
       y,
+      surface,
       fixed,
     );
   }
@@ -150,6 +200,7 @@ export class RigidWorld {
     polygon: BodyShape["polygon"],
     x: number,
     y: number,
+    surface: Surface,
     fixed: boolean,
   ): RAPIER.RigidBody {
     try {
@@ -157,8 +208,8 @@ export class RigidWorld {
         this.world,
         polygon,
         { x, y },
-        this.environment.density,
-        this.friction,
+        this.arealDensity,
+        surface,
         fixed,
       );
       this.shapes.push(shape);
@@ -206,7 +257,8 @@ export class RigidWorld {
         this.world.createCollider(
           RAPIER.ColliderDesc.ball(radius)
             .setMass(2)
-            .setFriction(this.friction)
+            .setFriction(this.live.object.friction)
+            .setRestitution(this.live.object.restitution)
             .setActiveEvents(RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS),
           body,
         );
@@ -259,21 +311,28 @@ export class RigidWorld {
   advance(
     seconds: number,
     gravity: { x: number; y: number },
-    crackEnergy = DEFAULT_CRACK_ENERGY,
-    friction = this.environment.friction,
-    minFragmentArea = MIN_FRAGMENT_AREA,
+    materials: LiveMaterials = this.live,
   ): Snapshot {
-    if (!Number.isFinite(friction) || friction < 0 || friction > 2)
-      throw new Error("Invalid environment setting: friction");
-    if (friction !== this.friction) {
-      this.friction = friction;
-      for (const { body } of this.shapes) {
-        body.collider(0).setFriction(friction);
-        body.wakeUp();
-      }
+    validateSurface(materials.floor);
+    validateSurface(materials.object);
+    if (!sameSurface(materials.floor, this.live.floor)) {
+      this.floor.collider(0).setFriction(materials.floor.friction);
+      this.floor.collider(0).setRestitution(materials.floor.restitution);
+      this.wakeBodies();
     }
-    this.fracture.setCrackEnergy(crackEnergy);
-    this.fracture.setMinFragmentArea(minFragmentArea * this.areaScale);
+    if (!sameSurface(materials.object, this.live.object)) {
+      for (const { body, fixed } of this.shapes) {
+        if (fixed) continue;
+        body.collider(0).setFriction(materials.object.friction);
+        body.collider(0).setRestitution(materials.object.restitution);
+      }
+      this.wakeBodies();
+    }
+    this.live = materials;
+    this.fracture.setCrackEnergy(materials.crackEnergy);
+    this.fracture.setMinFragmentArea(
+      materials.minFragmentArea * this.areaScale,
+    );
     this.world.gravity = gravity;
     // A raw sample as the reference would bounce between noise extremes, so average first.
     const blend =
@@ -288,7 +347,7 @@ export class RigidWorld {
       ) > WAKE_GRAVITY_DELTA
     ) {
       this.wakeGravity = { ...this.averageGravity };
-      for (const { body, fixed } of this.shapes) if (!fixed) body.wakeUp();
+      this.wakeBodies();
     }
     this.remainder += Math.min(Math.max(seconds, 0), 0.1);
     const start = performance.now();
