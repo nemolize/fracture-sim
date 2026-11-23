@@ -17,7 +17,7 @@ it("offers every tool and marks the current one", () => {
   expect(screen.getByRole("radio", { name: "Grab" })).toBeChecked();
   expect(screen.getByRole("radio", { name: "Throw ball" })).not.toBeChecked();
   expect(screen.getByRole("radio", { name: "Blast" })).not.toBeChecked();
-  expect(screen.getByText(TOOL_HINTS.grab)).toBeVisible();
+  expect(screen.queryByText(TOOL_HINTS.grab)).not.toBeInTheDocument();
 });
 
 it("reports the chosen tool", async () => {
