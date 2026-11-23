@@ -1,8 +1,8 @@
-import { formatNumber, MaterialSlider } from "@/MaterialSlider";
+import { useState } from "react";
+
+import { MaterialSlider } from "@/MaterialSlider";
 import { ResetButton } from "@/ResetButton";
 import {
-  arealDensity,
-  crackEnergy,
   DEFAULT_MATERIAL,
   DEFAULT_MATERIAL_PRESET,
   findMaterialPreset,
@@ -17,6 +17,12 @@ import {
   SURFACE_RANGES,
 } from "@/sim/material";
 
+const TITLE_ID = "object-material-title";
+const NOTE_ID = "object-material-note";
+
+const MATERIAL_NOTE =
+  "Areal density is density × thickness; crack energy is fracture energy × thickness (both shown in the statistics over the canvas). Min fragment area is the reference at world scale ×1; smaller worlds apply it times the square of the scale. Presets are representative values and keep the thickness and the minimum fragment area. Friction, restitution and fracture energy apply immediately; density and thickness restart the scene.";
+
 interface Props {
   value: MaterialSettings;
   disabled: boolean;
@@ -24,14 +30,37 @@ interface Props {
 }
 
 export const MaterialControl = ({ value, disabled, onChange }: Props) => {
+  const [noteOpen, setNoteOpen] = useState(false);
   const editField = (patch: Partial<MaterialSettings>): void => {
     onChange(matchPreset({ ...value, ...patch }));
   };
   return (
-    <fieldset className="flex flex-col gap-2" disabled={disabled}>
+    <fieldset
+      className="flex flex-col gap-2"
+      disabled={disabled}
+      aria-labelledby={TITLE_ID}
+    >
       <legend className="text-sm font-medium text-gray-700">
-        Object material
+        <span id={TITLE_ID}>Object material</span>
+        <button
+          type="button"
+          aria-label="About object material"
+          aria-expanded={noteOpen}
+          aria-controls={NOTE_ID}
+          title={MATERIAL_NOTE}
+          onClick={() => {
+            setNoteOpen(!noteOpen);
+          }}
+          className="ml-1.5 inline-block size-4 cursor-help rounded-full border border-gray-400 text-center text-xs leading-[0.875rem] font-normal text-gray-600"
+        >
+          ?
+        </button>
       </legend>
+      {noteOpen ? (
+        <p id={NOTE_ID} className="text-xs text-gray-600">
+          {MATERIAL_NOTE}
+        </p>
+      ) : null}
       <div className="flex flex-col gap-1 text-sm font-medium text-gray-700">
         <span className="flex items-center justify-between gap-2">
           Object material preset
@@ -144,28 +173,6 @@ export const MaterialControl = ({ value, disabled, onChange }: Props) => {
           onChange({ ...value, minFragmentArea: 10 ** position });
         }}
       />
-      <p
-        className="text-sm text-gray-700"
-        role="status"
-        aria-label="Areal density"
-      >
-        Areal density: {formatNumber(arealDensity(value))} kg/m²
-      </p>
-      <p
-        className="text-sm text-gray-700"
-        role="status"
-        aria-label="Crack energy"
-      >
-        Crack energy: {formatNumber(crackEnergy(value))} J/m
-      </p>
-      <p className="text-xs text-gray-600">
-        Areal density is density × thickness; crack energy is fracture energy ×
-        thickness. Min fragment area is the reference at world scale ×1; smaller
-        worlds apply it times the square of the scale. Presets are
-        representative values and keep the thickness and the minimum fragment
-        area. Friction, restitution and fracture energy apply immediately;
-        density and thickness restart the scene.
-      </p>
     </fieldset>
   );
 };

@@ -126,7 +126,7 @@ const App = () => {
             onPhysicsError={setPhysicsError}
             onContextUnavailable={unsupported}
           >
-            <StatsReadout stats={stats} />
+            <StatsReadout stats={stats} material={settings.material} />
           </FractureCanvas>
         ) : null}
         {physicsError !== null ? (

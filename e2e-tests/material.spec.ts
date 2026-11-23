@@ -57,8 +57,8 @@ test("real material presets convert Gc and thickness before reaching the worker"
   const thickness = page.getByRole("slider", { name: "Thickness (mm)" });
   await expect(preset).toHaveValue("glass");
   await expect(energy).toHaveAttribute("aria-valuetext", "7 J/m²");
-  await expect(page.getByRole("status", { name: "Crack energy" })).toHaveText(
-    "Crack energy: 0.07 J/m",
+  await expect(page.getByLabel("Simulation statistics")).toContainText(
+    "Crack energy0.07 J/m",
   );
   await expect
     .poll(() => page.evaluate(() => window.materialTime ?? 0))
@@ -168,8 +168,8 @@ test("the floor and the object materials reach the real worker, and density rest
     .toBeGreaterThan(1);
   const density = page.getByRole("slider", { name: "Object density (kg/m³)" });
   await density.press("ArrowRight");
-  await expect(page.getByRole("status", { name: "Areal density" })).toHaveText(
-    "Areal density: 9.18 kg/m²",
+  await expect(page.getByLabel("Simulation statistics")).toContainText(
+    "Areal density9.18 kg/m²",
   );
   await expect
     .poll(() => page.evaluate(() => window.materialTime ?? 0))
