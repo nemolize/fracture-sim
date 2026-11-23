@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -44,23 +44,6 @@ const setup = (
 };
 
 describe("ControlPanel", () => {
-  it.each([["Scene", "pile", { scene: "pile" }]])(
-    "changes %s from the select",
-    async (label, value, patch) => {
-      const { onChange, user } = setup();
-      await user.selectOptions(screen.getByLabelText(label), value);
-      expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_SETTINGS, ...patch });
-    },
-  );
-
-  it.each(["Scene"])("ignores an unknown value in %s", (label) => {
-    const { onChange } = setup();
-    fireEvent.change(screen.getByLabelText(label), {
-      target: { value: "unknown" },
-    });
-    expect(onChange).not.toHaveBeenCalled();
-  });
-
   describe("motion", () => {
     it("turns the device tilt on and off from the checkbox", async () => {
       const { setEnabled, user } = setup();
@@ -125,13 +108,6 @@ describe("ControlPanel", () => {
       screen.queryByRole("button", { name: /^(Pause|Resume)$/ }),
     ).toBeNull();
   });
-
-  it("locks the scene while the GPU is unavailable", () => {
-    setup(true);
-    for (const label of ["Scene"]) {
-      expect(screen.getByLabelText(label)).toBeDisabled();
-    }
-  });
 });
 
 it("changes material toughness without requiring a Reset", () => {
@@ -195,19 +171,6 @@ it.each([
   setRange(screen.getByRole("slider", { name: label }), value);
   expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_SETTINGS, objectSize });
 });
-
-it.each(["pile", "stress"] as const)(
-  "disables plate size controls in %s",
-  (scene) => {
-    setup(false, {}, { scene });
-    expect(
-      screen.getByRole("slider", { name: "Object width (m)" }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole("slider", { name: "Object height (m)" }),
-    ).toBeDisabled();
-  },
-);
 
 it("locks object size when physics is unavailable", () => {
   setup(true);
@@ -419,20 +382,18 @@ describe("reset buttons", () => {
     expect(onChange.mock.calls[2]?.[0].floorMaterial.preset).toBe("default");
   });
 
-  it("resets all parameters but keeps the scene and tool", async () => {
+  it("resets all parameters but keeps the tool", async () => {
     const { onChange, user } = setup(
       false,
       {},
       {
         ...moved,
-        scene: "pile",
         tool: "throw",
       },
     );
     await user.click(screen.getByRole("button", { name: "Reset parameters" }));
     expect(onChange).toHaveBeenCalledWith({
       ...DEFAULT_SETTINGS,
-      scene: "pile",
       tool: "throw",
     });
   });

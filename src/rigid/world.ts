@@ -38,15 +38,13 @@ import {
 import { BodyObstacles } from "./obstacles";
 import { GLASS_COLOR } from "./palette";
 import { limitVelocity, type ToolAction } from "./tools";
-import type { Scene, Snapshot } from "./types";
+import type { Snapshot } from "./types";
 
 const WALL_HALF_HEIGHT = 100;
 const sameSurface = (a: Surface, b: Surface): boolean =>
   a.friction === b.friction && a.restitution === b.restitution;
 
 const WALL_THICKNESS = 0.4;
-// Below this world scale bodies near Rapier's contact tolerance settle slowly and sink into the boundaries.
-const FULL_COUNT_SCALE = 0.05;
 
 let initialization: Promise<void> | undefined;
 export const initializePhysics = (): Promise<void> =>
@@ -74,7 +72,6 @@ export class RigidWorld {
   private stepMs = 0;
 
   constructor(
-    scene: Scene,
     environment: EnvironmentSettings = DEFAULT_ENVIRONMENT,
     objectSize: ObjectSize = fitObjectSize(DEFAULT_OBJECT_SIZE, environment),
     objectShape: ObjectShape = "rectangle",
@@ -128,36 +125,16 @@ export class RigidWorld {
       true,
     );
     this.baseHeight = height;
-    if (scene === "plate") {
-      const plate = this.addBody(
-        initialPolygon,
-        width / 2,
-        centreExtent(initialPolygon).bottom,
-        this.live.object,
-        false,
-      );
-      // New floor contacts wake bodies, so initialize them before sleeping.
-      this.world.step();
-      plate.sleep();
-    } else {
-      const full = scene === "pile" ? 1000 : 2000;
-      const count = Math.round(
-        full * Math.min(1, worldScale(environment) / FULL_COUNT_SCALE),
-      );
-      const scale = Math.min(1, width / 10, height / 5.2);
-      for (let i = 0; i < count; i++) {
-        const x = 0.8 + (i % 60) * 0.14;
-        const y = 0.065 + Math.floor(i / 60) * 0.14;
-        this.box(
-          x * scale,
-          y * scale,
-          0.06 * scale,
-          0.06 * scale,
-          this.live.object,
-          false,
-        );
-      }
-    }
+    const plate = this.addBody(
+      initialPolygon,
+      width / 2,
+      centreExtent(initialPolygon).bottom,
+      this.live.object,
+      false,
+    );
+    // New floor contacts wake bodies, so initialize them before sleeping.
+    this.world.step();
+    plate.sleep();
   }
 
   setVisibleHeight(visible: number): void {

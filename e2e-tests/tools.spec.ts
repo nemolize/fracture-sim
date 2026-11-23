@@ -193,7 +193,7 @@ test("worker blast leaves a distant body below 1 cm per second", async ({
 }) => {
   await page.goto("/harness.html");
   const measured = await page.evaluate(async () => {
-    await window.harness.reset("plate", undefined, { width: 2, height: 1 });
+    await window.harness.reset(undefined, { width: 2, height: 1 });
     await window.harness.action({
       type: "throw",
       point: { x: 8, y: 2.5 },
@@ -229,7 +229,7 @@ test("worker release carries the given velocity after a 2 m lift", async ({
 }) => {
   await page.goto("/harness.html");
   const measured = await page.evaluate(async () => {
-    await window.harness.reset("plate", undefined, { width: 2, height: 1 });
+    await window.harness.reset(undefined, { width: 2, height: 1 });
     await window.harness.action({ type: "grab", point: { x: 5, y: 0.5 } });
     await window.harness.action({ type: "move", point: { x: 5, y: 2.5 } });
     for (let i = 0; i < 20; i++) await window.harness.step(0.1);

@@ -15,9 +15,6 @@ test("should load the rigid-body simulator", async ({ page }) => {
   await openSettings(page);
   await expect(page).toHaveTitle("Fracture Sim");
   await expect(page.getByLabel("Fracture simulation")).toBeVisible();
-  await expect(page.getByRole("combobox", { name: /^Scene/ })).toHaveValue(
-    "plate",
-  );
   await expect(page.getByLabel("Simulation statistics")).toContainText(
     /Bodies[1-9][0-9]*/,
   );
@@ -87,7 +84,9 @@ test.describe("without a usable WebGPU", () => {
     await expect(
       page.getByRole("button", { name: "Reset", exact: true }),
     ).toBeDisabled();
-    await expect(page.getByRole("combobox", { name: /^Scene/ })).toBeDisabled();
+    await expect(
+      page.getByRole("combobox", { name: "Object shape", exact: true }),
+    ).toBeDisabled();
   };
 
   test("should say WebGPU is required when navigator.gpu is missing", async ({
@@ -165,7 +164,9 @@ test("should stop and say so when the GPU device is lost", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Reset", exact: true }),
   ).toBeDisabled();
-  await expect(page.getByRole("combobox", { name: /^Scene/ })).toBeDisabled();
+  await expect(
+    page.getByRole("combobox", { name: "Object shape", exact: true }),
+  ).toBeDisabled();
   await expect(
     page.getByRole("button", { name: "Pause", exact: true }),
   ).toBeEnabled();
@@ -224,9 +225,16 @@ for (const viewport of [
     const widthOf = async (): Promise<number> =>
       (await stats.boundingBox())?.width ?? NaN;
     const before = await widthOf();
-    await openSettings(page);
-    await page.getByRole("combobox", { name: /^Scene/ }).selectOption("pile");
-    await expect(stats).toContainText(/Bodies[0-9]{3,}/);
+    await page.getByLabel("Throw ball").check();
+    const canvas = page.getByLabel("Fracture simulation");
+    const box = await canvas.boundingBox();
+    // eslint-disable-next-line playwright/no-conditional-in-test -- Playwright bounding boxes are nullable.
+    if (box === null) throw new Error("Canvas missing");
+    for (let i = 0; i < 12; i++)
+      await canvas.click({
+        position: { x: box.width * (0.1 + i * 0.07), y: box.height * 0.55 },
+      });
+    await expect(stats).toContainText(/Bodies[0-9]{2,}/);
     expect(await widthOf()).toBe(before);
     const rem = await page.evaluate(() =>
       parseFloat(getComputedStyle(document.documentElement).fontSize),

@@ -48,7 +48,6 @@ for (const shape of OBJECT_SHAPES) {
     `preserves actual ${shape} collision geometry at $width × $height`,
     (size) => {
       world = new RigidWorld(
-        "plate",
         { ...DEFAULT_ENVIRONMENT, width: 30, height: 20 },
         size,
         shape,
@@ -89,7 +88,6 @@ it.each(["ellipse", "triangle", "hexagon"] as const)(
   "slides a thin %s without catching internal fan edges",
   (shape) => {
     world = new RigidWorld(
-      "plate",
       { ...DEFAULT_ENVIRONMENT, width: 30, height: 20 },
       { width: 9.9, height: 0.1 },
       shape,
@@ -108,7 +106,6 @@ it.each(["ellipse", "triangle", "hexagon"] as const)(
   "fractures a thin %s without gaining mass",
   (shape) => {
     world = new RigidWorld(
-      "plate",
       { ...DEFAULT_ENVIRONMENT, width: 30, height: 20 },
       { width: 9.9, height: 0.1 },
       shape,

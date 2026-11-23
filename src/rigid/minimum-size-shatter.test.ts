@@ -25,7 +25,7 @@ const advance = (seconds: number) => {
 };
 
 const dropMinimumPlate = (height: number) => {
-  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, MINIMUM_SIZE);
+  world = new RigidWorld(DEFAULT_ENVIRONMENT, MINIMUM_SIZE);
   const plate = world["shapes"].find((shape) => !shape.fixed);
   plate?.body.setTranslation(
     { x: 5, y: MINIMUM_SIZE.height / 2 + height },
@@ -52,7 +52,7 @@ it("turns a minimum-size plate that lands above the crack threshold into one par
 });
 
 it("shatters a minimum-size plate even when the body pool is full", () => {
-  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, MINIMUM_SIZE);
+  world = new RigidWorld(DEFAULT_ENVIRONMENT, MINIMUM_SIZE);
   const plate = world["shapes"].find((shape) => !shape.fixed);
   plate?.body.setTranslation({ x: 5, y: 3 }, true);
   for (let i = 1; i < MAX_BODIES; i++)

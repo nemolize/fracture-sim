@@ -5,7 +5,6 @@ import {
 import type { ObjectShape } from "@/rigid/object-shape";
 import { DEFAULT_OBJECT_SIZE, type ObjectSize } from "@/rigid/object-size";
 import type { Tool } from "@/rigid/tools";
-import { type Scene, SCENES } from "@/rigid/types";
 import {
   DEFAULT_FLOOR_MATERIAL,
   type FloorMaterialSettings,
@@ -13,7 +12,6 @@ import {
 import { DEFAULT_MATERIAL, type MaterialSettings } from "@/sim/material";
 
 export interface Settings {
-  scene: Scene;
   environment: EnvironmentSettings;
   objectSize: ObjectSize;
   objectShape: ObjectShape;
@@ -33,7 +31,6 @@ export const MOTION_RANGES = {
 } as const;
 
 export const DEFAULT_SETTINGS: Settings = {
-  scene: "plate",
   environment: INITIAL_ENVIRONMENT,
   objectSize: DEFAULT_OBJECT_SIZE,
   objectShape: "rectangle",
@@ -47,9 +44,5 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export const resetParameters = (settings: Settings): Settings => ({
   ...DEFAULT_SETTINGS,
-  scene: settings.scene,
   tool: settings.tool,
 });
-
-export const asScene = (value: string): Scene | undefined =>
-  SCENES.find((name) => name === value);

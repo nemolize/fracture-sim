@@ -5,9 +5,6 @@ import type { ObjectShape } from "./object-shape";
 import type { ObjectSize } from "./object-size";
 import type { ToolAction } from "./tools";
 
-export const SCENES = ["plate", "pile", "stress"] as const;
-export type Scene = (typeof SCENES)[number];
-
 export interface WorldStats {
   mass: number;
   bodies: number;
@@ -26,7 +23,6 @@ export interface Snapshot {
 export type WorkerRequest =
   | {
       type: "init";
-      scene: Scene;
       environment?: EnvironmentSettings;
       materials?: WorldMaterials;
       objectSize?: ObjectSize;

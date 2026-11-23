@@ -1,18 +1,13 @@
 import { expect, it } from "vitest";
 
-import { asScene, DEFAULT_SETTINGS, resetParameters } from "./settings";
-it("narrows scene selections", () => {
-  expect(asScene("pile")).toBe("pile");
-  expect(asScene("unknown")).toBeUndefined();
-});
+import { DEFAULT_SETTINGS, resetParameters } from "./settings";
 
-it("resets parameters but keeps the scene and tool", () => {
+it("resets parameters but keeps the tool", () => {
   expect(
     resetParameters({
       ...DEFAULT_SETTINGS,
-      scene: "pile",
       tool: "throw",
       inertiaCap: 1,
     }),
-  ).toEqual({ ...DEFAULT_SETTINGS, scene: "pile", tool: "throw" });
+  ).toEqual({ ...DEFAULT_SETTINGS, tool: "throw" });
 });

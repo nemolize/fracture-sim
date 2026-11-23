@@ -24,7 +24,7 @@ afterEach(() => {
 const plateReplacedByThrow = (scale: number): boolean => {
   const environment = withWorldScale(DEFAULT_ENVIRONMENT, scale);
   const size = fitObjectSize(DEFAULT_OBJECT_SIZE, environment);
-  world = new RigidWorld("plate", environment, size);
+  world = new RigidWorld(environment, size);
   const plate = world["shapes"].find((shape) => !shape.fixed);
   const radius = Math.min(0.12, environment.width / 20);
   const dragToCentre = environment.width / 2 - radius;

@@ -22,7 +22,6 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
         await initializePhysics();
         world?.dispose();
         world = new RigidWorld(
-          request.scene,
           request.environment,
           request.objectSize,
           request.objectShape,

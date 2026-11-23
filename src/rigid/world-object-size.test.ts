@@ -18,7 +18,7 @@ it.each([
   { width: 9.9, height: 5.1 },
   { width: 4, height: 2.4 },
 ])("builds an intact grounded box with size $width × $height", (size) => {
-  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, size);
+  world = new RigidWorld(DEFAULT_ENVIRONMENT, size);
   const vertices = world.vertices();
   const x: number[] = [],
     y: number[] = [];
@@ -42,7 +42,7 @@ it.each([
 });
 
 it("grabs the enlarged plate beyond the old bounding box", () => {
-  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, { width: 4, height: 2 });
+  world = new RigidWorld(DEFAULT_ENVIRONMENT, { width: 4, height: 2 });
   world.apply({ type: "grab", point: { x: 6.5, y: 1 } });
   const before = world.snapshot().poses[16] ?? NaN;
   world.apply({ type: "release", velocity: { x: 3, y: 1 } });
@@ -53,7 +53,6 @@ it("grabs the enlarged plate beyond the old bounding box", () => {
 
 it("rejects an oversized plate before constructing the world", () => {
   expect(
-    () =>
-      new RigidWorld("plate", DEFAULT_ENVIRONMENT, { width: 10, height: 1 }),
+    () => new RigidWorld(DEFAULT_ENVIRONMENT, { width: 10, height: 1 }),
   ).toThrow("Invalid object size: width");
 });

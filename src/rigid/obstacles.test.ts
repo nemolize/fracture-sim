@@ -52,7 +52,7 @@ it("places a rotated body's outline in world space and skips fixed bodies", () =
 });
 
 it("lets particles rest on a settled body", () => {
-  const world = new RigidWorld("plate");
+  const world = new RigidWorld();
   worlds.push(world);
   const gravity = { x: 0, y: -9.8 };
   for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity);
