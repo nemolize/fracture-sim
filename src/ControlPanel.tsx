@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 import { EnvironmentControl } from "@/EnvironmentControl";
 import { FloorMaterialControl } from "@/FloorMaterialControl";
 import { MaterialControl } from "@/MaterialControl";
@@ -7,9 +5,7 @@ import { ObjectControl } from "@/ObjectControl";
 import { ResetButton } from "@/ResetButton";
 import { naturalObjectSize } from "@/rigid/object-shape";
 import { fitObjectSize } from "@/rigid/object-size";
-import { SCENES } from "@/rigid/types";
 import {
-  asScene,
   DEFAULT_SETTINGS,
   MOTION_RANGES,
   resetParameters,
@@ -23,13 +19,6 @@ interface Props {
   motion: Pick<MotionControl, "support" | "enabled" | "notice" | "setEnabled">;
   onChange: (next: Settings) => void;
 }
-
-const Field = ({ label, children }: { label: string; children: ReactNode }) => (
-  <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-    {label}
-    {children}
-  </label>
-);
 
 const MOTION_NOTICES: Record<MotionControl["support"], string | null> = {
   checking: "Checking for a motion sensor…",
@@ -85,9 +74,6 @@ const MotionSlider = ({
   </div>
 );
 
-const SELECT_CLASS =
-  "rounded border border-gray-300 bg-white p-1.5 font-normal";
-
 export const ControlPanel = ({ settings, locked, motion, onChange }: Props) => (
   <aside className="flex w-full flex-col gap-4 rounded-lg bg-white/60 p-4 shadow-lg backdrop-blur-md">
     <button
@@ -100,26 +86,6 @@ export const ControlPanel = ({ settings, locked, motion, onChange }: Props) => (
     >
       Reset parameters
     </button>
-
-    <div className="grid grid-cols-1 gap-3">
-      <Field label="Scene">
-        <select
-          className={SELECT_CLASS}
-          disabled={locked}
-          value={settings.scene}
-          onChange={(event) => {
-            const scene = asScene(event.target.value);
-            if (scene !== undefined) onChange({ ...settings, scene });
-          }}
-        >
-          {SCENES.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
-      </Field>
-    </div>
 
     <EnvironmentControl
       value={settings.environment}
@@ -148,7 +114,7 @@ export const ControlPanel = ({ settings, locked, motion, onChange }: Props) => (
       }}
       value={settings.objectSize}
       bounds={settings.environment}
-      disabled={locked || settings.scene !== "plate"}
+      disabled={locked}
       onChange={(objectSize) => {
         onChange({ ...settings, objectSize });
       }}

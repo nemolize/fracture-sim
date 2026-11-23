@@ -12,6 +12,7 @@ import {
   DEFAULT_ENVIRONMENT,
   INITIAL_ENVIRONMENT,
   withWorldScale,
+  worldScale,
 } from "./environment";
 import { ImpactFracture, MAX_BODIES } from "./fracture";
 import { live } from "./live";
@@ -29,7 +30,7 @@ afterEach(() => {
 const BALL_MASS = 25 * Math.PI * 0.12 ** 2;
 
 const makeRaisedPlateWorld = () => {
-  const world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+  const world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
   world["shapes"][4]?.body.setTranslation({ x: 5, y: 2.5 }, true);
   world["world"].propagateModifiedBodyPositionsToColliders();
   worlds.push(world);
@@ -144,8 +145,15 @@ it("turns tiny pieces into massless particles and gives their mass to the rigid 
 });
 
 it("refuses balls at capacity without changing geometry or mass", () => {
-  const world = new RigidWorld("stress");
+  const world = new RigidWorld();
   worlds.push(world);
+  for (let i = 1; i < MAX_BODIES; i++)
+    world.apply({
+      type: "throw",
+      point: { x: 1, y: 4 },
+      velocity: { x: 0, y: 0 },
+    });
+  expect(world.snapshot().stats.bodies).toBe(MAX_BODIES);
   const before = world.snapshot();
   const vertices = world.vertices();
   expect(
@@ -312,17 +320,17 @@ it("cancels a capacity-deferred split when the material changes", () => {
   expect(shapes.includes(parent)).toBe(true);
 });
 
-const dropOnlyPileBox = (speed: number) => {
-  const world = new RigidWorld("pile", INITIAL_ENVIRONMENT);
+const dropSmallBox = (speed: number) => {
+  const world = new RigidWorld(INITIAL_ENVIRONMENT);
   worlds.push(world);
-  const [box, ...others] = world["shapes"].filter((s) => !s.fixed);
-  if (box === undefined) throw new Error("Missing pile box");
-  for (const s of others) {
-    world["world"].removeRigidBody(s.body);
-    world["shapes"].splice(world["shapes"].indexOf(s), 1);
-  }
-  box.body.setTranslation({ x: 1, y: 0.1 }, true);
-  box.body.setRotation(0, true);
+  const plate = world["shapes"].find((s) => !s.fixed);
+  if (plate === undefined) throw new Error("Missing plate");
+  world["world"].removeRigidBody(plate.body);
+  world["shapes"].splice(world["shapes"].indexOf(plate), 1);
+  const half = 0.06 * worldScale(INITIAL_ENVIRONMENT);
+  world["box"](1, 0.1, half, half, world["live"].object, false);
+  const box = world["shapes"].at(-1);
+  if (box === undefined) throw new Error("Missing box");
   box.body.setLinvel({ x: 0, y: -speed }, true);
   let lowest = Infinity;
   for (let i = 0; i < 30; i++) {
@@ -337,10 +345,10 @@ const dropOnlyPileBox = (speed: number) => {
   return { bodies: world.snapshot().stats.bodies, touchedFloor: lowest < 0.02 };
 };
 
-it("fractures a pile-sized box at the starting scale only under enough energy", () => {
-  const weak = dropOnlyPileBox(0.3);
+it("fractures a small box at the starting scale only under enough energy", () => {
+  const weak = dropSmallBox(0.3);
   expect(weak).toEqual({ bodies: 1, touchedFloor: true });
-  expect(dropOnlyPileBox(20).bodies).toBeGreaterThan(1);
+  expect(dropSmallBox(20).bodies).toBeGreaterThan(1);
 });
 
 it("scales the minimum fragment area with the square of the world scale below ×1 and keeps it above", () => {
@@ -349,10 +357,7 @@ it("scales the minimum fragment area with the square of the world scale below ×
     [1, 1],
     [3, 1],
   ] as const) {
-    const world = new RigidWorld(
-      "plate",
-      withWorldScale(DEFAULT_ENVIRONMENT, scale),
-    );
+    const world = new RigidWorld(withWorldScale(DEFAULT_ENVIRONMENT, scale));
     worlds.push(world);
     expect(world["fracture"]["minFragmentArea"]).toBeCloseTo(
       MIN_FRAGMENT_AREA * factor,
@@ -362,10 +367,7 @@ it("scales the minimum fragment area with the square of the world scale below ×
 });
 
 it("applies a changed minimum fragment area scaled by the world area factor", () => {
-  const world = new RigidWorld(
-    "plate",
-    withWorldScale(DEFAULT_ENVIRONMENT, 0.5),
-  );
+  const world = new RigidWorld(withWorldScale(DEFAULT_ENVIRONMENT, 0.5));
   worlds.push(world);
   world.advance(
     0,
@@ -376,7 +378,7 @@ it("applies a changed minimum fragment area scaled by the world area factor", ()
 });
 
 it("rejects a non-positive minimum fragment area", () => {
-  const world = new RigidWorld("plate");
+  const world = new RigidWorld();
   worlds.push(world);
   expect(() =>
     world.advance(

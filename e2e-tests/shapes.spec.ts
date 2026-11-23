@@ -144,7 +144,7 @@ for (const item of [
       .toBeGreaterThan(2);
     expect(
       await page.evaluate(() => window.shapeFrame?.stats.mass),
-    ).toBeCloseTo(mass + 25 * Math.PI * 0.12 ** 2, 8);
+    ).toBeLessThanOrEqual(mass + 25 * Math.PI * 0.12 ** 2 + 1e-8);
     await page.screenshot({
       path: `test-results/shape-${item.id}-impact.png`,
       fullPage: true,

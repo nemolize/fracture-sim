@@ -132,17 +132,5 @@ test("plate bounding box controls update geometry, mass, reset and grab targets"
   await expect
     .poll(() => page.evaluate(() => window.sizedObject?.stats.mass))
     .toBeCloseTo(5.9 * ((4 * 5.9) / 9) * 25, 8);
-  await page
-    .getByRole("combobox", { name: "Scene", exact: true })
-    .selectOption("pile");
-  await expect(width).toBeDisabled();
-  await expect(height).toBeDisabled();
-  await page
-    .getByRole("combobox", { name: "Scene", exact: true })
-    .selectOption("plate");
-  await expect(width).toHaveValue("5.9");
-  await expect
-    .poll(async () => Number(await height.inputValue()))
-    .toBeCloseTo((4 * 5.9) / 9, 12);
   expect(errors).toEqual([]);
 });

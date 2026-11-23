@@ -40,6 +40,32 @@ export const narrowestWidth = (ring: readonly Vec2[]): number =>
     }),
   );
 
+export type DustPiece = Pick<Piece, "area" | "centroidOffset">;
+
+export type FractureResult =
+  { kind: "split"; pieces: Piece[] } | { kind: "dust"; piece: DustPiece };
+
+export const resolveFracture = (
+  domain: readonly Vec2[],
+  contact: Vec2,
+  energy: number,
+  crackEnergy: number,
+  minFragmentArea = MIN_FRAGMENT_AREA,
+): FractureResult | null => {
+  if (!(energy / crackEnergy > narrowestWidth(domain))) return null;
+  const { area, centroid } = polygonMoments(domain);
+  if (area < splittableArea(minFragmentArea))
+    return { kind: "dust", piece: { area, centroidOffset: centroid } };
+  const pieces = fracturePieces(
+    domain,
+    contact,
+    energy,
+    crackEnergy,
+    minFragmentArea,
+  );
+  return pieces.length > 1 ? { kind: "split", pieces } : null;
+};
+
 export const fracturePieces = (
   domain: readonly Vec2[],
   contact: Vec2,

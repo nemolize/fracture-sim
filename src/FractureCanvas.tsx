@@ -64,7 +64,7 @@ export const FractureCanvas = ({
       onPhysicsError,
     };
   });
-  const { scene, objectShape } = settings;
+  const { objectShape } = settings;
   const { width, height } = settings.environment;
   const areal = arealDensity(settings.material);
   const { width: objectWidth, height: objectHeight } = settings.objectSize;
@@ -241,7 +241,6 @@ export const FractureCanvas = ({
     };
     send({
       type: "init",
-      scene,
       objectSize: { width: objectWidth, height: objectHeight },
       objectShape,
       visibleHeight: sentHeight,
@@ -272,7 +271,6 @@ export const FractureCanvas = ({
   }, [
     device,
     tracker,
-    scene,
     resetToken,
     width,
     height,

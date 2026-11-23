@@ -15,7 +15,7 @@ test("worker fractures a plate explicitly lifted 2 m and transfers matching geom
 }) => {
   await page.goto("/harness.html");
   const result = await page.evaluate(async () => {
-    const initial = await window.harness.reset("plate", undefined, {
+    const initial = await window.harness.reset(undefined, {
       width: 2,
       height: 1,
     });
@@ -56,33 +56,6 @@ test("worker fractures a plate explicitly lifted 2 m and transfers matching geom
   expect(result.finite).toBe(true);
 });
 
-test("1000 bodies sleep inside the container within 20 simulated seconds", async ({
-  page,
-}) => {
-  await page.goto("/harness.html");
-  const result = await page.evaluate(async () => {
-    await window.harness.reset("pile");
-    let frame = await window.harness.step(0.1);
-    for (let i = 1; i < 200; i++) frame = await window.harness.step(0.1);
-    if (frame.type !== "frame") throw new Error("Worker failed");
-    const { poses, stats } = frame.snapshot;
-    let contained = true;
-    for (let i = 16; i < poses.length; i += 4) {
-      const x = poses[i] ?? NaN;
-      const y = poses[i + 1] ?? NaN;
-      contained &&= x > 0 && x < 10 && y > 0 && y < 5.2;
-    }
-    return { stats, contained, finite: poses.every(Number.isFinite) };
-  });
-  expect(result.stats.bodies).toBeGreaterThanOrEqual(1000);
-  expect(result.stats.bodies).toBeLessThanOrEqual(2000);
-  expect(result.stats.sleeping).toBe(result.stats.bodies);
-  expect(result.stats.mass).toBeCloseTo(360, 10);
-  expect(result.stats.time).toBeCloseTo(20);
-  expect(result.contained).toBe(true);
-  expect(result.finite).toBe(true);
-});
-
 const glassPixels = async (page: Page): Promise<number> => {
   const screenshot = await page.getByLabel("Fracture simulation").screenshot();
   return page.evaluate(async (base64) => {
@@ -113,7 +86,7 @@ const WEBGPU_WAIT_MS = 30_000;
 const WEBGPU_TEST_MS = 120_000;
 const patient = expect.configure({ timeout: WEBGPU_WAIT_MS });
 
-test("WebGPU renders the plate, follows motion, and rebuilds scenes without diagnostics", async ({
+test("WebGPU renders the plate, follows motion, and rebuilds it on Reset without diagnostics", async ({
   page,
 }) => {
   test.setTimeout(WEBGPU_TEST_MS);
@@ -153,11 +126,9 @@ test("WebGPU renders the plate, follows motion, and rebuilds scenes without diag
   await patient
     .poll(async () => Buffer.compare(before, await canvas.screenshot()))
     .not.toBe(0);
-  await page.getByRole("combobox", { name: /^Scene/ }).selectOption("pile");
-  await patient(stats).toContainText(/Bodies1[0-9]{3}/);
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await openSettings(page);
-  await patient(stats).toContainText(/Bodies1[0-9]{3}/);
+  await patient(stats).toContainText(/Bodies1(?:Sleeping)/);
   await patient.poll(() => glassPixels(page)).toBeGreaterThan(500);
   expect(errors).toEqual([]);
   await page.screenshot({ path: "test-results/rigid-world.png" });
@@ -168,7 +139,7 @@ test("worker turns tiny fragments into particles and ships them with the snapsho
 }) => {
   await page.goto("/harness.html");
   const result = await page.evaluate(async () => {
-    await window.harness.reset("plate", undefined, { width: 2, height: 1 });
+    await window.harness.reset(undefined, { width: 2, height: 1 });
     let peak = 0;
     let mass = 0;
     for (let i = 0; i < 6; i++) {
@@ -242,33 +213,4 @@ test("physics worker failure stops the app and explains the failure", async ({
   await expect(
     page.getByRole("button", { name: "Reset", exact: true }),
   ).toBeDisabled();
-});
-
-test("settled 2000-body browser-worker pile has p95 physics step under 8 ms", async ({
-  page,
-}) => {
-  await page.goto("/harness.html");
-  const measured = await page.evaluate(async () => {
-    await window.harness.reset("stress");
-    for (let i = 0; i < 200; i++) await window.harness.step(0.1);
-    const samples: number[] = [];
-    let asleep = 0;
-    for (let i = 0; i < 600; i++) {
-      const frame = await window.harness.step(1 / 60);
-      if (frame.type !== "frame") throw new Error("Worker failed");
-      samples.push(frame.snapshot.stats.stepMs);
-      asleep = frame.snapshot.stats.sleeping;
-    }
-    samples.sort((a, b) => a - b);
-    return {
-      p95: samples[569] ?? Infinity,
-      count: samples.length,
-      asleep,
-      userAgent: navigator.userAgent,
-    };
-  });
-  console.log("rigid-worker benchmark", JSON.stringify(measured));
-  expect(measured.count).toBe(600);
-  expect(measured.asleep).toBe(2000);
-  expect(measured.p95).toBeLessThan(8);
 });

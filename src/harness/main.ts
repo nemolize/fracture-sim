@@ -2,7 +2,7 @@ import type { EnvironmentSettings } from "@/rigid/environment";
 import type { ObjectShape } from "@/rigid/object-shape";
 import type { ObjectSize } from "@/rigid/object-size";
 import type { ToolAction } from "@/rigid/tools";
-import type { Scene, WorkerRequest, WorkerResponse } from "@/rigid/types";
+import type { WorkerRequest, WorkerResponse } from "@/rigid/types";
 import { DEFAULT_FLOOR_MATERIAL } from "@/sim/floor-material";
 import {
   crackEnergy as crackEnergyOf,
@@ -39,7 +39,6 @@ let built = defaults;
 const harness = {
   action: (action: ToolAction) => request({ type: "action", action }),
   reset: (
-    scene: Scene,
     environment?: EnvironmentSettings,
     objectSize?: ObjectSize,
     objectShape?: ObjectShape,
@@ -48,7 +47,6 @@ const harness = {
     built = materials;
     return request({
       type: "init",
-      scene,
       ...(environment === undefined ? {} : { environment }),
       ...(objectSize === undefined ? {} : { objectSize }),
       ...(objectShape === undefined ? {} : { objectShape }),

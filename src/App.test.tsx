@@ -81,15 +81,15 @@ describe("without WebGPU", () => {
     expect(screen.queryByLabelText("Fracture simulation")).toBeNull();
   });
 
-  it("locks Reset and scene but not Pause", async () => {
+  it("locks Reset and the settings but not Pause", async () => {
     setGpu(undefined);
     const user = userEvent.setup();
     render(<App />);
     await screen.findByRole("alert");
     await openSettings(user);
-    for (const label of ["Scene"]) {
-      expect(screen.getByLabelText(label)).toBeDisabled();
-    }
+    expect(
+      screen.getByRole("combobox", { name: "Object shape" }),
+    ).toBeDisabled();
     expect(screen.getByRole("button", { name: /^Reset$/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /^Pause$/ })).toBeEnabled();
   });
@@ -103,12 +103,14 @@ describe("with WebGPU", () => {
     await screen.findByLabelText("Fracture simulation");
     const toggle = screen.getByRole("button", { name: "Settings" });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByLabelText("Scene")).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Object shape" })).toBeNull();
     await user.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByLabelText("Scene")).toBeVisible();
+    expect(
+      screen.getByRole("combobox", { name: "Object shape" }),
+    ).toBeVisible();
     await user.click(toggle);
-    expect(screen.queryByLabelText("Scene")).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Object shape" })).toBeNull();
   });
 
   it("keeps the popup open when Pause is pressed", async () => {
@@ -118,7 +120,9 @@ describe("with WebGPU", () => {
     await screen.findByLabelText("Fracture simulation");
     await openSettings(user);
     await user.click(screen.getByRole("button", { name: /^Pause$/ }));
-    expect(screen.getByLabelText("Scene")).toBeVisible();
+    expect(
+      screen.getByRole("combobox", { name: "Object shape" }),
+    ).toBeVisible();
   });
 
   it("closes the popup on Escape, ignores other keys and returns focus to the button", async () => {
@@ -128,9 +132,11 @@ describe("with WebGPU", () => {
     await screen.findByLabelText("Fracture simulation");
     await openSettings(user);
     await user.keyboard("a");
-    expect(screen.getByLabelText("Scene")).toBeVisible();
+    expect(
+      screen.getByRole("combobox", { name: "Object shape" }),
+    ).toBeVisible();
     await user.keyboard("{Escape}");
-    expect(screen.queryByLabelText("Scene")).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Object shape" })).toBeNull();
     expect(screen.getByRole("button", { name: "Settings" })).toHaveFocus();
   });
 
@@ -170,8 +176,9 @@ describe("with WebGPU", () => {
     render(<App />);
     await screen.findByLabelText("Fracture simulation");
     await openSettings(user);
-    await user.selectOptions(screen.getByLabelText("Scene"), "pile");
-    expect(screen.getByLabelText("Scene")).toHaveValue("pile");
+    const shape = screen.getByRole("combobox", { name: "Object shape" });
+    await user.selectOptions(shape, "ellipse");
+    expect(shape).toHaveValue("ellipse");
     await user.click(screen.getByRole("button", { name: /^Pause$/ }));
     expect(screen.getByRole("button", { name: /^Resume$/ })).toBeVisible();
   });
@@ -185,10 +192,12 @@ describe("with WebGPU", () => {
     await user.click(screen.getByRole("button", { name: /^Reset$/ }));
     expect(canvas).toHaveAttribute("data-reset-token", "1");
     await openSettings(user);
-    await user.click(screen.getByLabelText("Scene"));
-    expect(screen.getByLabelText("Scene")).toBeVisible();
+    await user.click(screen.getByRole("combobox", { name: "Object shape" }));
+    expect(
+      screen.getByRole("combobox", { name: "Object shape" }),
+    ).toBeVisible();
     await user.click(screen.getByRole("heading", { name: "Fracture Sim" }));
-    expect(screen.queryByLabelText("Scene")).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Object shape" })).toBeNull();
   });
 
   it("stops and locks the controls when the device is lost", async () => {

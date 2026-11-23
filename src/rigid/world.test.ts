@@ -37,7 +37,7 @@ const gravity = { x: 0, y: -GRAVITY };
 
 describe("rigid world", () => {
   it("keeps the real-glass default plate intact at floor level", () => {
-    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+    world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
     const vertices = world.vertices();
     expect(vertices).toHaveLength(5 * 6 * 6);
     expect(world.snapshot().poses[17]).toBeCloseTo(0.5, 2);
@@ -51,7 +51,7 @@ describe("rigid world", () => {
   });
 
   it("advances at a fixed 60 Hz, clamps stalls and leaves paused frames unchanged", () => {
-    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+    world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
     const initial = world.snapshot();
     expect(world.advance(0, gravity)).toEqual(initial);
     expect(world.advance(-1, gravity)).toEqual(initial);
@@ -61,7 +61,7 @@ describe("rigid world", () => {
   });
 
   it("wakes sleeping bodies when gravity tilts", () => {
-    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+    world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
     for (let i = 0; i < 600; i++)
       world.advance(TIME_STEP, gravity, live(10000));
     expect(world.snapshot().stats.sleeping).toBe(world.snapshot().stats.bodies);
@@ -72,7 +72,7 @@ describe("rigid world", () => {
 
   describe("gravity jitter", () => {
     const settle = (): RigidWorld => {
-      const settled = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+      const settled = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
       for (let i = 0; i < 600; i++)
         settled.advance(TIME_STEP, gravity, live(10000));
       return settled;
@@ -122,52 +122,7 @@ describe("rigid world", () => {
       expect(world.snapshot().stats.sleeping).toBe(0);
     });
   });
-
-  describe.each([1, DEFAULT_WORLD_SCALE, WORLD_SCALE_RANGE.min])(
-    "at world scale ×%s",
-    (scale) => {
-      it.each(["pile", "stress"] as const)(
-        "keeps every %s body in the container through 20 seconds",
-        (scene) => {
-          const environment = withWorldScale(DEFAULT_ENVIRONMENT, scale);
-          world = new RigidWorld(scene, environment);
-          const full = scene === "pile" ? 1000 : 2000;
-          expect(world.snapshot().stats.bodies).toBe(
-            Math.round(full * Math.min(1, scale / 0.05)),
-          );
-          for (let i = 0; i < 200; i++) world.advance(0.1, gravity);
-          const { poses, stats } = world.snapshot();
-          expect(stats.bodies).toBeLessThanOrEqual(2000);
-          expect(stats.sleeping).toBe(stats.bodies);
-          for (let i = 16; i < poses.length; i += 4) {
-            expect(poses[i]).toBeGreaterThan(0);
-            expect(poses[i]).toBeLessThan(environment.width);
-            expect(poses[i + 1]).toBeGreaterThan(0);
-            expect(poses[i + 1]).toBeLessThan(environment.height);
-          }
-        },
-        90_000,
-      );
-    },
-  );
 });
-
-it.each(["pile", "stress"] as const)(
-  "keeps every %s body in the container at the minimum scale under sideways gravity",
-  (scene) => {
-    const environment = withWorldScale(
-      DEFAULT_ENVIRONMENT,
-      WORLD_SCALE_RANGE.min,
-    );
-    world = new RigidWorld(scene, environment);
-    for (let i = 0; i < 200; i++) world.advance(0.1, { x: GRAVITY, y: -0.1 });
-    const { poses } = world.snapshot();
-    for (let i = 16; i < poses.length; i += 4) {
-      expect(poses[i]).toBeGreaterThan(0);
-      expect(poses[i]).toBeLessThan(environment.width);
-    }
-  },
-);
 
 it.each([
   ["floor", { x: 5, y: -0.3 }],
@@ -175,7 +130,7 @@ it.each([
   ["right wall", { x: WORLD_WIDTH + 0.3, y: 1 }],
   ["ceiling", { x: 5, y: WORLD_HEIGHT + 0.3 }],
 ])("lifts a body that sank into the %s back inside", (_side, position) => {
-  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+  world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
   const body = world["shapes"][4]?.body;
   if (body === undefined) throw new Error("Missing plate");
   body.setTranslation(position, true);
@@ -191,19 +146,19 @@ it.each([
 
 it("refuses invalid convex geometry", () => {
   vi.spyOn(RAPIER.ColliderDesc, "convexHull").mockReturnValueOnce(null);
-  expect(() => new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE)).toThrow(
+  expect(() => new RigidWorld(DEFAULT_ENVIRONMENT, PLATE)).toThrow(
     "Invalid convex body",
   );
 });
 
 it("reports a non-finite engine state", () => {
-  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+  world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
   vi.spyOn(RAPIER.RigidBody.prototype, "rotation").mockReturnValueOnce(NaN);
   expect(() => world?.snapshot()).toThrow("Non-finite rigid-body state");
 });
 
 it("routes pointer actions and appends a ball with matching geometry and poses", () => {
-  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+  world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
   expect(world.apply({ type: "grab", point: { x: 5, y: 0.5 } })).toBe(false);
   world.apply({ type: "move", point: { x: 5, y: 3.5 } });
   for (let i = 0; i < 60; i++) world.advance(TIME_STEP, gravity);
@@ -225,7 +180,7 @@ it("routes pointer actions and appends a ball with matching geometry and poses",
 });
 
 it("keeps thrown balls inside even when the launch starts in the floor margin", () => {
-  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+  world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
   world.apply({
     type: "throw",
     point: { x: 5, y: -0.35 },
@@ -237,7 +192,7 @@ it("keeps thrown balls inside even when the launch starts in the floor margin", 
 });
 
 it("keeps a grabbed plate above the floor when capture drags below the canvas", () => {
-  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+  world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
   world["shapes"][4]?.body.setTranslation({ x: 5, y: 0.501 }, true);
   for (let i = 0; i < 600; i++) world.advance(TIME_STEP, gravity, live(10000));
   world.apply({ type: "grab", point: { x: 5, y: 0.5 } });
@@ -247,7 +202,7 @@ it("keeps a grabbed plate above the floor when capture drags below the canvas", 
 });
 
 it("can grab a thrown ball and keep it in the container", () => {
-  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+  world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
   world.apply({
     type: "throw",
     point: { x: 1, y: 1 },
@@ -269,7 +224,6 @@ it("builds selected walls, plate mass and throws within the new bounds", () => {
     restitution: 0.4,
   };
   world = new RigidWorld(
-    "plate",
     { ...DEFAULT_ENVIRONMENT, width: 18, height: 8, gravity: 0 },
     PLATE,
     "rectangle",
@@ -303,7 +257,6 @@ it.each([
   (scale, radius) => {
     const environment = withWorldScale(DEFAULT_ENVIRONMENT, scale);
     world = new RigidWorld(
-      "plate",
       environment,
       fitObjectSize(DEFAULT_OBJECT_SIZE, environment),
     );
@@ -320,7 +273,7 @@ it.each([
 );
 
 it("keeps friction and restitution on recursively created fragments", () => {
-  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+  world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
   world["shapes"][4]?.body.setTranslation({ x: 5, y: 2.5 }, true);
   const object = { ...DEFAULT_MATERIAL, friction: 0.83, restitution: 0.4 };
   for (let i = 0; i < 120; i++)
@@ -334,7 +287,6 @@ it("keeps friction and restitution on recursively created fragments", () => {
 
 it("uses selected grab limits beyond the old right wall and ceiling", () => {
   world = new RigidWorld(
-    "plate",
     {
       ...DEFAULT_ENVIRONMENT,
       width: 18,
@@ -350,39 +302,15 @@ it("uses selected grab limits beyond the old right wall and ceiling", () => {
   expect(world.snapshot().poses[17]).toBeCloseTo(7, 1);
 });
 
-it.each(["pile", "stress"] as const)(
-  "fits %s inside the smallest supported world",
-  (scene) => {
-    world = new RigidWorld(scene, {
-      ...DEFAULT_ENVIRONMENT,
-      width: 4,
-      height: 3,
-    });
-    const shapes = world["shapes"].slice(4);
-    for (const { body, polygon } of shapes) {
-      const center = body.translation();
-      for (const [x, y] of polygon) {
-        expect(center.x + x).toBeGreaterThan(0);
-        expect(center.x + x).toBeLessThan(4);
-        expect(center.y + y).toBeGreaterThan(0);
-        expect(center.y + y).toBeLessThan(3);
-      }
-    }
-  },
-);
-
-it.each(["plate", "pile", "stress"] as const)(
-  "builds %s at the minimum world scale with the default object size",
-  (scene) => {
-    const environment = withWorldScale(
-      DEFAULT_ENVIRONMENT,
-      WORLD_SCALE_RANGE.min,
-    );
-    world = new RigidWorld(scene, environment);
-    for (let i = 0; i < 5; i++) world.advance(0.1, gravity);
-    expect(world.snapshot().poses.every(Number.isFinite)).toBe(true);
-  },
-);
+it("builds the plate at the minimum world scale with the default object size", () => {
+  const environment = withWorldScale(
+    DEFAULT_ENVIRONMENT,
+    WORLD_SCALE_RANGE.min,
+  );
+  world = new RigidWorld(environment);
+  for (let i = 0; i < 5; i++) world.advance(0.1, gravity);
+  expect(world.snapshot().poses.every(Number.isFinite)).toBe(true);
+});
 
 const surfaceCases = [
   ["friction", NaN],
@@ -396,7 +324,7 @@ const surfaceCases = [
 it.each(surfaceCases)(
   "rejects an invalid live floor and object %s of %s",
   (key, value) => {
-    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+    world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
     const bad = { ...DEFAULT_MATERIAL, [key]: value };
     expect(() =>
       world?.advance(0, gravity, live(10000, { object: bad })),
@@ -410,14 +338,14 @@ it.each(surfaceCases)(
 it("rejects an invalid material at construction", () => {
   expect(
     () =>
-      new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE, "rectangle", {
+      new RigidWorld(DEFAULT_ENVIRONMENT, PLATE, "rectangle", {
         floor: DEFAULT_FLOOR_MATERIAL,
         object: { ...DEFAULT_MATERIAL, density: 1 },
       }),
   ).toThrow("Invalid material setting: areal density");
   expect(
     () =>
-      new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE, "rectangle", {
+      new RigidWorld(DEFAULT_ENVIRONMENT, PLATE, "rectangle", {
         floor: { ...DEFAULT_FLOOR_MATERIAL, friction: 3 },
         object: DEFAULT_MATERIAL,
       }),
@@ -427,7 +355,7 @@ it("rejects an invalid material at construction", () => {
 it("gives the floor, the object and the boundary their own surfaces", () => {
   const floor = { ...DEFAULT_FLOOR_MATERIAL, friction: 1.2, restitution: 0.8 };
   const object = { ...DEFAULT_MATERIAL, friction: 0.2, restitution: 0.1 };
-  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE, "rectangle", {
+  world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE, "rectangle", {
     floor,
     object,
   });
@@ -450,16 +378,10 @@ it("gives the floor, the object and the boundary their own surfaces", () => {
 
 it("scales body mass with the object's density and thickness", () => {
   const masses = [10, 20].map((thicknessMm) => {
-    const built = new RigidWorld(
-      "plate",
-      DEFAULT_ENVIRONMENT,
-      PLATE,
-      "rectangle",
-      {
-        floor: DEFAULT_FLOOR_MATERIAL,
-        object: { ...DEFAULT_MATERIAL, thicknessMm },
-      },
-    );
+    const built = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE, "rectangle", {
+      floor: DEFAULT_FLOOR_MATERIAL,
+      object: { ...DEFAULT_MATERIAL, thicknessMm },
+    });
     const { mass } = built.snapshot().stats;
     built.dispose();
     return mass;
@@ -469,7 +391,7 @@ it("scales body mass with the object's density and thickness", () => {
 });
 
 it("applies a live floor change to the floor only and wakes the bodies", () => {
-  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+  world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
   const floor = { ...DEFAULT_FLOOR_MATERIAL, friction: 1.5, restitution: 0.6 };
   expect(world["shapes"][4]?.body.isSleeping()).toBe(true);
   world.advance(0, gravity, live(10000, { floor }));
@@ -481,7 +403,7 @@ it("applies a live floor change to the floor only and wakes the bodies", () => {
 });
 
 it("applies a live object change to every dynamic body but not the walls", () => {
-  world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+  world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
   const object = { ...DEFAULT_MATERIAL, friction: 0, restitution: 0.7 };
   world.advance(0, gravity, live(10000, { object }));
   for (const { body, fixed } of world["shapes"]) {
@@ -494,13 +416,10 @@ it("a bouncier floor and object make a dropped plate rebound", () => {
   const rebound = [0, 0.9].map((restitution) => {
     const floor = { ...DEFAULT_FLOOR_MATERIAL, restitution };
     const object = { ...DEFAULT_MATERIAL, restitution };
-    const built = new RigidWorld(
-      "plate",
-      DEFAULT_ENVIRONMENT,
-      PLATE,
-      "rectangle",
-      { floor, object },
-    );
+    const built = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE, "rectangle", {
+      floor,
+      object,
+    });
     const body = built["shapes"][4]?.body;
     if (body === undefined) throw new Error("Missing plate");
     body.setTranslation({ x: 5, y: 2 }, true);
@@ -518,7 +437,7 @@ it("a bouncier floor and object make a dropped plate rebound", () => {
 it("live friction slows a sliding plate while zero friction preserves its speed", () => {
   const distances: number[] = [];
   for (const friction of [0, 1]) {
-    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+    world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
     for (let i = 0; i < 600; i++)
       world.advance(TIME_STEP, gravity, live(10000));
     const body = world["shapes"][4]?.body;
@@ -543,7 +462,7 @@ it("live friction slows a sliding plate while zero friction preserves its speed"
 
 describe("visible height", () => {
   it("lets a body rise to a ceiling raised to the visible height", () => {
-    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+    world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
     world.setVisibleHeight(12);
     world.apply({ type: "grab", point: { x: 5, y: 0.5 } });
     world.apply({ type: "move", point: { x: 5, y: 11 } });
@@ -553,7 +472,7 @@ describe("visible height", () => {
   });
 
   it("clamps throws to the visible height", () => {
-    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+    world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
     world.setVisibleHeight(12);
     world.apply({
       type: "throw",
@@ -564,7 +483,7 @@ describe("visible height", () => {
   });
 
   it("keeps the configured height when the view is shorter", () => {
-    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+    world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
     world.setVisibleHeight(2);
     world.apply({
       type: "throw",
@@ -577,7 +496,7 @@ describe("visible height", () => {
   });
 
   it("keeps the walls tall enough after the ceiling moves", () => {
-    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+    world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
     world.setVisibleHeight(20);
     world["shapes"][4]?.body.setTranslation({ x: 9.7, y: 15 }, true);
     world["shapes"][4]?.body.setLinvel({ x: 30, y: 0 }, true);
@@ -587,7 +506,7 @@ describe("visible height", () => {
   });
 
   it("rejects an invalid height and ignores an unchanged one", () => {
-    world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+    world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
     expect(() => {
       world?.setVisibleHeight(Number.NaN);
     }).toThrow("Invalid visible height");
