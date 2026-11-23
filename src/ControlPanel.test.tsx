@@ -398,7 +398,11 @@ describe("reset buttons", () => {
       {
         objectShape: "hexagon",
         material: { ...DEFAULT_SETTINGS.material, preset: "ice" },
-        floorMaterial: { ...DEFAULT_SETTINGS.floorMaterial, preset: "wood" },
+        floorMaterial: {
+          preset: "wood",
+          friction: 0.5,
+          restitution: 0.3,
+        },
       },
     );
     await user.click(

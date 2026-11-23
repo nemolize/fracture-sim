@@ -103,3 +103,12 @@ it("ignores an unknown select value", () => {
   );
   expect(onChange).not.toHaveBeenCalled();
 });
+
+it("is at the default for the glass floor, which has the default's values", () => {
+  const glass = findFloorPreset("glass");
+  if (glass === undefined) throw new Error("Missing preset");
+  setup(floorFromPreset(glass));
+  expect(
+    screen.getByRole("button", { name: "Reset Floor material preset" }),
+  ).toBeDisabled();
+});

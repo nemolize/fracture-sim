@@ -9,8 +9,11 @@ the stress-intensity fracture toughness KIC (MPa√m).
 | Ice (−13°C)    |       1.5 |                       0.015 | [Goodman and Tabor, §4(i)][ice] |
 | Acrylic (PMMA) |       500 |                           5 | [Roylance, Table 2, p. 9][mit]  |
 | Polystyrene    |       400 |                           4 | [Roylance, Table 2, p. 9][mit]  |
+| Steel (mild)   |    12,000 |                         120 | [Roylance, Table 2, p. 9][mit]  |
+| Rubber         |    13,000 |                         130 | [Roylance, Table 2, p. 9][mit]  |
+| Wood           |       120 |                         1.2 | [Roylance, Table 2, p. 9][mit]  |
 
-The MIT table reports kJ/m²: glass 0.007, PMMA 0.5 and polystyrene 0.4.
+The MIT table reports kJ/m²: glass 0.007, PMMA 0.5, polystyrene 0.4, mild steel 12, rubber 13 and wood 0.12.
 The ice measurement is 1.5 ± 0.2 J/m² from three-point bending at −13°C.
 These are representative values; composition, temperature and loading rate
 can change measured fracture properties.
@@ -27,14 +30,13 @@ logarithmic scale; thickness spans 0.1–100 mm. These are empirical UI bounds.
 
 The object and the floor pick from one list: every object material is also a
 floor material with the same friction and restitution, and the floor adds
-Default. Concrete, wood, steel and rubber have a fracture energy (100, 300,
-50,000 and 10,000 J/m²) and density (2400, 600, 7850 and 1100 kg/m³) chosen
-empirically, with no fixed source.
+Default.
 
-Only the fracture energies of glass, ice, PMMA and polystyrene are sourced. The densities, friction and
-restitution of the presets, and every floor preset in `src/sim/floor-material.ts`, are representative values chosen empirically with no fixed
-source. Glass and the Default floor keep the friction 0.5 and restitution 0 the
-app had before materials existed.
+Gc is sourced for every preset in the table above except concrete (100 J/m²,
+chosen empirically). The densities, friction and restitution of all presets,
+and the Default floor in `src/sim/floor-material.ts`, are representative values
+chosen empirically with no fixed source. Glass and the Default floor keep the
+friction 0.5 and restitution 0 the app had before materials existed.
 
 Areal density is `density × thickness / 1000` kg/m², so glass at 2500 kg/m³ and
 10 mm is the former 25 kg/m². Thickness therefore scales both mass and crack

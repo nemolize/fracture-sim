@@ -41,7 +41,7 @@ export const floorFromPreset = (
   };
 };
 
-/** Acrylic and polystyrene share surface values, so the preset already chosen wins when it still matches. */
+/** Presets can share surface values; the preset already chosen wins while it still matches. */
 export const matchFloorPreset = (
   floor: FloorMaterialSettings,
 ): FloorMaterialSettings => {

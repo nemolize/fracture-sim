@@ -26,7 +26,11 @@ export const FloorMaterialControl = ({ value, disabled, onChange }: Props) => (
         Floor material preset
         <ResetButton
           label="Floor material preset"
-          atDefault={value.preset === DEFAULT_FLOOR_MATERIAL.preset}
+          atDefault={
+            value.preset !== "custom" &&
+            value.friction === DEFAULT_FLOOR_MATERIAL.friction &&
+            value.restitution === DEFAULT_FLOOR_MATERIAL.restitution
+          }
           onReset={() => {
             onChange(DEFAULT_FLOOR_MATERIAL);
           }}
