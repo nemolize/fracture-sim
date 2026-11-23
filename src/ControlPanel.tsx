@@ -7,7 +7,6 @@ import { ObjectControl } from "@/ObjectControl";
 import { ResetButton } from "@/ResetButton";
 import { naturalObjectSize } from "@/rigid/object-shape";
 import { fitObjectSize } from "@/rigid/object-size";
-import { TOOL_HINTS, TOOL_LABELS, TOOLS } from "@/rigid/tools";
 import { SCENES } from "@/rigid/types";
 import {
   asScene,
@@ -20,7 +19,6 @@ import type { MotionControl } from "@/useMotion";
 
 interface Props {
   settings: Settings;
-  paused: boolean;
   locked: boolean;
   motion: Pick<MotionControl, "support" | "enabled" | "notice" | "setEnabled">;
   onChange: (next: Settings) => void;
@@ -90,13 +88,7 @@ const MotionSlider = ({
 const SELECT_CLASS =
   "rounded border border-gray-300 bg-white p-1.5 font-normal";
 
-export const ControlPanel = ({
-  settings,
-  paused,
-  locked,
-  motion,
-  onChange,
-}: Props) => (
+export const ControlPanel = ({ settings, locked, motion, onChange }: Props) => (
   <aside className="flex w-full flex-col gap-4 rounded-lg bg-white/60 p-4 shadow-lg backdrop-blur-md">
     <button
       type="button"
@@ -128,26 +120,6 @@ export const ControlPanel = ({
         </select>
       </Field>
     </div>
-
-    <fieldset className="flex flex-col gap-2" disabled={locked || paused}>
-      <legend className="text-sm font-medium text-gray-700">Tool</legend>
-      <div className="flex gap-2">
-        {TOOLS.map((tool) => (
-          <label key={tool} className="flex items-center gap-1 text-sm">
-            <input
-              type="radio"
-              name="tool"
-              checked={settings.tool === tool}
-              onChange={() => {
-                onChange({ ...settings, tool });
-              }}
-            />
-            {TOOL_LABELS[tool]}
-          </label>
-        ))}
-      </div>
-      <p className="text-xs text-gray-600">{TOOL_HINTS[settings.tool]}</p>
-    </fieldset>
 
     <EnvironmentControl
       value={settings.environment}

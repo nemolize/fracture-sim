@@ -17,7 +17,7 @@ export const StatsReadout = ({ stats, material }: Props) => {
   return (
     <dl
       aria-label="Simulation statistics"
-      className="pointer-events-none absolute top-3 left-3 grid min-w-48 grid-cols-[1fr_auto] gap-x-3 rounded bg-white/60 px-2 py-1 text-xs text-gray-800 backdrop-blur-md"
+      className="pointer-events-none grid min-w-48 grid-cols-[1fr_auto] gap-x-3 rounded bg-white/60 px-2 py-1 text-xs text-gray-800 backdrop-blur-md"
     >
       <dt>Frame rate</dt>
       <dd className="text-right tabular-nums">

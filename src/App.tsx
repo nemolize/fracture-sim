@@ -6,6 +6,7 @@ import { useGpu } from "@/gpu/useGpu";
 import type { WorldStats } from "@/rigid/types";
 import { DEFAULT_SETTINGS, type Settings } from "@/settings";
 import { StatsReadout } from "@/StatsReadout";
+import { ToolPicker } from "@/ToolPicker";
 import { useMotion } from "@/useMotion";
 
 const INITIAL_STATS: WorldStats = {
@@ -126,7 +127,16 @@ const App = () => {
             onPhysicsError={setPhysicsError}
             onContextUnavailable={unsupported}
           >
-            <StatsReadout stats={stats} material={settings.material} />
+            <div className="pointer-events-none absolute top-3 left-3 flex flex-col items-start gap-2">
+              <StatsReadout stats={stats} material={settings.material} />
+              <ToolPicker
+                value={settings.tool}
+                disabled={paused}
+                onChange={(tool) => {
+                  setSettings({ ...settings, tool });
+                }}
+              />
+            </div>
           </FractureCanvas>
         ) : null}
         {physicsError !== null ? (
@@ -154,7 +164,6 @@ const App = () => {
         >
           <ControlPanel
             settings={settings}
-            paused={paused}
             locked={locked}
             motion={motion}
             onChange={setSettings}
