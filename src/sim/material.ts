@@ -25,8 +25,8 @@ export const validateSurface = (surface: Surface): void => {
   }
 };
 
-// Representative values; chosen empirically, no fixed source except the
-// fracture energies (docs/material-presets.md).
+// Representative values, chosen empirically; the sourced fracture energies are
+// listed in docs/material-presets.md.
 export const MATERIAL_PRESETS = [
   {
     id: "glass",
@@ -59,6 +59,38 @@ export const MATERIAL_PRESETS = [
     density: 1050,
     friction: 0.4,
     restitution: 0.3,
+  },
+  {
+    id: "concrete",
+    label: "Concrete",
+    fractureEnergy: 100,
+    density: 2400,
+    friction: 0.7,
+    restitution: 0.1,
+  },
+  {
+    id: "wood",
+    label: "Wood",
+    fractureEnergy: 120,
+    density: 600,
+    friction: 0.5,
+    restitution: 0.3,
+  },
+  {
+    id: "steel",
+    label: "Steel",
+    fractureEnergy: 12_000,
+    density: 7850,
+    friction: 0.4,
+    restitution: 0.5,
+  },
+  {
+    id: "rubber",
+    label: "Rubber",
+    fractureEnergy: 13_000,
+    density: 1100,
+    friction: 1.2,
+    restitution: 0.8,
   },
 ] as const;
 

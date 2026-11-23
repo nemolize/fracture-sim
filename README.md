@@ -72,7 +72,8 @@ nonrepresentable area or polar moments throw.
 `src/sim/fracture.ts` divides impact energy by the energy per metre of new crack.
 The material controls convert measured fracture energy with `Gc × thicknessMm / 1000`.
 Glass is the initial preset: 7 J/m² at 10 mm gives 0.07 J/m. Ice uses 1.5 J/m²,
-PMMA 500 J/m², and polystyrene 400 J/m². Sources and conditions are in
+PMMA 500 J/m², polystyrene 400 J/m², mild steel 12,000 J/m², rubber 13,000 J/m², wood 120 J/m² and concrete 100 J/m² (concrete is unsourced). Concrete, wood, steel and rubber are
+also offered, and the floor and the object choose from the same list. Sources and conditions are in
 [Material presets](docs/material-presets.md). Positive finite crack energies below
 1 J/m are supported. Changing the effective crack energy or the minimum fragment area cancels queued splits.
 A hit must exceed the body's narrowest width before splitting. Seeds are tried

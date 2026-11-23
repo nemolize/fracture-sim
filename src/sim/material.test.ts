@@ -174,3 +174,15 @@ it("snaps a slider position next to a preset's fracture energy to it", () => {
   expect(fractureEnergyAt(0.18)).toBe(1.5);
   expect(fractureEnergyAt(1)).toBe(10);
 });
+
+it("offers concrete, wood, steel and rubber as objects, valid at the default thickness", () => {
+  for (const id of ["concrete", "wood", "steel", "rubber"] as const) {
+    const preset = findMaterialPreset(id);
+    if (preset === undefined) throw new Error("Missing preset");
+    const material = materialFromPreset(preset, DEFAULT_MATERIAL);
+    expect(material.preset).toBe(id);
+    expect(() => {
+      validateMaterial(material);
+    }).not.toThrow();
+  }
+});
