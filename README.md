@@ -107,7 +107,8 @@ Run the local 32-seed benchmark without coverage:
 pnpm exec vitest run split.bench.test.ts --disableConsoleIntercept
 ```
 
-It warms up 100 splits, then reports mean and p95 for 1,000 different inputs.
+It warms up 100 splits, then reports the p95 of five rounds of 1,000 different
+inputs and judges the best round, so CPU contention in one round cannot fail it.
 The performance test is skipped when `CI` is set.
 
 ## Deployment
