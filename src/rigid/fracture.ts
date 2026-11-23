@@ -1,8 +1,8 @@
 import RAPIER from "@dimforge/rapier2d-compat";
 
-import { fracturePieces } from "@/sim/fracture";
+import { fracturePieces, rigidPieces } from "@/sim/fracture";
 import { DEFAULT_CRACK_ENERGY, isCrackEnergy } from "@/sim/material";
-import { polygonMoments } from "@/sim/polygon";
+import type { ParticleField } from "@/sim/particles";
 import type { Piece } from "@/sim/split";
 
 import { type BodyShape, polygonCollider } from "./body";
@@ -16,9 +16,11 @@ export class ImpactFracture {
   private crackEnergy = DEFAULT_CRACK_ENERGY;
 
   private minFragmentArea: number;
+  private readonly particles: ParticleField;
 
-  constructor(minFragmentArea: number) {
+  constructor(minFragmentArea: number, particles: ParticleField) {
     this.minFragmentArea = minFragmentArea;
+    this.particles = particles;
   }
 
   setMinFragmentArea(value: number): void {
@@ -134,13 +136,14 @@ export class ImpactFracture {
     let count = shapes.filter((s) => !s.fixed).length;
     let changed = false;
     for (const [parent, pieces] of this.pending) {
-      if (count + pieces.length - 1 > MAX_BODIES) continue;
+      const bodies = rigidPieces(pieces, this.minFragmentArea).length;
+      if (count + bodies - 1 > MAX_BODIES) continue;
       const children = this.children(world, parent, pieces);
       detach(parent.body);
       world.removeRigidBody(parent.body);
       shapes.splice(shapes.indexOf(parent), 1, ...children);
       this.pending.delete(parent);
-      count += pieces.length - 1;
+      count += bodies - 1;
       changed = true;
     }
     return changed;
@@ -151,26 +154,35 @@ export class ImpactFracture {
     parent: BodyShape,
     pieces: Piece[],
   ): BodyShape[] {
-    const area = polygonMoments(parent.domain).area;
     const origin = parent.body.translation();
     const angle = parent.body.rotation();
     const velocity = parent.body.linvel();
     const spin = parent.body.angvel();
     const created: BodyShape[] = [];
+    const solids = rigidPieces(pieces, this.minFragmentArea);
+    const solidArea = solids.reduce((sum, piece) => sum + piece.area, 0);
+    const launch = (piece: Piece) => {
+      const dx =
+        Math.cos(angle) * piece.centroidOffset.x -
+        Math.sin(angle) * piece.centroidOffset.y;
+      const dy =
+        Math.sin(angle) * piece.centroidOffset.x +
+        Math.cos(angle) * piece.centroidOffset.y;
+      return {
+        position: { x: origin.x + dx, y: origin.y + dy },
+        velocity: { x: velocity.x - spin * dy, y: velocity.y + spin * dx },
+      };
+    };
     let assigned = 0;
     try {
-      for (const [i, piece] of pieces.entries()) {
+      for (const piece of solids) {
+        // Dust carries no mass of its own: the rigid pieces share the parent's whole mass.
         const mass =
-          i === pieces.length - 1
+          piece === solids[solids.length - 1]
             ? parent.mass - assigned
-            : (parent.mass * piece.area) / area;
+            : (parent.mass * piece.area) / solidArea;
         assigned += mass;
-        const dx =
-          Math.cos(angle) * piece.centroidOffset.x -
-          Math.sin(angle) * piece.centroidOffset.y;
-        const dy =
-          Math.sin(angle) * piece.centroidOffset.x +
-          Math.cos(angle) * piece.centroidOffset.y;
+        const { position, velocity: pieceVelocity } = launch(piece);
         const polygon = piece.polygon.map((p): readonly [number, number] => [
           p.x,
           p.y,
@@ -185,9 +197,9 @@ export class ImpactFracture {
           );
         const body = world.createRigidBody(
           RAPIER.RigidBodyDesc.dynamic()
-            .setTranslation(origin.x + dx, origin.y + dy)
+            .setTranslation(position.x, position.y)
             .setRotation(angle)
-            .setLinvel(velocity.x - spin * dy, velocity.y + spin * dx)
+            .setLinvel(pieceVelocity.x, pieceVelocity.y)
             .setAngvel(spin)
             .setCcdEnabled(true),
         );
@@ -200,6 +212,11 @@ export class ImpactFracture {
           ball: false,
         });
         world.createCollider(collider, body);
+      }
+      for (const piece of pieces) {
+        if (solids.includes(piece)) continue;
+        const { position, velocity: dustVelocity } = launch(piece);
+        this.particles.spawn(position, dustVelocity, Math.sqrt(piece.area));
       }
       return created;
     } catch (error) {

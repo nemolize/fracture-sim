@@ -1,7 +1,14 @@
 import { floorMargin, visibleWorldHeight } from "@/gpu/camera";
 import { BufferUsage } from "@/gpu/usage";
+import { MAX_PARTICLES } from "@/sim/particles";
 
 import { DEFAULT_ENVIRONMENT, type EnvironmentSettings } from "./environment";
+import { GLASS_COLOR } from "./palette";
+
+const clip = (bounds: Pick<EnvironmentSettings, "width">): string => `vec4f(
+    p.x / ${bounds.width.toFixed(6)} * 2.0 - 1.0,
+    (p.y + ${String(floorMargin(bounds.width))}) / (view.y + ${String(floorMargin(bounds.width))}) * 2.0 - 1.0,
+    0.0, 1.0)`;
 
 const shader = (bounds: Pick<EnvironmentSettings, "width">) => `
 struct Vertex { @builtin(position) position: vec4f, @location(0) color: vec3f };
@@ -10,10 +17,30 @@ struct Vertex { @builtin(position) position: vec4f, @location(0) color: vec3f };
 @vertex fn vertex(@location(0) point: vec2f, @location(1) body: f32, @location(2) color: vec3f) -> Vertex {
   let pose = poses[u32(body)];
   let p = pose.xy + vec2f(pose.z * point.x - pose.w * point.y, pose.w * point.x + pose.z * point.y);
-  return Vertex(vec4f(p.x / ${bounds.width.toFixed(6)} * 2.0 - 1.0, (p.y + ${String(floorMargin(bounds.width))}) / (view.y + ${String(floorMargin(bounds.width))}) * 2.0 - 1.0, 0.0, 1.0), color);
+  return Vertex(${clip(bounds)}, color);
 }
 @fragment fn fragment(input: Vertex) -> @location(0) vec4f { return vec4f(input.color, 1.0); }
 `;
+
+const particleShader = (bounds: Pick<EnvironmentSettings, "width">) => `
+struct Vertex { @builtin(position) position: vec4f, @location(0) life: f32 };
+@group(0) @binding(0) var<storage, read> particles: array<vec4f>;
+@group(0) @binding(1) var<uniform> view: vec4f;
+@vertex fn vertex(@builtin(vertex_index) corner: u32, @builtin(instance_index) instance: u32) -> Vertex {
+  let particle = particles[instance];
+  var offsets = array<vec2f, 6>(vec2f(-1, -1), vec2f(1, -1), vec2f(1, 1), vec2f(-1, -1), vec2f(1, 1), vec2f(-1, 1));
+  let p = particle.xy + offsets[corner] * particle.z * 0.5;
+  return Vertex(${clip(bounds)}, particle.w);
+}
+@fragment fn fragment(input: Vertex) -> @location(0) vec4f {
+  return vec4f(vec3f(${GLASS_COLOR.join(", ")}), input.life);
+}
+`;
+
+const FADE: GPUBlendState = {
+  color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
+  alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
+};
 
 export class RigidRenderer {
   private readonly device: GPUDevice;
@@ -22,6 +49,9 @@ export class RigidRenderer {
   private readonly view: GPUBuffer;
   private readonly group: GPUBindGroup;
   private readonly pipeline: GPURenderPipeline;
+  private readonly particles: GPUBuffer;
+  private readonly particleGroup: GPUBindGroup;
+  private readonly particlePipeline: GPURenderPipeline;
   private readonly count: number;
   private readonly bounds: Pick<EnvironmentSettings, "width">;
 
@@ -76,14 +106,40 @@ export class RigidRenderer {
         { binding: 1, resource: { buffer: this.view } },
       ],
     });
+    this.particles = device.createBuffer({
+      size: MAX_PARTICLES * 16,
+      usage: BufferUsage.STORAGE | BufferUsage.COPY_DST,
+    });
+    const particleModule = device.createShaderModule({
+      code: particleShader(bounds),
+    });
+    this.particlePipeline = device.createRenderPipeline({
+      layout: "auto",
+      vertex: { module: particleModule, entryPoint: "vertex" },
+      fragment: {
+        module: particleModule,
+        entryPoint: "fragment",
+        targets: [{ format, blend: FADE }],
+      },
+      primitive: { topology: "triangle-list" },
+    });
+    this.particleGroup = device.createBindGroup({
+      layout: this.particlePipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: { buffer: this.particles } },
+        { binding: 1, resource: { buffer: this.view } },
+      ],
+    });
   }
 
   draw(
     target: GPUTextureView,
     poses: Float32Array<ArrayBuffer>,
+    particles: Float32Array<ArrayBuffer>,
     canvas: { width: number; height: number },
   ): void {
     this.device.queue.writeBuffer(this.poses, 0, poses);
+    this.device.queue.writeBuffer(this.particles, 0, particles);
     this.device.queue.writeBuffer(
       this.view,
       0,
@@ -109,6 +165,9 @@ export class RigidRenderer {
     pass.setBindGroup(0, this.group);
     pass.setVertexBuffer(0, this.vertices);
     pass.draw(this.count);
+    pass.setPipeline(this.particlePipeline);
+    pass.setBindGroup(0, this.particleGroup);
+    pass.draw(6, particles.length / 4);
     pass.end();
     this.device.queue.submit([encoder.finish()]);
   }
@@ -116,6 +175,7 @@ export class RigidRenderer {
   dispose(): void {
     this.vertices.destroy();
     this.poses.destroy();
+    this.particles.destroy();
     this.view.destroy();
   }
 }

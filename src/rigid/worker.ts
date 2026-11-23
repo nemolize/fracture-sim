@@ -1,10 +1,18 @@
-import type { WorkerRequest, WorkerResponse } from "./types";
+import type { Snapshot, WorkerRequest, WorkerResponse } from "./types";
 import { initializePhysics, RigidWorld } from "./world";
 
 let world: RigidWorld | undefined;
 const send = (message: WorkerResponse, transfer: Transferable[] = []): void => {
   postMessage(message, { transfer });
 };
+const buffers = (
+  snapshot: Snapshot,
+  vertices?: Float32Array<ArrayBuffer>,
+): Transferable[] => [
+  snapshot.poses.buffer,
+  snapshot.particles.buffer,
+  ...(vertices === undefined ? [] : [vertices.buffer]),
+];
 
 onmessage = (event: MessageEvent<WorkerRequest>): void => {
   const request = event.data;
@@ -24,10 +32,10 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
           world.setVisibleHeight(request.visibleHeight);
         const vertices = world.vertices();
         const snapshot = world.snapshot();
-        send({ type: "ready", vertices, snapshot }, [
-          vertices.buffer,
-          snapshot.poses.buffer,
-        ]);
+        send(
+          { type: "ready", vertices, snapshot },
+          buffers(snapshot, vertices),
+        );
       } else {
         if (world === undefined) throw new Error("Physics worker is not ready");
         if (request.type === "resize") {
@@ -37,11 +45,11 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
           const snapshot = world.snapshot();
           if (changed) {
             const vertices = world.vertices();
-            send({ type: "edited", snapshot, vertices }, [
-              vertices.buffer,
-              snapshot.poses.buffer,
-            ]);
-          } else send({ type: "edited", snapshot }, [snapshot.poses.buffer]);
+            send(
+              { type: "edited", snapshot, vertices },
+              buffers(snapshot, vertices),
+            );
+          } else send({ type: "edited", snapshot }, buffers(snapshot));
         } else {
           const revision = world.geometryRevision;
           const snapshot = world.advance(
@@ -51,11 +59,11 @@ onmessage = (event: MessageEvent<WorkerRequest>): void => {
           );
           if (revision !== world.geometryRevision) {
             const vertices = world.vertices();
-            send({ type: "frame", snapshot, vertices }, [
-              vertices.buffer,
-              snapshot.poses.buffer,
-            ]);
-          } else send({ type: "frame", snapshot }, [snapshot.poses.buffer]);
+            send(
+              { type: "frame", snapshot, vertices },
+              buffers(snapshot, vertices),
+            );
+          } else send({ type: "frame", snapshot }, buffers(snapshot));
         }
       }
     } catch (error) {

@@ -9,7 +9,12 @@ import {
 import { gpuContext } from "@/gpu/device";
 import { PointerGesture } from "@/rigid/gesture";
 import { RigidRenderer } from "@/rigid/renderer";
-import type { WorkerRequest, WorkerResponse, WorldStats } from "@/rigid/types";
+import type {
+  Snapshot,
+  WorkerRequest,
+  WorkerResponse,
+  WorldStats,
+} from "@/rigid/types";
 import { ScaleBar } from "@/ScaleBar";
 import type { Settings } from "@/settings";
 import { arealDensity, liveMaterials } from "@/sim/material";
@@ -83,7 +88,7 @@ export const FractureCanvas = ({
       worker.postMessage(request);
     };
     let renderer: RigidRenderer | undefined;
-    let poses: Float32Array<ArrayBuffer> | undefined;
+    let snapshot: Snapshot | undefined;
     let stopped = false;
     let pending = false;
     let previous: number | null = null;
@@ -122,7 +127,7 @@ export const FractureCanvas = ({
         );
       }
       if (response.type !== "edited") pending = false;
-      poses = response.snapshot.poses;
+      snapshot = response.snapshot;
       latest.current.onStats(response.snapshot.stats);
     };
     const gesture = new PointerGesture((action) => {
@@ -224,8 +229,13 @@ export const FractureCanvas = ({
         previous = now;
         pending = true;
       }
-      if (renderer !== undefined && poses !== undefined) {
-        renderer.draw(context.getCurrentTexture().createView(), poses, canvas);
+      if (renderer !== undefined && snapshot !== undefined) {
+        renderer.draw(
+          context.getCurrentTexture().createView(),
+          snapshot.poses,
+          snapshot.particles,
+          canvas,
+        );
       }
       animation = requestAnimationFrame(frame);
     };

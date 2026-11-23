@@ -5,8 +5,11 @@ import {
   MAX_HIT_PIECES,
   MIN_FRAGMENT_AREA,
   narrowestWidth,
+  rigidPieces,
+  splittableArea,
 } from "./fracture";
 import { polygonMoments } from "./polygon";
+import type { Piece } from "./split";
 import type { Vec2 } from "./vec2";
 
 const CRACK_ENERGY = 12;
@@ -121,4 +124,30 @@ it("keeps cracks inside a rotated plate and conserves its area", () => {
       expect(Math.abs((y - x) / Math.sqrt(2))).toBeLessThanOrEqual(0.5 + 1e-12);
     }
   }
+});
+
+describe("rigidPieces", () => {
+  const piece = (area: number): Piece => ({
+    polygon: [],
+    domain: [],
+    centroidOffset: { x: 0, y: 0 },
+    area,
+    polarAreaMoment: 0,
+  });
+  const floor = splittableArea(MIN_FRAGMENT_AREA);
+
+  it("keeps the pieces at or above the splittable area and drops the dust", () => {
+    const [a, b, c] = [piece(floor), piece(floor / 2), piece(floor * 3)];
+    expect(rigidPieces([a, b, c], MIN_FRAGMENT_AREA)).toEqual([a, c]);
+  });
+
+  it("keeps the largest piece when all of them are dust", () => {
+    const [a, b, c] = [piece(0.0006), piece(0.0009), piece(0.0007)];
+    expect(rigidPieces([a, b, c], MIN_FRAGMENT_AREA)).toEqual([b]);
+  });
+
+  it("follows the minimum fragment area it is given", () => {
+    const [a, b] = [piece(floor / 2), piece(floor / 4)];
+    expect(rigidPieces([a, b], MIN_FRAGMENT_AREA / 4)).toEqual([a, b]);
+  });
 });

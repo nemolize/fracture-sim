@@ -12,6 +12,7 @@ import {
   validateSurface,
   type WorldMaterials,
 } from "@/sim/material";
+import { ParticleField } from "@/sim/particles";
 
 import { type BodyShape, centreExtent, createBodyShape } from "./body";
 import {
@@ -34,6 +35,7 @@ import {
   type ObjectSize,
   validateObjectSize,
 } from "./object-size";
+import { GLASS_COLOR } from "./palette";
 import { limitVelocity, type ToolAction } from "./tools";
 import type { Scene, Snapshot } from "./types";
 
@@ -53,6 +55,7 @@ export class RigidWorld {
   private readonly world: RAPIER.World;
   private readonly shapes: BodyShape[] = [];
   private readonly tools: RigidTools;
+  private readonly particles = new ParticleField();
   private readonly fracture: ImpactFracture;
   private readonly areaScale: number;
   geometryRevision = 0;
@@ -88,6 +91,7 @@ export class RigidWorld {
     this.areaScale = lengthScale ** 2;
     this.fracture = new ImpactFracture(
       materials.object.minFragmentArea * this.areaScale,
+      this.particles,
     );
     this.arealDensity = arealDensity(materials.object);
     this.live = liveMaterials(materials);
@@ -291,7 +295,7 @@ export class RigidWorld {
         ? [0.82, 0.84, 0.86]
         : ball
           ? [0.95, 0.47, 0.16]
-          : [0.16, 0.63, 0.76];
+          : GLASS_COLOR;
       const first = polygon[0];
       let previous = polygon[1];
       if (first === undefined || previous === undefined)
@@ -362,6 +366,7 @@ export class RigidWorld {
       )
         this.geometryRevision++;
       this.returnSunkBodies();
+      this.particles.step(TIME_STEP, gravity, this.environment);
       this.elapsed += TIME_STEP;
       this.remainder -= TIME_STEP;
       steps++;
@@ -411,6 +416,7 @@ export class RigidWorld {
     });
     return {
       poses,
+      particles: this.particles.snapshot(),
       stats: {
         bodies,
         sleeping,

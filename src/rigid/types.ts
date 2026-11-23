@@ -18,6 +18,8 @@ export interface WorldStats {
 
 export interface Snapshot {
   poses: Float32Array<ArrayBuffer>;
+  /** x, y, size and remaining life per particle, four floats each. */
+  particles: Float32Array<ArrayBuffer>;
   stats: WorldStats;
 }
 
