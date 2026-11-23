@@ -32,8 +32,5 @@ export const ToolPicker = ({ value, disabled, onChange }: Props) => (
         </label>
       ))}
     </div>
-    <p className="max-w-64 rounded bg-white/60 px-2 py-1 text-xs backdrop-blur-md">
-      {TOOL_HINTS[value]}
-    </p>
   </fieldset>
 );
