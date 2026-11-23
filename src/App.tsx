@@ -76,7 +76,7 @@ const App = () => {
   }, [panelOpen]);
 
   return (
-    <main className="relative mx-auto flex min-h-dvh max-w-6xl flex-col gap-4 bg-gray-50 p-4">
+    <main className="relative flex min-h-dvh flex-col gap-4 bg-gray-50 p-4">
       <div className="absolute top-4 right-4 z-10 flex gap-2">
         <button
           ref={pauseRef}
