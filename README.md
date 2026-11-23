@@ -81,8 +81,9 @@ Voronoi edge length must fit the energy budget; pieces smaller than the minimum 
 square of the world scale below ×1) are rejected. A hit creates at most 40 pieces.
 
 A piece under twice the minimum fragment area (0.02 m² by default, scaled the same way) is
-not worth a rigid body: it becomes a particle that falls, rests against the container walls, shrinks to nothing over 2 s and never
-collides with bodies. The rigid pieces of that split share its mass, and the
+not worth a rigid body: it becomes a particle that falls, rests against the container walls and on bodies, and shrinks to nothing
+over 2 s. A particle never pushes a body, and a body does not carry a particle with its
+velocity: the particle is only moved out of the body it overlaps each step. The rigid pieces of that split share its mass, and the
 largest piece always stays a body. At most 4,000 particles are alive; the oldest
 is replaced beyond that.
 

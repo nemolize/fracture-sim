@@ -35,6 +35,7 @@ import {
   type ObjectSize,
   validateObjectSize,
 } from "./object-size";
+import { BodyObstacles } from "./obstacles";
 import { GLASS_COLOR } from "./palette";
 import { limitVelocity, type ToolAction } from "./tools";
 import type { Scene, Snapshot } from "./types";
@@ -56,6 +57,7 @@ export class RigidWorld {
   private readonly shapes: BodyShape[] = [];
   private readonly tools: RigidTools;
   private readonly particles = new ParticleField();
+  private readonly obstacles: BodyObstacles;
   private readonly fracture: ImpactFracture;
   private readonly areaScale: number;
   geometryRevision = 0;
@@ -104,6 +106,7 @@ export class RigidWorld {
       this.environment,
     );
     const { width, height } = environment;
+    this.obstacles = new BodyObstacles(width, height);
     this.world.timestep = TIME_STEP;
     this.world.lengthUnit = lengthScale;
     this.floor = this.box(
@@ -366,7 +369,17 @@ export class RigidWorld {
       )
         this.geometryRevision++;
       this.returnSunkBodies();
-      this.particles.step(TIME_STEP, gravity, this.environment);
+      this.obstacles.refresh(
+        this.shapes,
+        this.geometryRevision,
+        this.particles.size > 0,
+      );
+      this.particles.step(
+        TIME_STEP,
+        gravity,
+        this.environment,
+        this.obstacles.grid,
+      );
       this.elapsed += TIME_STEP;
       this.remainder -= TIME_STEP;
       steps++;

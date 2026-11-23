@@ -1,10 +1,13 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion -- Indices stay inside the preallocated buffer. */
+import type { ObstacleGrid } from "./obstacles";
 import type { Vec2 } from "./vec2";
 
 // Chosen empirically, no fixed source.
 export const MAX_PARTICLES = 4000;
 export const PARTICLE_LIFETIME = 2;
-const WALL_FRICTION = 0.9;
+const SURFACE_FRICTION = 0.9;
+// Chosen empirically, no fixed source.
+const MAX_LANDINGS = 3;
 
 const X = 0;
 const VX = 2;
@@ -17,7 +20,7 @@ export interface Bounds {
   height: number;
 }
 
-/** Ballistic squares confined to the container; they never collide with bodies. */
+/** Ballistic squares confined to the container; they rest on bodies but never push them. */
 export class ParticleField {
   private readonly data = new Float32Array(MAX_PARTICLES * STRIDE);
   private count = 0;
@@ -35,7 +38,12 @@ export class ParticleField {
     );
   }
 
-  step(seconds: number, gravity: Vec2, bounds: Bounds): void {
+  step(
+    seconds: number,
+    gravity: Vec2,
+    bounds: Bounds,
+    obstacles?: ObstacleGrid,
+  ): void {
     const d = this.data;
     for (let i = 0; i < this.count;) {
       const o = i * STRIDE;
@@ -47,8 +55,12 @@ export class ParticleField {
       }
       d[o + VX] = d[o + VX]! + gravity.x * seconds;
       d[o + VX + 1] = d[o + VX + 1]! + gravity.y * seconds;
-      d[o + X] = d[o + X]! + d[o + VX]! * seconds;
-      d[o + X + 1] = d[o + X + 1]! + d[o + VX + 1]! * seconds;
+      const fromX = d[o + X]!;
+      const fromY = d[o + X + 1]!;
+      d[o + X] = fromX + d[o + VX]! * seconds;
+      d[o + X + 1] = fromY + d[o + VX + 1]! * seconds;
+      if (obstacles !== undefined)
+        this.landOnBodies(o, obstacles, fromX, fromY);
       this.contain(o, 0, bounds.width);
       this.contain(o, 1, bounds.height);
       i++;
@@ -73,6 +85,55 @@ export class ParticleField {
     return out;
   }
 
+  /**
+   * Stops particle `o` against the first body on its way from (`fromX`, `fromY`), slides the rest
+   * of the move along it, and does the same for any body the slide meets.
+   */
+  private landOnBodies(
+    o: number,
+    obstacles: ObstacleGrid,
+    fromX: number,
+    fromY: number,
+  ): void {
+    const d = this.data;
+    const half = this.drawnHalf(o);
+    let startX = fromX;
+    let startY = fromY;
+    let endX = d[o + X]!;
+    let endY = d[o + X + 1]!;
+    let slowed = false;
+    for (let landing = 0; landing < MAX_LANDINGS; landing++) {
+      const hit = obstacles.sweep(startX, startY, endX, endY, half);
+      if (hit === null) break;
+      const left = 1 - hit.fraction;
+      const restX = (endX - startX) * left;
+      const restY = (endY - startY) * left;
+      const into = restX * hit.nx + restY * hit.ny;
+      startX = hit.x;
+      startY = hit.y;
+      endX = hit.x + restX - into * hit.nx;
+      endY = hit.y + restY - into * hit.ny;
+      const inward = d[o + VX]! * hit.nx + d[o + VX + 1]! * hit.ny;
+      if (inward < 0) {
+        d[o + VX] = d[o + VX]! - inward * hit.nx;
+        d[o + VX + 1] = d[o + VX + 1]! - inward * hit.ny;
+        slowed = true;
+      }
+    }
+    d[o + X] = endX;
+    d[o + X + 1] = endY;
+    if (slowed) {
+      d[o + VX] = d[o + VX]! * SURFACE_FRICTION;
+      d[o + VX + 1] = d[o + VX + 1]! * SURFACE_FRICTION;
+    }
+  }
+
+  private drawnHalf(o: number): number {
+    return (
+      (this.data[o + SIZE]! * (1 - this.data[o + AGE]! / PARTICLE_LIFETIME)) / 2
+    );
+  }
+
   private oldest(): number {
     let slot = 0;
     for (let i = 1; i < this.count; i++)
@@ -83,8 +144,7 @@ export class ParticleField {
 
   private contain(o: number, axis: 0 | 1, limit: number): void {
     const d = this.data;
-    // Contact follows the drawn size, which shrinks with the particle's remaining life.
-    const half = (d[o + SIZE]! * (1 - d[o + AGE]! / PARTICLE_LIFETIME)) / 2;
+    const half = this.drawnHalf(o);
     const clamped = Math.fround(
       Math.min(limit - half, Math.max(half, d[o + X + axis]!)),
     );
@@ -92,6 +152,6 @@ export class ParticleField {
     if (clamped === d[o + X + axis]) return;
     d[o + X + axis] = clamped;
     d[o + VX + axis] = 0;
-    d[o + VX + 1 - axis] = d[o + VX + 1 - axis]! * WALL_FRICTION;
+    d[o + VX + 1 - axis] = d[o + VX + 1 - axis]! * SURFACE_FRICTION;
   }
 }
