@@ -25,7 +25,13 @@ moving any of those sliders selects Custom, and landing on a preset's values
 names the preset again. The Gc slider spans 0.1–1,000,000 J/m² on a
 logarithmic scale; thickness spans 0.1–100 mm. These are empirical UI bounds.
 
-Only the fracture energies are sourced. The densities, friction and
+The object and the floor pick from one list: every object material is also a
+floor material with the same friction and restitution, and the floor adds
+Default. Concrete, wood, steel and rubber have a fracture energy (100, 300,
+50,000 and 10,000 J/m²) and density (2400, 600, 7850 and 1100 kg/m³) chosen
+empirically, with no fixed source.
+
+Only the fracture energies of glass, ice, PMMA and polystyrene are sourced. The densities, friction and
 restitution of the presets, and every floor preset in `src/sim/floor-material.ts`, are representative values chosen empirically with no fixed
 source. Glass and the Default floor keep the friction 0.5 and restitution 0 the
 app had before materials existed.

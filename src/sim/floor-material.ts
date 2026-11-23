@@ -1,13 +1,20 @@
-import type { Surface } from "./material";
+import { MATERIAL_PRESETS, type Surface } from "./material";
 
-// Representative values; chosen empirically, no fixed source.
+const DEFAULT_FLOOR = {
+  id: "default",
+  label: "Default",
+  friction: 0.5,
+  restitution: 0,
+} as const;
+
 export const FLOOR_PRESETS = [
-  { id: "default", label: "Default", friction: 0.5, restitution: 0 },
-  { id: "concrete", label: "Concrete", friction: 0.7, restitution: 0.1 },
-  { id: "wood", label: "Wood", friction: 0.5, restitution: 0.3 },
-  { id: "steel", label: "Steel", friction: 0.4, restitution: 0.5 },
-  { id: "rubber", label: "Rubber", friction: 1.2, restitution: 0.8 },
-  { id: "ice", label: "Ice", friction: 0.05, restitution: 0.1 },
+  DEFAULT_FLOOR,
+  ...MATERIAL_PRESETS.map(({ id, label, friction, restitution }) => ({
+    id,
+    label,
+    friction,
+    restitution,
+  })),
 ] as const;
 
 export interface FloorMaterialSettings extends Surface {
@@ -34,14 +41,18 @@ export const floorFromPreset = (
   };
 };
 
+/** Acrylic and polystyrene share surface values, so the preset already chosen wins when it still matches. */
 export const matchFloorPreset = (
   floor: FloorMaterialSettings,
-): FloorMaterialSettings => ({
-  ...floor,
-  preset:
-    FLOOR_PRESETS.find(
-      (preset) =>
-        preset.friction === floor.friction &&
-        preset.restitution === floor.restitution,
-    )?.id ?? "custom",
-});
+): FloorMaterialSettings => {
+  const matches = (preset: (typeof FLOOR_PRESETS)[number]) =>
+    preset.friction === floor.friction &&
+    preset.restitution === floor.restitution;
+  const kept = findFloorPreset(floor.preset);
+  return {
+    ...floor,
+    preset:
+      (kept !== undefined && matches(kept) ? kept : FLOOR_PRESETS.find(matches))
+        ?.id ?? "custom",
+  };
+};

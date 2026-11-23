@@ -73,6 +73,10 @@ test("real material presets convert Gc and thickness before reaching the worker"
     { id: "ice", gc: "1.5 J/m²", line: 0.015 },
     { id: "pmma", gc: "500 J/m²", line: 5 },
     { id: "polystyrene", gc: "400 J/m²", line: 4 },
+    { id: "concrete", gc: "100 J/m²", line: 1 },
+    { id: "wood", gc: "300 J/m²", line: 3 },
+    { id: "steel", gc: "50,000 J/m²", line: 500 },
+    { id: "rubber", gc: "10,000 J/m²", line: 100 },
   ]) {
     await preset.selectOption(item.id);
     await expect(energy).toHaveAttribute("aria-valuetext", item.gc);
