@@ -151,6 +151,19 @@ describe("with WebGPU", () => {
     );
   });
 
+  it("selects the tool from the canvas overlay", async () => {
+    setGpu(fakeGpu().gpu);
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByLabelText("Fracture simulation");
+    await user.click(screen.getByRole("radio", { name: "Blast" }));
+    expect(screen.getByRole("radio", { name: "Blast" })).toBeChecked();
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    expect(screen.getByRole("radio", { name: "Blast" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Resume" }));
+    expect(screen.getByRole("radio", { name: "Blast" })).toBeEnabled();
+  });
+
   it("wires the controls to the settings", async () => {
     setGpu(fakeGpu().gpu);
     const user = userEvent.setup();

@@ -198,7 +198,6 @@ test("WebGPU renders a blasted plate and its particles without diagnostics", asy
     if (message.type() === "error") errors.push(message.text());
   });
   await page.goto("/");
-  await openSettings(page);
   await page.getByRole("radio", { name: "Blast" }).check();
   const canvas = page.getByLabel("Fracture simulation");
   const box = await canvas.boundingBox();

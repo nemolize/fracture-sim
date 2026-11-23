@@ -16,7 +16,6 @@ const setRange = (slider: HTMLElement, value: string): void => {
 };
 
 const setup = (
-  paused = false,
   locked = false,
   motion: Partial<Parameters<typeof ControlPanel>[0]["motion"]> = {},
   settings: Partial<Settings> = {},
@@ -26,7 +25,6 @@ const setup = (
   render(
     <ControlPanel
       settings={{ ...DEFAULT_SETTINGS, ...settings }}
-      paused={paused}
       locked={locked}
       motion={{
         support: "supported",
@@ -71,7 +69,7 @@ describe("ControlPanel", () => {
     });
 
     it("turns it off when it is on", async () => {
-      const { setEnabled, user } = setup(false, false, { enabled: true });
+      const { setEnabled, user } = setup(false, { enabled: true });
       expect(screen.getByLabelText("Device tilt")).toBeChecked();
       await user.click(screen.getByLabelText("Device tilt"));
       expect(setEnabled).toHaveBeenCalledWith(false);
@@ -83,14 +81,14 @@ describe("ControlPanel", () => {
     ] as const)(
       "disables the toggle and says why while %s",
       (support, text) => {
-        setup(false, false, { support });
+        setup(false, { support });
         expect(screen.getByLabelText("Device tilt")).toBeDisabled();
         expect(screen.getByText(text)).toBeVisible();
       },
     );
 
     it("shows the reason the toggle went back off", () => {
-      setup(false, false, { notice: "Motion access was denied." });
+      setup(false, { notice: "Motion access was denied." });
       expect(screen.getByText("Motion access was denied.")).toBeVisible();
     });
 
@@ -115,7 +113,7 @@ describe("ControlPanel", () => {
       [/^Shake limit/, "30", { inertiaCap: 30 }],
       [/^Tilt smoothing/, "0.5", { tiltSmoothing: 0.5 }],
     ])("changes %s while the device tilt is on", (label, value, patch) => {
-      const { onChange } = setup(false, false, { enabled: true });
+      const { onChange } = setup(false, { enabled: true });
       setRange(screen.getByLabelText(label), value);
       expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_SETTINGS, ...patch });
     });
@@ -129,21 +127,15 @@ describe("ControlPanel", () => {
   });
 
   it("locks the scene while the GPU is unavailable", () => {
-    setup(false, true);
+    setup(true);
     for (const label of ["Scene"]) {
       expect(screen.getByLabelText(label)).toBeDisabled();
     }
   });
 });
 
-it("selects the pointer tool", async () => {
-  const { user, onChange } = setup();
-  await user.click(screen.getByLabelText("Throw ball"));
-  expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_SETTINGS, tool: "throw" });
-});
-
-it("changes material toughness while paused without requiring a Reset", () => {
-  const { onChange } = setup(true);
+it("changes material toughness without requiring a Reset", () => {
+  const { onChange } = setup();
   const input = screen.getByRole("slider", {
     name: "Fracture energy (J/m²)",
   });
@@ -161,16 +153,16 @@ it("changes material toughness while paused without requiring a Reset", () => {
 });
 
 it("locks material editing when physics is unavailable", () => {
-  setup(false, true);
+  setup(true);
   expect(
     screen.getByRole("slider", { name: "Fracture energy (J/m²)" }),
   ).toBeDisabled();
 });
 
 it.each([["Gravity (m/s²)", "1.6", "gravity", 1.6]])(
-  "changes %s while paused",
+  "changes %s",
   (label, input, key, value) => {
-    const { onChange } = setup(true);
+    const { onChange } = setup();
     const slider = screen.getByRole("slider", { name: label });
     expect(slider).toBeEnabled();
     setRange(slider, input);
@@ -182,7 +174,7 @@ it.each([["Gravity (m/s²)", "1.6", "gravity", 1.6]])(
 );
 
 it("locks world controls after a solver or GPU failure", () => {
-  setup(false, true);
+  setup(true);
   for (const label of [
     "Gravity (m/s²)",
     "World scale",
@@ -198,8 +190,8 @@ it("locks world controls after a solver or GPU failure", () => {
 it.each([
   ["Object width (m)", "1.5", { width: 1.5, height: 0.5 }],
   ["Object height (m)", "0.9", { width: 0.5, height: 0.9 }],
-])("changes %s while paused", (label, value, objectSize) => {
-  const { onChange } = setup(true);
+])("changes %s", (label, value, objectSize) => {
+  const { onChange } = setup();
   setRange(screen.getByRole("slider", { name: label }), value);
   expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_SETTINGS, objectSize });
 });
@@ -207,7 +199,7 @@ it.each([
 it.each(["pile", "stress"] as const)(
   "disables plate size controls in %s",
   (scene) => {
-    setup(false, false, {}, { scene });
+    setup(false, {}, { scene });
     expect(
       screen.getByRole("slider", { name: "Object width (m)" }),
     ).toBeDisabled();
@@ -218,7 +210,7 @@ it.each(["pile", "stress"] as const)(
 );
 
 it("locks object size when physics is unavailable", () => {
-  setup(false, true);
+  setup(true);
   expect(
     screen.getByRole("slider", { name: "Object width (m)" }),
   ).toBeDisabled();
@@ -229,7 +221,6 @@ it("locks object size when physics is unavailable", () => {
 
 it("scales both world dimensions and fits the object proportionally", () => {
   const { onChange } = setup(
-    true,
     false,
     {},
     { objectSize: { width: 9, height: 5 } },
@@ -247,7 +238,6 @@ it("scales both world dimensions and fits the object proportionally", () => {
 });
 it("shows one world scale multiplier instead of separate dimension sliders", () => {
   setup(
-    true,
     false,
     {},
     {
@@ -267,7 +257,7 @@ it("shows one world scale multiplier instead of separate dimension sliders", () 
 });
 
 it("stores the selected initial object shape", async () => {
-  const { user, onChange } = setup(true);
+  const { user, onChange } = setup();
   await user.selectOptions(
     screen.getByRole("combobox", { name: "Object shape" }),
     "triangle",
@@ -301,7 +291,7 @@ describe("reset buttons", () => {
   };
 
   it("disables every per-setting reset at the defaults", () => {
-    setup(false, false, { enabled: true });
+    setup(false, { enabled: true });
     const buttons = screen.getAllByRole("button", {
       name: /^Reset (?!parameters)/,
     });
@@ -368,7 +358,7 @@ describe("reset buttons", () => {
   ];
 
   it.each(cases)("resets only %s", async (label, patch) => {
-    const { onChange, user } = setup(false, false, { enabled: true }, patch);
+    const { onChange, user } = setup(false, { enabled: true }, patch);
     await user.click(screen.getByRole("button", { name: `Reset ${label}` }));
     expect(onChange).toHaveBeenCalledWith(DEFAULT_SETTINGS);
   });
@@ -376,7 +366,6 @@ describe("reset buttons", () => {
   it("resets an object axis to the default fitted to a small world", async () => {
     const small = withWorldScale(DEFAULT_SETTINGS.environment, 0.1);
     const { onChange, user } = setup(
-      false,
       false,
       { enabled: true },
       { environment: small, objectSize: { width: 0.42, height: 0.3 } },
@@ -389,14 +378,14 @@ describe("reset buttons", () => {
   });
 
   it("disables the motion resets while the device tilt is off", () => {
-    setup(false, false, { enabled: false }, { inertiaScale: 2 });
+    setup(false, { enabled: false }, { inertiaScale: 2 });
     expect(
       screen.getByRole("button", { name: "Reset Shake strength" }),
     ).toBeDisabled();
   });
 
   it("locks Reset parameters with the rest of the panel", () => {
-    setup(false, true);
+    setup(true);
     expect(
       screen.getByRole("button", { name: "Reset parameters" }),
     ).toBeDisabled();
@@ -404,7 +393,6 @@ describe("reset buttons", () => {
 
   it("resets the shape and both material presets", async () => {
     const { onChange, user } = setup(
-      false,
       false,
       {},
       {
@@ -429,7 +417,6 @@ describe("reset buttons", () => {
 
   it("resets all parameters but keeps the scene and tool", async () => {
     const { onChange, user } = setup(
-      false,
       false,
       {},
       {

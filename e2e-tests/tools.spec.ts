@@ -149,8 +149,8 @@ test("throw tool launches a visible ball that hits the plate", async ({
   await page
     .getByRole("combobox", { name: "Object material preset" })
     .selectOption("glass");
-  await page.getByLabel("Throw ball").check();
   await closeSettings(page);
+  await page.getByLabel("Throw ball").check();
   await page.screenshot({
     path: "test-results/fracture-before.png",
     fullPage: true,
@@ -182,9 +182,7 @@ test("throw tool launches a visible ball that hits the plate", async ({
 });
 
 test("blast tool pushes nearby bodies away", async ({ page }) => {
-  await openSettings(page);
   await page.getByLabel("Blast", { exact: true }).check();
-  await closeSettings(page);
   const location = await point(page, 4, 0.5);
   await page.mouse.click(location.x, location.y);
   await expect.poll(() => bodyX(page)).toBeGreaterThan(5.1);
