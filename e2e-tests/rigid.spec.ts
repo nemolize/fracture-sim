@@ -6,6 +6,7 @@ import { openSettings } from "./settings";
 declare global {
   interface Window {
     harness: Harness;
+    rigidMotionAxes: { x: number; y: number; z: number };
   }
 }
 
@@ -106,51 +107,58 @@ const glassPixels = async (page: Page): Promise<number> => {
   }, screenshot.toString("base64"));
 };
 
+// Software WebGPU under CPU load takes over 9 s to settle the plate, past the
+// default 5 s wait; no fixed source for these values, chosen empirically.
+const WEBGPU_WAIT_MS = 30_000;
+const WEBGPU_TEST_MS = 120_000;
+const patient = expect.configure({ timeout: WEBGPU_WAIT_MS });
+
 test("WebGPU renders the plate, follows motion, and rebuilds scenes without diagnostics", async ({
   page,
 }) => {
+  test.setTimeout(WEBGPU_TEST_MS);
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
+  // The app listens for a first reading only during a short probe after mount,
+  // so a single event can arrive too early or too late; stream it instead.
+  await page.addInitScript(() => {
+    window.rigidMotionAxes = { x: 0, y: 9.8, z: 0 };
+    window.setInterval(() => {
+      window.dispatchEvent(
+        new DeviceMotionEvent("devicemotion", {
+          accelerationIncludingGravity: window.rigidMotionAxes,
+          acceleration: { x: 0, y: 0, z: 0 },
+        }),
+      );
+    }, 40);
+  });
   await page.goto("/");
   await openSettings(page);
-  await page.evaluate(() => {
-    window.dispatchEvent(
-      new DeviceMotionEvent("devicemotion", {
-        accelerationIncludingGravity: { x: -9.8, y: 0, z: 0 },
-        acceleration: { x: 0, y: 0, z: 0 },
-      }),
-    );
-  });
-  await expect(page.getByLabel("Device tilt")).toBeEnabled();
+  await patient(page.getByLabel("Device tilt")).toBeEnabled();
   const stats = page.getByLabel("Simulation statistics");
-  await expect(stats).toContainText(/Bodies1(?:Sleeping)/);
-  await expect(stats).toContainText(/Sleeping[1-9][0-9]*/);
+  await patient(stats).toContainText(/Bodies1(?:Sleeping)/);
+  await patient(stats).toContainText(/Sleeping[1-9][0-9]*/);
   const canvas = page.getByLabel("Fracture simulation");
-  await expect.poll(() => glassPixels(page)).toBeGreaterThan(500);
+  await patient.poll(() => glassPixels(page)).toBeGreaterThan(500);
   const before = await canvas.screenshot();
   await page.evaluate(() => {
-    window.dispatchEvent(
-      new DeviceMotionEvent("devicemotion", {
-        accelerationIncludingGravity: { x: -9.8, y: 0, z: 0 },
-        acceleration: { x: 0, y: 0, z: 0 },
-      }),
-    );
+    window.rigidMotionAxes = { x: -9.8, y: 0, z: 0 };
   });
 
-  await expect(page.getByLabel("Device tilt")).toBeEnabled();
-  await expect(page.getByLabel("Device tilt")).toBeChecked();
-  await expect
+  await patient(page.getByLabel("Device tilt")).toBeEnabled();
+  await patient(page.getByLabel("Device tilt")).toBeChecked();
+  await patient
     .poll(async () => Buffer.compare(before, await canvas.screenshot()))
     .not.toBe(0);
   await page.getByRole("combobox", { name: /^Scene/ }).selectOption("pile");
-  await expect(stats).toContainText(/Bodies1[0-9]{3}/);
+  await patient(stats).toContainText(/Bodies1[0-9]{3}/);
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await openSettings(page);
-  await expect(stats).toContainText(/Bodies1[0-9]{3}/);
-  await expect.poll(() => glassPixels(page)).toBeGreaterThan(500);
+  await patient(stats).toContainText(/Bodies1[0-9]{3}/);
+  await patient.poll(() => glassPixels(page)).toBeGreaterThan(500);
   expect(errors).toEqual([]);
   await page.screenshot({ path: "test-results/rigid-world.png" });
 });
