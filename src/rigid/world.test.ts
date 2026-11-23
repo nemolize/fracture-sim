@@ -288,11 +288,19 @@ it("builds selected walls, plate mass and throws within the new bounds", () => {
   expect(ball?.body.translation().y).toBeCloseTo(7.88);
   expect(ball?.body.collider(0).friction()).toBeCloseTo(0.8);
   expect(ball?.body.collider(0).restitution()).toBeCloseTo(0.4);
+  const ballMass = 50 * Math.PI * 0.12 ** 2;
+  expect(ball?.mass).toBeCloseTo(ballMass, 12);
+  expect(ball?.body.mass()).toBeCloseTo(ballMass, 6);
 });
 
-it.each([0.01, DEFAULT_WORLD_SCALE, 1, WORLD_SCALE_RANGE.max])(
-  "gives a ball at world scale ×%s the areal-density mass of its own circle",
-  (scale) => {
+it.each([
+  [0.01, 0.005],
+  [DEFAULT_WORLD_SCALE, 0.1],
+  [1, 0.12],
+  [WORLD_SCALE_RANGE.max, 0.12],
+])(
+  "gives a ball at world scale ×%s (radius %s m) the areal-density mass of its own circle",
+  (scale, radius) => {
     const environment = withWorldScale(DEFAULT_ENVIRONMENT, scale);
     world = new RigidWorld(
       "plate",
@@ -304,7 +312,6 @@ it.each([0.01, DEFAULT_WORLD_SCALE, 1, WORLD_SCALE_RANGE.max])(
       point: { x: 1, y: 1 },
       velocity: { x: 0, y: 0 },
     });
-    const radius = Math.min(0.12, environment.width / 20);
     const expected = 25 * Math.PI * radius ** 2;
     const ball = world["shapes"].at(-1);
     expect(ball?.mass).toBeCloseTo(expected, 12);
