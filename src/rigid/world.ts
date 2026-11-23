@@ -234,6 +234,7 @@ export class RigidWorld {
         if (this.shapes.filter((s) => !s.fixed).length >= MAX_BODIES)
           return false;
         const radius = Math.min(0.12, this.environment.width / 20);
+        const mass = this.arealDensity * Math.PI * radius ** 2;
         const velocity = limitVelocity(action.velocity);
         const body = this.world.createRigidBody(
           RAPIER.RigidBodyDesc.dynamic()
@@ -252,7 +253,7 @@ export class RigidWorld {
         );
         this.world.createCollider(
           RAPIER.ColliderDesc.ball(radius)
-            .setMass(2)
+            .setMass(mass)
             .setFriction(this.live.object.friction)
             .setRestitution(this.live.object.restitution)
             .setActiveEvents(RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS),
@@ -272,7 +273,7 @@ export class RigidWorld {
           body,
           polygon,
           domain: [],
-          mass: 2,
+          mass,
           fixed: false,
           ball: true,
         });

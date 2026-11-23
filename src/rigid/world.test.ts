@@ -19,6 +19,7 @@ import {
   WORLD_SCALE_RANGE,
 } from "./environment";
 import { live } from "./live";
+import { DEFAULT_OBJECT_SIZE, fitObjectSize } from "./object-size";
 import { initializePhysics, RigidWorld } from "./world";
 
 beforeAll(async () => {
@@ -288,6 +289,28 @@ it("builds selected walls, plate mass and throws within the new bounds", () => {
   expect(ball?.body.collider(0).friction()).toBeCloseTo(0.8);
   expect(ball?.body.collider(0).restitution()).toBeCloseTo(0.4);
 });
+
+it.each([0.01, DEFAULT_WORLD_SCALE, 1, WORLD_SCALE_RANGE.max])(
+  "gives a ball at world scale ×%s the areal-density mass of its own circle",
+  (scale) => {
+    const environment = withWorldScale(DEFAULT_ENVIRONMENT, scale);
+    world = new RigidWorld(
+      "plate",
+      environment,
+      fitObjectSize(DEFAULT_OBJECT_SIZE, environment),
+    );
+    world.apply({
+      type: "throw",
+      point: { x: 1, y: 1 },
+      velocity: { x: 0, y: 0 },
+    });
+    const radius = Math.min(0.12, environment.width / 20);
+    const expected = 25 * Math.PI * radius ** 2;
+    const ball = world["shapes"].at(-1);
+    expect(ball?.mass).toBeCloseTo(expected, 12);
+    expect(ball?.body.mass()).toBeCloseTo(expected, 6);
+  },
+);
 
 it("keeps friction and restitution on recursively created fragments", () => {
   world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);

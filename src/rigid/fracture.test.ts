@@ -24,6 +24,8 @@ afterEach(() => {
     w.dispose();
   });
 });
+const BALL_MASS = 25 * Math.PI * 0.12 ** 2;
+
 const makeRaisedPlateWorld = () => {
   const world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
   world["shapes"][4]?.body.setTranslation({ x: 5, y: 2.5 }, true);
@@ -124,7 +126,7 @@ it("retains the whole parent when full and retries its queued split when room ap
     world.advance(TIME_STEP, { x: 0, y: -9.8 }, live(12));
   expect(shapes[4]).toBe(parent);
   expect(world.snapshot().stats.bodies).toBe(MAX_BODIES);
-  expect(world.snapshot().stats.mass).toBe(50 + 1999 * 2);
+  expect(world.snapshot().stats.mass).toBeCloseTo(50 + 1999 * BALL_MASS, 8);
   const removed = shapes.splice(5, 40);
   for (const s of removed) engine.removeRigidBody(s.body);
   const remaining = world.snapshot().stats.mass;
@@ -165,7 +167,7 @@ it("detaches a grabbed parent before replacing it, leaving later pointer actions
     velocity: { x: 25, y: 0 },
   });
   for (let i = 0; i < 30; i++)
-    world.advance(TIME_STEP, { x: 0, y: 0 }, live(12));
+    world.advance(TIME_STEP, { x: 0, y: 0 }, live(6));
   expect(world.snapshot().stats.bodies).toBeGreaterThan(2);
   expect(world["world"].bodies.len()).toBe(world.snapshot().stats.bodies + 4);
   expect(() =>

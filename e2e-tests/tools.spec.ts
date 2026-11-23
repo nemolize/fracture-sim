@@ -74,6 +74,8 @@ test.beforeEach(async ({ page }) => {
     .toBe(1);
 });
 
+const GLASS_BALL_MASS = 25 * Math.PI * 0.12 ** 2;
+
 test("grabs a body, lifts it 2 m and releases it to fall", async ({ page }) => {
   const from = await point(page, 5, 0.5);
   const to = await point(page, 5, 2.5);
@@ -166,7 +168,7 @@ test("throw tool launches a visible ball that hits the plate", async ({
     .toBeGreaterThan(0.01);
   expect(
     await page.evaluate(() => window.observedPhysics?.stats.mass),
-  ).toBeCloseTo(52, 12);
+  ).toBeCloseTo(50 + GLASS_BALL_MASS, 12);
   const hitTime = await page.evaluate(
     () => window.observedPhysics?.stats.time ?? Infinity,
   );

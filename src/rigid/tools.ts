@@ -11,9 +11,12 @@ export const TOOL_HINTS: Record<Tool, string> = {
   grab: "Press on a body to lift it. Drag and release to throw it.",
   throw:
     "Drag from a launch point toward the target. Longer drags launch faster balls.",
-  blast: "Click to push bodies within 2 metres away from that point.",
+  blast:
+    "Click to push bodies away from that point. The reach is a fifth of the world width, up to 2 metres.",
 };
-export const BLAST_RADIUS = 2;
+const MAX_BLAST_RADIUS = 2;
+export const blastRadius = (worldWidth: number): number =>
+  Math.min(MAX_BLAST_RADIUS, worldWidth / 5);
 const MAX_TOOL_SPEED = 25;
 
 export type ToolAction =
