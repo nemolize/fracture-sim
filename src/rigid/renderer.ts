@@ -23,24 +23,20 @@ struct Vertex { @builtin(position) position: vec4f, @location(0) color: vec3f };
 `;
 
 const particleShader = (bounds: Pick<EnvironmentSettings, "width">) => `
-struct Vertex { @builtin(position) position: vec4f, @location(0) life: f32 };
+struct Vertex { @builtin(position) position: vec4f };
 @group(0) @binding(0) var<storage, read> particles: array<vec4f>;
 @group(0) @binding(1) var<uniform> view: vec4f;
 @vertex fn vertex(@builtin(vertex_index) corner: u32, @builtin(instance_index) instance: u32) -> Vertex {
   let particle = particles[instance];
   var offsets = array<vec2f, 6>(vec2f(-1, -1), vec2f(1, -1), vec2f(1, 1), vec2f(-1, -1), vec2f(1, 1), vec2f(-1, 1));
-  let p = particle.xy + offsets[corner] * particle.z * 0.5;
-  return Vertex(${clip(bounds)}, particle.w);
+  let life = particle.w;
+  let p = particle.xy + offsets[corner] * particle.z * life * 0.5;
+  return Vertex(${clip(bounds)});
 }
-@fragment fn fragment(input: Vertex) -> @location(0) vec4f {
-  return vec4f(vec3f(${GLASS_COLOR.join(", ")}), input.life);
+@fragment fn fragment() -> @location(0) vec4f {
+  return vec4f(${GLASS_COLOR.join(", ")}, 1.0);
 }
 `;
-
-const FADE: GPUBlendState = {
-  color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
-  alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
-};
 
 export class RigidRenderer {
   private readonly device: GPUDevice;
@@ -119,7 +115,7 @@ export class RigidRenderer {
       fragment: {
         module: particleModule,
         entryPoint: "fragment",
-        targets: [{ format, blend: FADE }],
+        targets: [{ format }],
       },
       primitive: { topology: "triangle-list" },
     });

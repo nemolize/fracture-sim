@@ -55,7 +55,7 @@ export class ParticleField {
     }
   }
 
-  /** Life runs 1 → 0 as the particle fades. */
+  /** Fourth component is remaining life, 1 → 0. */
   snapshot(): Float32Array<ArrayBuffer> {
     const out = new Float32Array(this.count * 4);
     for (let i = 0; i < this.count; i++) {
@@ -83,7 +83,8 @@ export class ParticleField {
 
   private contain(o: number, axis: 0 | 1, limit: number): void {
     const d = this.data;
-    const half = d[o + SIZE]! / 2;
+    // Contact follows the drawn size, which shrinks with the particle's remaining life.
+    const half = (d[o + SIZE]! * (1 - d[o + AGE]! / PARTICLE_LIFETIME)) / 2;
     const clamped = Math.fround(
       Math.min(limit - half, Math.max(half, d[o + X + axis]!)),
     );

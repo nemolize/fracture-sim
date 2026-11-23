@@ -21,8 +21,8 @@ it("rests on the floor and slows sideways motion there", () => {
   const field = new ParticleField();
   field.spawn({ x: 5, y: 0.5 }, { x: 1, y: -10 }, 0.1);
   field.step(0.1, NO_GRAVITY, BOUNDS);
-  const [x, y] = field.snapshot();
-  expect(y).toBeCloseTo(0.05, 6);
+  const [x, y, size, life] = field.snapshot();
+  expect(y).toBeCloseTo(((size ?? 0) * (life ?? 0)) / 2, 6);
   expect(x).toBeCloseTo(5.1, 6);
   field.step(0.1, NO_GRAVITY, BOUNDS);
   expect(field.snapshot()[0]).toBeCloseTo(5.1 + 0.09, 6);
@@ -38,11 +38,12 @@ it("keeps particles inside every wall, whichever way gravity points", () => {
     const field = new ParticleField();
     field.spawn({ x: 5, y: 2.5 }, { x: 0, y: 0 }, 0.1);
     for (let i = 0; i < 60; i++) field.step(1 / 60, gravity, BOUNDS);
-    const [x, y] = field.snapshot();
-    expect(x).toBeGreaterThanOrEqual(0.05 - 1e-6);
-    expect(x).toBeLessThanOrEqual(BOUNDS.width - 0.05 + 1e-6);
-    expect(y).toBeGreaterThanOrEqual(0.05 - 1e-6);
-    expect(y).toBeLessThanOrEqual(BOUNDS.height - 0.05 + 1e-6);
+    const [x = NaN, y = NaN, size = 0, life = 0] = field.snapshot();
+    const half = (size * life) / 2;
+    expect(x).toBeGreaterThanOrEqual(half - 1e-6);
+    expect(x).toBeLessThanOrEqual(BOUNDS.width - half + 1e-6);
+    expect(y).toBeGreaterThanOrEqual(half - 1e-6);
+    expect(y).toBeLessThanOrEqual(BOUNDS.height - half + 1e-6);
   }
 });
 
@@ -108,4 +109,14 @@ it("lets a particle resting against a side wall fall freely, whatever its size",
       expect(field.snapshot()[1]).toBeLessThan(2);
     }
   }
+});
+
+it("keeps a resting particle in contact with the floor as it shrinks", () => {
+  const field = new ParticleField();
+  const size = 0.1;
+  field.spawn({ x: 5, y: 0.5 }, { x: 0, y: 0 }, size);
+  for (let i = 0; i < 60; i++) field.step(1 / 60, { x: 0, y: -9.8 }, BOUNDS);
+  const [, y, , life] = field.snapshot();
+  expect(life).toBeCloseTo(1 - 1 / PARTICLE_LIFETIME, 5);
+  expect(y).toBeCloseTo((size * (life ?? 0)) / 2, 5);
 });
