@@ -3,7 +3,14 @@ import type { ObjectShape } from "@/rigid/object-shape";
 import type { ObjectSize } from "@/rigid/object-size";
 import type { ToolAction } from "@/rigid/tools";
 import type { Scene, WorkerRequest, WorkerResponse } from "@/rigid/types";
-import { DEFAULT_CRACK_ENERGY } from "@/sim/material";
+import { DEFAULT_FLOOR_MATERIAL } from "@/sim/floor-material";
+import {
+  crackEnergy as crackEnergyOf,
+  DEFAULT_MATERIAL,
+  type LiveMaterials,
+  liveMaterials,
+  type WorldMaterials,
+} from "@/sim/material";
 
 const worker = new Worker(new URL("../rigid/worker.ts", import.meta.url), {
   type: "module",
@@ -23,6 +30,12 @@ const request = (message: WorkerRequest): Promise<WorkerResponse> =>
     worker.postMessage(message);
   });
 
+const defaults: WorldMaterials = {
+  floor: DEFAULT_FLOOR_MATERIAL,
+  object: DEFAULT_MATERIAL,
+};
+let built = defaults;
+
 const harness = {
   action: (action: ToolAction) => request({ type: "action", action }),
   reset: (
@@ -30,26 +43,29 @@ const harness = {
     environment?: EnvironmentSettings,
     objectSize?: ObjectSize,
     objectShape?: ObjectShape,
-  ) =>
-    request({
+    materials: WorldMaterials = defaults,
+  ) => {
+    built = materials;
+    return request({
       type: "init",
       scene,
       ...(environment === undefined ? {} : { environment }),
       ...(objectSize === undefined ? {} : { objectSize }),
       ...(objectShape === undefined ? {} : { objectShape }),
-    }),
+      materials,
+    });
+  },
   step: (
     seconds: number,
     gravity = { x: 0, y: -9.8 },
-    crackEnergy = DEFAULT_CRACK_ENERGY,
-    friction?: number,
+    crackEnergy = crackEnergyOf(built.object),
+    live: Partial<LiveMaterials> = {},
   ) =>
     request({
       type: "advance",
       seconds,
       gravity,
-      crackEnergy,
-      ...(friction === undefined ? {} : { friction }),
+      materials: { ...liveMaterials(built), crackEnergy, ...live },
     }),
 };
 Object.assign(window, { harness });

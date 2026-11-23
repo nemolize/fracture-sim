@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/dot-notation -- Inspect actual engine velocities and contact ordering. */
 import { afterEach, beforeAll, expect, it, vi } from "vitest";
 
+import { DEFAULT_FLOOR_MATERIAL } from "@/sim/floor-material";
+import { DEFAULT_MATERIAL } from "@/sim/material";
+
 import { DEFAULT_ENVIRONMENT } from "./environment";
+import { live } from "./live";
 import { initializePhysics, RigidWorld } from "./world";
 
 beforeAll(initializePhysics);
@@ -19,8 +23,16 @@ it.each([
   ["friction update", { x: 0, y: -9.8 }, 0.51],
 ])("keeps awake Glass intact under %s", (_label, gravity, friction) => {
   world = new RigidWorld("plate", DEFAULT_ENVIRONMENT, PLATE);
+  const surface = { friction, restitution: 0 };
   for (let i = 0; i < 600; i++)
-    world.advance(1 / 60, gravity, undefined, friction);
+    world.advance(
+      1 / 60,
+      gravity,
+      live(undefined, {
+        floor: { ...DEFAULT_FLOOR_MATERIAL, ...surface },
+        object: { ...DEFAULT_MATERIAL, ...surface },
+      }),
+    );
   expect(world.snapshot().stats.bodies).toBe(1);
   expect(world.snapshot().stats.mass).toBe(50);
   expect(world.snapshot().poses[17]).toBeCloseTo(0.5, 2);

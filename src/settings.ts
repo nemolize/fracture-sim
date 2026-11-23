@@ -6,6 +6,10 @@ import type { ObjectShape } from "@/rigid/object-shape";
 import { DEFAULT_OBJECT_SIZE, type ObjectSize } from "@/rigid/object-size";
 import type { Tool } from "@/rigid/tools";
 import { type Scene, SCENES } from "@/rigid/types";
+import {
+  DEFAULT_FLOOR_MATERIAL,
+  type FloorMaterialSettings,
+} from "@/sim/floor-material";
 import { DEFAULT_MATERIAL, type MaterialSettings } from "@/sim/material";
 
 export interface Settings {
@@ -15,6 +19,7 @@ export interface Settings {
   objectShape: ObjectShape;
   tool: Tool;
   material: MaterialSettings;
+  floorMaterial: FloorMaterialSettings;
   inertiaScale: number;
   inertiaCap: number;
   tiltSmoothing: number;
@@ -34,6 +39,7 @@ export const DEFAULT_SETTINGS: Settings = {
   objectShape: "rectangle",
   tool: "grab",
   material: DEFAULT_MATERIAL,
+  floorMaterial: DEFAULT_FLOOR_MATERIAL,
   inertiaScale: 1,
   inertiaCap: 20,
   tiltSmoothing: 0.1,

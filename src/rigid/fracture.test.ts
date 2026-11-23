@@ -12,6 +12,7 @@ import {
   withWorldScale,
 } from "./environment";
 import { ImpactFracture, MAX_BODIES } from "./fracture";
+import { live } from "./live";
 import { initializePhysics, RigidWorld } from "./world";
 
 beforeAll(initializePhysics);
@@ -39,7 +40,7 @@ it("separates drops below and above the crack threshold using real Rapier impuls
     const world = makeRaisedPlateWorld();
     world["shapes"][4]?.body.setTranslation({ x: 5, y: 0.5 + height }, true);
     for (let i = 0; i < 60; i++)
-      world.advance(TIME_STEP, { x: 0, y: -9.8 }, 12);
+      world.advance(TIME_STEP, { x: 0, y: -9.8 }, live(12));
     expect(world.snapshot().stats.bodies > 1).toBe(breaks);
     expect(world.snapshot().stats.mass).toBeCloseTo(50, 12);
   }
@@ -119,14 +120,15 @@ it("retains the whole parent when full and retries its queued split when room ap
   // Park the extra balls without contacts so the test isolates pool saturation.
   for (const [i, s] of shapes.slice(5).entries())
     s.body.setTranslation({ x: 100 + i, y: 100 }, true);
-  for (let i = 0; i < 50; i++) world.advance(TIME_STEP, { x: 0, y: -9.8 }, 12);
+  for (let i = 0; i < 50; i++)
+    world.advance(TIME_STEP, { x: 0, y: -9.8 }, live(12));
   expect(shapes[4]).toBe(parent);
   expect(world.snapshot().stats.bodies).toBe(MAX_BODIES);
   expect(world.snapshot().stats.mass).toBe(50 + 1999 * 2);
   const removed = shapes.splice(5, 40);
   for (const s of removed) engine.removeRigidBody(s.body);
   const remaining = world.snapshot().stats.mass;
-  world.advance(TIME_STEP, { x: 0, y: 0 }, 12);
+  world.advance(TIME_STEP, { x: 0, y: 0 }, live(12));
   expect(shapes.includes(parent)).toBe(false);
   expect(world.snapshot().stats.bodies).toBeLessThanOrEqual(MAX_BODIES);
   expect(world.snapshot().stats.mass).toBeCloseTo(remaining, 11);
@@ -134,7 +136,8 @@ it("retains the whole parent when full and retries its queued split when room ap
 
 it("keeps the parent and rolls back partial children if collider creation fails", () => {
   const world = makeRaisedPlateWorld();
-  for (let i = 0; i < 30; i++) world.advance(TIME_STEP, { x: 0, y: -9.8 }, 12);
+  for (let i = 0; i < 30; i++)
+    world.advance(TIME_STEP, { x: 0, y: -9.8 }, live(12));
   const parent = world["shapes"][4];
   const count = world["world"].bodies.len();
   const create = world["world"].createCollider.bind(world["world"]);
@@ -145,7 +148,7 @@ it("keeps the parent and rolls back partial children if collider creation fails"
   });
   expect(() => {
     for (let i = 0; i < 20; i++)
-      world.advance(TIME_STEP, { x: 0, y: -9.8 }, 12);
+      world.advance(TIME_STEP, { x: 0, y: -9.8 }, live(12));
   }).toThrow("allocation failed");
   expect(world["shapes"][4]).toBe(parent);
   expect(world["world"].bodies.len()).toBe(count);
@@ -161,7 +164,8 @@ it("detaches a grabbed parent before replacing it, leaving later pointer actions
     point: { x: 3, y: 2.5 },
     velocity: { x: 25, y: 0 },
   });
-  for (let i = 0; i < 30; i++) world.advance(TIME_STEP, { x: 0, y: 0 }, 12);
+  for (let i = 0; i < 30; i++)
+    world.advance(TIME_STEP, { x: 0, y: 0 }, live(12));
   expect(world.snapshot().stats.bodies).toBeGreaterThan(2);
   expect(world["world"].bodies.len()).toBe(world.snapshot().stats.bodies + 4);
   expect(() =>
@@ -212,7 +216,8 @@ it.each([
     if (mode === "missing-first") shapes.splice(0, 4);
     if (!collider.isValid()) throw new Error("Invalid fixture collider");
   }
-  for (let i = 0; i < 60; i++) world.advance(TIME_STEP, { x: 0, y: -9.8 }, 12);
+  for (let i = 0; i < 60; i++)
+    world.advance(TIME_STEP, { x: 0, y: -9.8 }, live(12));
   expect(world.snapshot().poses.every(Number.isFinite)).toBe(true);
 });
 
@@ -222,7 +227,7 @@ it.each([0, -12, NaN, Infinity, -Infinity])(
     const world = makeRaisedPlateWorld();
     const before = world.snapshot();
     expect(() =>
-      world.advance(TIME_STEP, { x: 0, y: -9.8 }, toughness),
+      world.advance(TIME_STEP, { x: 0, y: -9.8 }, live(toughness)),
     ).toThrow("Crack energy must be positive and finite");
     expect(world.snapshot()).toEqual(before);
   },
@@ -242,13 +247,14 @@ it("cancels a capacity-deferred split when the material changes", () => {
   if (parent === undefined) throw new Error("Missing plate");
   for (const [i, s] of shapes.slice(5).entries())
     s.body.setTranslation({ x: 100 + i, y: 100 }, true);
-  for (let i = 0; i < 50; i++) world.advance(TIME_STEP, { x: 0, y: -9.8 }, 12);
+  for (let i = 0; i < 50; i++)
+    world.advance(TIME_STEP, { x: 0, y: -9.8 }, live(12));
   expect(world["fracture"]["pending"].size).toBe(1);
-  world.advance(0, { x: 0, y: -9.8 }, 1200);
+  world.advance(0, { x: 0, y: -9.8 }, live(1200));
   expect(world["fracture"]["pending"].size).toBe(0);
   for (const s of shapes.splice(5, 40)) engine.removeRigidBody(s.body);
   for (let i = 0; i < 60; i++)
-    world.advance(TIME_STEP, { x: 0, y: -9.8 }, 1200);
+    world.advance(TIME_STEP, { x: 0, y: -9.8 }, live(1200));
   expect(shapes.includes(parent)).toBe(true);
 });
 
@@ -269,9 +275,7 @@ const dropOnlyPileBox = (speed: number) => {
     world.advance(
       TIME_STEP,
       { x: 0, y: 0 },
-      undefined,
-      undefined,
-      MIN_FRAGMENT_AREA / 20,
+      live(undefined, { minFragmentArea: MIN_FRAGMENT_AREA / 20 }),
     );
     if (world["shapes"].includes(box))
       lowest = Math.min(lowest, box.body.translation().y);
@@ -309,7 +313,11 @@ it("applies a changed minimum fragment area scaled by the world area factor", ()
     withWorldScale(DEFAULT_ENVIRONMENT, 0.5),
   );
   worlds.push(world);
-  world.advance(0, { x: 0, y: -9.81 }, undefined, undefined, 0.004);
+  world.advance(
+    0,
+    { x: 0, y: -9.81 },
+    live(undefined, { minFragmentArea: 0.004 }),
+  );
   expect(world["fracture"]["minFragmentArea"]).toBeCloseTo(0.004 * 0.25, 12);
 });
 
@@ -317,7 +325,11 @@ it("rejects a non-positive minimum fragment area", () => {
   const world = new RigidWorld("plate");
   worlds.push(world);
   expect(() =>
-    world.advance(0, { x: 0, y: -9.81 }, undefined, undefined, 0),
+    world.advance(
+      0,
+      { x: 0, y: -9.81 },
+      live(undefined, { minFragmentArea: 0 }),
+    ),
   ).toThrow("Minimum fragment area");
 });
 
@@ -331,8 +343,9 @@ it("cancels a capacity-deferred split when the minimum fragment area changes", (
     });
   for (const [i, s] of world["shapes"].slice(5).entries())
     s.body.setTranslation({ x: 100 + i, y: 100 }, true);
-  for (let i = 0; i < 50; i++) world.advance(TIME_STEP, { x: 0, y: -9.8 }, 12);
+  for (let i = 0; i < 50; i++)
+    world.advance(TIME_STEP, { x: 0, y: -9.8 }, live(12));
   expect(world["fracture"]["pending"].size).toBe(1);
-  world.advance(0, { x: 0, y: -9.8 }, 12, undefined, 0.004);
+  world.advance(0, { x: 0, y: -9.8 }, live(12, { minFragmentArea: 0.004 }));
   expect(world["fracture"]["pending"].size).toBe(0);
 });

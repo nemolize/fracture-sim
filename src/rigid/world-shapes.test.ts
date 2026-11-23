@@ -3,6 +3,7 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { TIME_STEP } from "./constants";
 import { DEFAULT_ENVIRONMENT } from "./environment";
+import { live } from "./live";
 import { OBJECT_SHAPES } from "./object-shape";
 import { initializePhysics, RigidWorld } from "./world";
 
@@ -91,7 +92,7 @@ describe.each(OBJECT_SHAPES)("a sunk %s", (shape) => {
         if (body === undefined) throw new Error("Missing shape");
         body.body.setRotation(angle, true);
         body.body.setTranslation(position(), true);
-        world.advance(TIME_STEP, { x: 0, y: 0 }, 10000);
+        world.advance(TIME_STEP, { x: 0, y: 0 }, live(10000));
         const { x, y } = body.body.translation();
         const points = body.polygon.map(([px, py]) => ({
           x: x + px * Math.cos(angle) - py * Math.sin(angle),
@@ -128,6 +129,6 @@ it("returns a sunk ball by its radius whatever its rotation", () => {
   if (ball?.ball !== true) throw new Error("Missing ball");
   ball.body.setRotation(Math.PI / 8, true);
   ball.body.setTranslation({ x: 5, y: -0.3 }, true);
-  world.advance(TIME_STEP, { x: 0, y: 0 }, 10000);
+  world.advance(TIME_STEP, { x: 0, y: 0 }, live(10000));
   expect(ball.body.translation().y).toBeCloseTo(0.12, 3);
 });

@@ -25,7 +25,7 @@ it("removes only its new rigid body if collider creation fails", () => {
       objectPolygon("triangle", { width: 2, height: 1 }),
       { x: 0, y: 1 },
       25,
-      0.5,
+      { friction: 0.5, restitution: 0 },
       false,
     ),
   ).toThrow("allocation failed");
@@ -56,7 +56,7 @@ it("falls back when the native descriptor has no polygon vertices", () => {
     objectPolygon("hexagon", { width: 2, height: 1 }),
     { x: 0, y: 1 },
     25,
-    0.5,
+    { friction: 0.5, restitution: 0 },
     false,
   );
   expect(shape.body.collider(0).shapeType()).toBe(RAPIER.ShapeType.Compound);

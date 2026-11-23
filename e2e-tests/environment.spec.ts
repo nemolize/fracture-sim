@@ -5,7 +5,7 @@ import type {
   WorkerRequest,
   WorkerResponse,
 } from "../src/rigid/types";
-import { observeCrackEnergy, selectCustomMaterial } from "./material-fixture";
+import { makePlateUnbreakable, observeCrackEnergy } from "./material-fixture";
 import { openSettings, useReferenceWorld } from "./settings";
 
 declare global {
@@ -64,16 +64,18 @@ test("world controls reach physics, resize rendering and preserve pointer metres
   await page.goto("/");
   await useReferenceWorld(page);
   await openSettings(page);
-  await selectCustomMaterial(page);
+  await makePlateUnbreakable(page);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await setSlider(page, "Gravity (m/s²)", 0);
   await expect
     .poll(() => page.evaluate(() => window.environmentAdvance?.gravity.y))
     .toBe(0);
   const workers = await page.evaluate(() => window.environmentWorkers);
-  await setSlider(page, "Friction coefficient", 0.83);
+  await setSlider(page, "Floor friction coefficient", 0.83);
   await expect
-    .poll(() => page.evaluate(() => window.environmentAdvance?.friction))
+    .poll(() =>
+      page.evaluate(() => window.environmentAdvance?.materials?.floor.friction),
+    )
     .toBe(0.83);
   expect(await page.evaluate(() => window.environmentWorkers)).toBe(workers);
   await expect(
@@ -83,7 +85,7 @@ test("world controls reach physics, resize rendering and preserve pointer metres
     page.getByRole("slider", { name: "World height (m)", exact: true }),
   ).toHaveCount(0);
   await setSlider(page, "World scale", 1.8);
-  await setSlider(page, "Areal density (kg/m²)", 50);
+  await setSlider(page, "Object density (kg/m³)", 5000);
   await expect
     .poll(() => page.evaluate(() => window.environmentSnapshot?.stats.mass))
     .toBe(100);
@@ -132,7 +134,10 @@ test("world controls reach physics, resize rendering and preserve pointer metres
     page.getByRole("slider", { name: "World scale", exact: true }),
   ).toHaveValue("1.8");
   await expect(
-    page.getByRole("slider", { name: "Friction coefficient", exact: true }),
+    page.getByRole("slider", {
+      name: "Floor friction coefficient",
+      exact: true,
+    }),
   ).toHaveValue("0.83");
   expect(errors).toEqual([]);
 });

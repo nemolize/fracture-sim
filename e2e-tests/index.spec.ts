@@ -62,7 +62,9 @@ test("should reset one setting or every parameter from the popup", async ({
   await page.goto("/");
   await openSettings(page);
   const gravity = page.getByRole("slider", { name: "Gravity (m/s²)" });
-  const friction = page.getByRole("slider", { name: "Friction coefficient" });
+  const friction = page.getByRole("slider", {
+    name: "Floor friction coefficient",
+  });
   const defaults = {
     gravity: await gravity.inputValue(),
     friction: await friction.inputValue(),

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { EnvironmentControl } from "@/EnvironmentControl";
+import { FloorMaterialControl } from "@/FloorMaterialControl";
 import { MaterialControl } from "@/MaterialControl";
 import { ObjectControl } from "@/ObjectControl";
 import { ResetButton } from "@/ResetButton";
@@ -178,6 +179,14 @@ export const ControlPanel = ({
       disabled={locked || settings.scene !== "plate"}
       onChange={(objectSize) => {
         onChange({ ...settings, objectSize });
+      }}
+    />
+
+    <FloorMaterialControl
+      value={settings.floorMaterial}
+      disabled={locked}
+      onChange={(floorMaterial) => {
+        onChange({ ...settings, floorMaterial });
       }}
     />
 

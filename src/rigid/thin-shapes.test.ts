@@ -2,6 +2,8 @@
 import RAPIER from "@dimforge/rapier2d-compat";
 import { afterEach, beforeAll, expect, it } from "vitest";
 
+import { DEFAULT_FLOOR_MATERIAL } from "@/sim/floor-material";
+import { DEFAULT_MATERIAL } from "@/sim/material";
 import { polygonMoments } from "@/sim/polygon";
 import type { Vec2 } from "@/sim/vec2";
 
@@ -88,9 +90,13 @@ it.each(["ellipse", "triangle", "hexagon"] as const)(
   (shape) => {
     world = new RigidWorld(
       "plate",
-      { ...DEFAULT_ENVIRONMENT, width: 30, height: 20, friction: 0 },
+      { ...DEFAULT_ENVIRONMENT, width: 30, height: 20 },
       { width: 9.9, height: 0.1 },
       shape,
+      {
+        floor: { ...DEFAULT_FLOOR_MATERIAL, friction: 0 },
+        object: { ...DEFAULT_MATERIAL, friction: 0 },
+      },
     );
     world["shapes"][4]?.body.setLinvel({ x: 0.5, y: 0 }, true);
     for (let i = 0; i < 120; i++) world.advance(1 / 60, { x: 0, y: -9.8 });

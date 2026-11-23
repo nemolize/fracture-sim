@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import type { Snapshot, WorkerResponse } from "../src/rigid/types";
-import { observeCrackEnergy, selectCustomMaterial } from "./material-fixture";
+import { makePlateUnbreakable, observeCrackEnergy } from "./material-fixture";
 import { closeSettings, openSettings, useReferenceWorld } from "./settings";
 
 declare global {
@@ -67,7 +67,7 @@ test.beforeEach(async ({ page }) => {
   await observeCrackEnergy(page);
   await observeWorker(page);
   await page.goto("/");
-  await selectCustomMaterial(page);
+  await makePlateUnbreakable(page);
   await useReferenceWorld(page);
   await expect
     .poll(() => page.evaluate(() => window.observedPhysics?.stats.sleeping))
@@ -145,7 +145,7 @@ test("throw tool launches a visible ball that hits the plate", async ({
   });
   await openSettings(page);
   await page
-    .getByRole("combobox", { name: "Fracture preset" })
+    .getByRole("combobox", { name: "Object material preset" })
     .selectOption("glass");
   await page.getByLabel("Throw ball").check();
   await closeSettings(page);

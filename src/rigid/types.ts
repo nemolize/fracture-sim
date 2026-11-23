@@ -1,3 +1,5 @@
+import type { LiveMaterials, WorldMaterials } from "@/sim/material";
+
 import type { EnvironmentSettings } from "./environment";
 import type { ObjectShape } from "./object-shape";
 import type { ObjectSize } from "./object-size";
@@ -24,6 +26,7 @@ export type WorkerRequest =
       type: "init";
       scene: Scene;
       environment?: EnvironmentSettings;
+      materials?: WorldMaterials;
       objectSize?: ObjectSize;
       objectShape?: ObjectShape;
       visibleHeight?: number;
@@ -34,9 +37,7 @@ export type WorkerRequest =
       type: "advance";
       seconds: number;
       gravity: { x: number; y: number };
-      crackEnergy?: number;
-      friction?: number;
-      minFragmentArea?: number;
+      materials?: LiveMaterials;
     };
 
 export type WorkerResponse =

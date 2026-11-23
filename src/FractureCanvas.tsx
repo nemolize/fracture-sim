@@ -12,7 +12,7 @@ import { RigidRenderer } from "@/rigid/renderer";
 import type { WorkerRequest, WorkerResponse, WorldStats } from "@/rigid/types";
 import { ScaleBar } from "@/ScaleBar";
 import type { Settings } from "@/settings";
-import { crackEnergy } from "@/sim/material";
+import { arealDensity, liveMaterials } from "@/sim/material";
 import type { MotionTracker } from "@/sim/motion";
 
 interface Props {
@@ -60,7 +60,8 @@ export const FractureCanvas = ({
     };
   });
   const { scene, objectShape } = settings;
-  const { width, height, density } = settings.environment;
+  const { width, height } = settings.environment;
+  const areal = arealDensity(settings.material);
   const { width: objectWidth, height: objectHeight } = settings.objectSize;
 
   useEffect(() => {
@@ -215,9 +216,10 @@ export const FractureCanvas = ({
             { ...input.settings, gravity: input.settings.environment.gravity },
             now,
           ),
-          friction: input.settings.environment.friction,
-          crackEnergy: crackEnergy(input.settings.material),
-          minFragmentArea: input.settings.material.minFragmentArea,
+          materials: liveMaterials({
+            floor: input.settings.floorMaterial,
+            object: input.settings.material,
+          }),
         });
         previous = now;
         pending = true;
@@ -233,11 +235,10 @@ export const FractureCanvas = ({
       objectSize: { width: objectWidth, height: objectHeight },
       objectShape,
       visibleHeight: sentHeight,
-      environment: {
-        ...latest.current.settings.environment,
-        width,
-        height,
-        density,
+      environment: { ...latest.current.settings.environment, width, height },
+      materials: {
+        floor: latest.current.settings.floorMaterial,
+        object: latest.current.settings.material,
       },
     });
     animation = requestAnimationFrame(frame);
@@ -265,7 +266,7 @@ export const FractureCanvas = ({
     resetToken,
     width,
     height,
-    density,
+    areal,
     objectWidth,
     objectHeight,
     objectShape,

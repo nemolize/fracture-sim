@@ -99,9 +99,7 @@ test("plate bounding box controls update geometry, mass, reset and grab targets"
     path: "test-results/object-size.png",
     fullPage: true,
   });
-  await page
-    .getByRole("combobox", { name: "Fracture preset" })
-    .selectOption("custom");
+  await page.getByRole("slider", { name: "Fracture energy (J/m²)" }).fill("6");
   const canvas = page.getByLabel("Fracture simulation");
   await canvas.scrollIntoViewIfNeeded();
   const box = await canvas.boundingBox();

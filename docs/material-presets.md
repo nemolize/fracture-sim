@@ -19,19 +19,28 @@ The 2D solver uses `Gc × thicknessMm / 1000` J/m: a crack of in-plane length L
 creates a projected fracture area `L × thickness`. Gc already accounts for
 both crack faces; no additional factor of two is applied.
 
-Glass at 10 mm is the initial selection. Custom initially holds 1,000,000 J/m²,
-which reproduces the previous 10,000 J/m setting at 10 mm. Switching presets
-retains thickness and the stored Custom value. Editing Gc selects Custom.
-Reset retains both selections. The Gc slider spans 0.1–1,000,000 J/m² on a
+Glass at 10 mm is the initial selection. Choosing a preset loads its fracture
+energy, volumetric density, friction and restitution and keeps the thickness;
+moving any of those sliders selects Custom, and landing on a preset's values
+names the preset again. The Gc slider spans 0.1–1,000,000 J/m² on a
 logarithmic scale; thickness spans 0.1–100 mm. These are empirical UI bounds.
 
-Presets change fracture-energy inputs. Body areal density defaults to 25 kg/m²,
-is separately adjustable under World, and is not changed with the preset or thickness. The normal-impact energy rule and
-minimum fragment area remain simplified; these values do not calibrate the
-simulation's full dynamic response to an actual material test. In particular,
-the real-glass default fractures more readily than the previous custom setting.
-The plate starts asleep with its bottom touching the floor, avoiding a startup
-impact; pointer tools, collisions and gravity changes can wake it.
+Only the fracture energies are sourced. The densities, friction and
+restitution of the presets, and every floor preset in `src/sim/floor-material.ts`, are representative values chosen empirically with no fixed
+source. Glass and the Default floor keep the friction 0.5 and restitution 0 the
+app had before materials existed.
+
+Areal density is `density × thickness / 1000` kg/m², so glass at 2500 kg/m³ and
+10 mm is the former 25 kg/m². Thickness therefore scales both mass and crack
+energy; for a simple impact on the floor the two largely cancel. The supported
+areal density is the product of the density and thickness slider limits, so
+every slider position stays inside it.
+
+The normal-impact energy rule and minimum fragment area remain simplified;
+these values do not calibrate the simulation's full dynamic response to an
+actual material test. The plate starts asleep with its bottom touching the
+floor, avoiding a startup impact; pointer tools, collisions and gravity
+changes can wake it.
 
 [mit]: https://ocw.mit.edu/courses/3-11-mechanics-of-materials-fall-1999/e5bca953e1dbd0cd0376f0f77033dc0d_MIT3_11F99_frac.pdf#page=9
 [ice]: https://www.cambridge.org/core/journals/journal-of-glaciology/article/fracture-toughness-of-ice-a-preliminary-account-of-some-new-experiments/87E062E1284661430F7346A643015532
