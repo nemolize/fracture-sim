@@ -5,6 +5,7 @@ import {
   MAX_HIT_PIECES,
   MIN_FRAGMENT_AREA,
   narrowestWidth,
+  resolveFracture,
   rigidPieces,
   splittableArea,
 } from "./fracture";
@@ -149,5 +150,45 @@ describe("rigidPieces", () => {
   it("follows the minimum fragment area it is given", () => {
     const [a, b] = [piece(floor / 2), piece(floor / 4)];
     expect(rigidPieces([a, b], MIN_FRAGMENT_AREA / 4)).toEqual([a, b]);
+  });
+});
+
+describe("resolveFracture", () => {
+  const fracture = (domain: readonly Vec2[], energy: number) =>
+    resolveFracture(domain, { x: 0, y: 0 }, energy, CRACK_ENERGY);
+  const half = Math.sqrt(MIN_FRAGMENT_AREA) / 2;
+  const tiny = [
+    { x: -half, y: -half },
+    { x: half, y: -half },
+    { x: half, y: half },
+    { x: -half, y: half },
+  ];
+
+  it("turns a body below the splittable area into one dust piece above the crack threshold", () => {
+    const threshold = CRACK_ENERGY * narrowestWidth(tiny);
+    expect(fracture(tiny, threshold)).toBeNull();
+    const result = fracture(tiny, threshold * 1.01);
+    expect(result).toEqual({
+      kind: "dust",
+      piece: {
+        area: polygonMoments(tiny).area,
+        centroidOffset: polygonMoments(tiny).centroid,
+      },
+    });
+  });
+
+  it("keeps the crack threshold and splitting of bodies at or above the splittable area", () => {
+    expect(fracture(plate, CRACK_ENERGY)).toBeNull();
+    const result = fracture(plate, 96);
+    expect(result?.kind).toBe("split");
+    expect(result?.kind === "split" ? result.pieces : []).toEqual(
+      fracturePieces(plate, { x: 0, y: 0 }, 96),
+    );
+  });
+
+  it("reports nothing when the crack budget finds no valid split", () => {
+    const side = Math.sqrt(MIN_FRAGMENT_AREA / 2) * 1.01;
+    const thin = plate.map((p) => ({ x: p.x * side, y: p.y * side * 2 }));
+    expect(fracture(thin, 100)).toBeNull();
   });
 });

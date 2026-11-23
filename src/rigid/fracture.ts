@@ -1,6 +1,11 @@
 import RAPIER from "@dimforge/rapier2d-compat";
 
-import { fracturePieces, rigidPieces } from "@/sim/fracture";
+import {
+  type DustPiece,
+  type FractureResult,
+  resolveFracture,
+  rigidPieces,
+} from "@/sim/fracture";
 import { DEFAULT_CRACK_ENERGY, isCrackEnergy } from "@/sim/material";
 import type { ParticleField } from "@/sim/particles";
 import type { Piece } from "@/sim/split";
@@ -12,7 +17,7 @@ export const MAX_BODIES = 2000;
 
 export class ImpactFracture {
   private readonly queue = new RAPIER.EventQueue(true);
-  private readonly pending = new Map<BodyShape, Piece[]>();
+  private readonly pending = new Map<BodyShape, FractureResult>();
   private crackEnergy = DEFAULT_CRACK_ENERGY;
 
   private minFragmentArea: number;
@@ -118,7 +123,7 @@ export class ImpactFracture {
             const rotation = shape.body.rotation();
             const dx = contact.x - origin.x,
               dy = contact.y - origin.y;
-            const pieces = fracturePieces(
+            const result = resolveFracture(
               shape.domain,
               {
                 x: Math.cos(rotation) * dx + Math.sin(rotation) * dy,
@@ -128,22 +133,30 @@ export class ImpactFracture {
               this.crackEnergy,
               this.minFragmentArea,
             );
-            if (pieces.length > 1) this.pending.set(shape, pieces);
+            if (result !== null) this.pending.set(shape, result);
           }
         },
       );
     });
     let count = shapes.filter((s) => !s.fixed).length;
     let changed = false;
-    for (const [parent, pieces] of this.pending) {
-      const bodies = rigidPieces(pieces, this.minFragmentArea).length;
-      if (count + bodies - 1 > MAX_BODIES) continue;
-      const children = this.children(world, parent, pieces);
+    for (const [parent, result] of this.pending) {
+      const solids =
+        result.kind === "split"
+          ? rigidPieces(result.pieces, this.minFragmentArea)
+          : [];
+      const delta = solids.length - 1;
+      if (count + delta > MAX_BODIES) continue;
+      const dust =
+        result.kind === "dust"
+          ? [result.piece]
+          : result.pieces.filter((piece) => !solids.includes(piece));
+      const children = this.children(world, parent, solids, dust);
       detach(parent.body);
       world.removeRigidBody(parent.body);
       shapes.splice(shapes.indexOf(parent), 1, ...children);
       this.pending.delete(parent);
-      count += bodies - 1;
+      count += delta;
       changed = true;
     }
     return changed;
@@ -152,16 +165,16 @@ export class ImpactFracture {
   private children(
     world: RAPIER.World,
     parent: BodyShape,
-    pieces: Piece[],
+    solids: readonly Piece[],
+    dust: readonly DustPiece[],
   ): BodyShape[] {
     const origin = parent.body.translation();
     const angle = parent.body.rotation();
     const velocity = parent.body.linvel();
     const spin = parent.body.angvel();
     const created: BodyShape[] = [];
-    const solids = rigidPieces(pieces, this.minFragmentArea);
     const solidArea = solids.reduce((sum, piece) => sum + piece.area, 0);
-    const launch = (piece: Piece) => {
+    const launch = (piece: DustPiece) => {
       const dx =
         Math.cos(angle) * piece.centroidOffset.x -
         Math.sin(angle) * piece.centroidOffset.y;
@@ -213,8 +226,7 @@ export class ImpactFracture {
         });
         world.createCollider(collider, body);
       }
-      for (const piece of pieces) {
-        if (solids.includes(piece)) continue;
+      for (const piece of dust) {
         const { position, velocity: dustVelocity } = launch(piece);
         this.particles.spawn(position, dustVelocity, Math.sqrt(piece.area));
       }
