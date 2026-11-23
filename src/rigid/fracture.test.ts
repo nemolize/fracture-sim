@@ -7,6 +7,7 @@ import { ParticleField } from "@/sim/particles";
 import { polygonMoments } from "@/sim/polygon";
 
 import { type BodyShape, polygonCollider } from "./body";
+import { fillBodyPool, parkBalls } from "./body-pool";
 import { TIME_STEP } from "./constants";
 import {
   DEFAULT_ENVIRONMENT,
@@ -147,12 +148,7 @@ it("turns tiny pieces into massless particles and gives their mass to the rigid 
 it("refuses balls at capacity without changing geometry or mass", () => {
   const world = new RigidWorld();
   worlds.push(world);
-  for (let i = 1; i < MAX_BODIES; i++)
-    world.apply({
-      type: "throw",
-      point: { x: 1, y: 4 },
-      velocity: { x: 0, y: 0 },
-    });
+  fillBodyPool(world);
   expect(world.snapshot().stats.bodies).toBe(MAX_BODIES);
   const before = world.snapshot();
   const vertices = world.vertices();
@@ -169,19 +165,12 @@ it("refuses balls at capacity without changing geometry or mass", () => {
 
 it("retains the whole parent when full and retries its queued split when room appears", () => {
   const world = makeRaisedPlateWorld();
-  for (let i = 1; i < MAX_BODIES; i++)
-    world.apply({
-      type: "throw",
-      point: { x: 1, y: 4 },
-      velocity: { x: 0, y: 0 },
-    });
+  fillBodyPool(world);
   const engine = world["world"];
   const shapes = world["shapes"];
   const parent = shapes[4];
   if (parent === undefined) throw new Error("Missing plate");
-  // Park the extra balls without contacts so the test isolates pool saturation.
-  for (const [i, s] of shapes.slice(5).entries())
-    s.body.setTranslation({ x: 100 + i, y: 100 }, true);
+  parkBalls(world);
   for (let i = 0; i < 50; i++)
     world.advance(TIME_STEP, { x: 0, y: -9.8 }, live(12));
   expect(shapes[4]).toBe(parent);
@@ -297,18 +286,12 @@ it.each([0, -12, NaN, Infinity, -Infinity])(
 
 it("cancels a capacity-deferred split when the material changes", () => {
   const world = makeRaisedPlateWorld();
-  for (let i = 1; i < MAX_BODIES; i++)
-    world.apply({
-      type: "throw",
-      point: { x: 1, y: 4 },
-      velocity: { x: 0, y: 0 },
-    });
+  fillBodyPool(world);
   const shapes = world["shapes"];
   const engine = world["world"];
   const parent = shapes[4];
   if (parent === undefined) throw new Error("Missing plate");
-  for (const [i, s] of shapes.slice(5).entries())
-    s.body.setTranslation({ x: 100 + i, y: 100 }, true);
+  parkBalls(world);
   for (let i = 0; i < 50; i++)
     world.advance(TIME_STEP, { x: 0, y: -9.8 }, live(12));
   expect(world["fracture"]["pending"].size).toBe(1);
@@ -391,14 +374,8 @@ it("rejects a non-positive minimum fragment area", () => {
 
 it("cancels a capacity-deferred split when the minimum fragment area changes", () => {
   const world = makeRaisedPlateWorld();
-  for (let i = 1; i < MAX_BODIES; i++)
-    world.apply({
-      type: "throw",
-      point: { x: 1, y: 4 },
-      velocity: { x: 0, y: 0 },
-    });
-  for (const [i, s] of world["shapes"].slice(5).entries())
-    s.body.setTranslation({ x: 100 + i, y: 100 }, true);
+  fillBodyPool(world);
+  parkBalls(world);
   for (let i = 0; i < 50; i++)
     world.advance(TIME_STEP, { x: 0, y: -9.8 }, live(12));
   expect(world["fracture"]["pending"].size).toBe(1);

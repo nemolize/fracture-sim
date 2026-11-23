@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/dot-notation -- Inspect real engine fixtures without exposing mutation APIs to the app. */
 import { afterEach, beforeAll, expect, it } from "vitest";
 
+import { fillBodyPool, parkBalls } from "./body-pool";
 import { TIME_STEP } from "./constants";
 import { DEFAULT_ENVIRONMENT } from "./environment";
 import { MAX_BODIES } from "./fracture";
@@ -55,15 +56,8 @@ it("shatters a minimum-size plate even when the body pool is full", () => {
   world = new RigidWorld(DEFAULT_ENVIRONMENT, MINIMUM_SIZE);
   const plate = world["shapes"].find((shape) => !shape.fixed);
   plate?.body.setTranslation({ x: 5, y: 3 }, true);
-  for (let i = 1; i < MAX_BODIES; i++)
-    world.apply({
-      type: "throw",
-      point: { x: 1, y: 4 },
-      velocity: { x: 0, y: 0 },
-    });
-  for (const [i, shape] of world["shapes"].slice(5).entries())
-    shape.body.setTranslation({ x: 100 + i, y: 100 }, true);
-  world["world"].propagateModifiedBodyPositionsToColliders();
+  fillBodyPool(world);
+  parkBalls(world);
   expect(world.snapshot().stats.bodies).toBe(MAX_BODIES);
   advance(1.5);
   expect(plate !== undefined && world["shapes"].includes(plate)).toBe(false);

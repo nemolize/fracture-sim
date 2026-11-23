@@ -40,6 +40,12 @@ export const narrowestWidth = (ring: readonly Vec2[]): number =>
     }),
   );
 
+const exceedsCrackThreshold = (
+  domain: readonly Vec2[],
+  energy: number,
+  crackEnergy: number,
+): boolean => energy / crackEnergy > narrowestWidth(domain);
+
 export type DustPiece = Pick<Piece, "area" | "centroidOffset">;
 
 export type FractureResult =
@@ -52,7 +58,7 @@ export const resolveFracture = (
   crackEnergy: number,
   minFragmentArea = MIN_FRAGMENT_AREA,
 ): FractureResult | null => {
-  if (!(energy / crackEnergy > narrowestWidth(domain))) return null;
+  if (!exceedsCrackThreshold(domain, energy, crackEnergy)) return null;
   const { area, centroid } = polygonMoments(domain);
   if (area < splittableArea(minFragmentArea))
     return { kind: "dust", piece: { area, centroidOffset: centroid } };
@@ -73,13 +79,13 @@ export const fracturePieces = (
   crackEnergy: number,
   minFragmentArea = MIN_FRAGMENT_AREA,
 ): Piece[] => {
-  const budget = energy / crackEnergy;
   const area = polygonMoments(domain).area;
   if (
-    !(budget > narrowestWidth(domain)) ||
+    !exceedsCrackThreshold(domain, energy, crackEnergy) ||
     area < splittableArea(minFragmentArea)
   )
     return [];
+  const budget = energy / crackEnergy;
   const minX = Math.min(...domain.map((p) => p.x));
   const maxX = Math.max(...domain.map((p) => p.x));
   const minY = Math.min(...domain.map((p) => p.y));
