@@ -27,7 +27,7 @@ const moveSlider = (name: string, value: string): void => {
 const ice = findMaterialPreset("ice");
 if (ice === undefined) throw new Error("Missing preset");
 
-it("shows real glass values, plate thickness and the derived energies initially", () => {
+it("shows real glass values and plate thickness initially", () => {
   setup();
   expect(
     screen.getByRole("combobox", { name: "Object material preset" }),
@@ -48,11 +48,11 @@ it("shows real glass values, plate thickness and the derived energies initially"
     "10",
   );
   expect(
-    screen.getByRole("status", { name: "Areal density" }),
-  ).toHaveTextContent("25 kg/m²");
-  expect(
-    screen.getByRole("status", { name: "Crack energy" }),
-  ).toHaveTextContent("0.07 J/m");
+    screen.getByRole("button", { name: "About object material" }),
+  ).toHaveAttribute(
+    "title",
+    expect.stringContaining("Areal density is density × thickness"),
+  );
 });
 
 it("loads every property of a chosen preset and keeps the thickness", async () => {
@@ -188,4 +188,23 @@ it("returns to a preset when the fracture-energy slider lands on its energy", ()
   });
   moveSlider("Fracture energy (J/m²)", "0.85");
   expect(onChange).toHaveBeenCalledWith(DEFAULT_MATERIAL);
+});
+
+it("opens the material note on click so touch screens can read it", async () => {
+  const { user } = setup();
+  const toggle = screen.getByRole("button", { name: "About object material" });
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByText(/Areal density is density/)).toBeNull();
+  await user.click(toggle);
+  expect(toggle).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByText(/Areal density is density/)).toBeVisible();
+  await user.click(toggle);
+  expect(screen.queryByText(/Areal density is density/)).toBeNull();
+});
+
+it("names the group by its title alone, not by the note button", () => {
+  setup();
+  expect(
+    screen.getByRole("group", { name: "Object material" }),
+  ).toBeInTheDocument();
 });

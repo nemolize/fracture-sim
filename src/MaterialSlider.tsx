@@ -1,7 +1,5 @@
+import { formatNumber } from "@/format";
 import { ResetButton } from "@/ResetButton";
-
-export const formatNumber = (value: number): string =>
-  value.toLocaleString("en-US", { maximumSignificantDigits: 5 });
 
 export const MaterialSlider = ({
   label,
