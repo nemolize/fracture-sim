@@ -10,7 +10,7 @@ export const TOOL_LABELS: Record<Tool, string> = {
 export const TOOL_HINTS: Record<Tool, string> = {
   grab: "Press on a body to lift it. Drag and release to throw it.",
   throw:
-    "Drag from a launch point toward the target. Longer drags launch faster balls. Below world scale ×0.05 a thrown ball cannot fracture the plate.",
+    "Drag from a launch point toward the target. Longer drags launch faster balls. Below world scale ×0.05 a thrown ball may not fracture the default plate.",
   blast:
     "Click to push bodies away from that point. The reach is a fifth of the world width, up to 2 metres.",
 };

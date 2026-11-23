@@ -27,11 +27,11 @@ const plateReplacedByThrow = (scale: number): boolean => {
   world = new RigidWorld("plate", environment, size);
   const plate = world["shapes"].find((shape) => !shape.fixed);
   const radius = Math.min(0.12, environment.width / 20);
-  const drag = environment.width / 2 - radius;
+  const dragToCentre = environment.width / 2 - radius;
   world.apply({
     type: "throw",
     point: { x: radius, y: size.height / 2 },
-    velocity: limitVelocity({ x: drag * 4, y: 0 }),
+    velocity: limitVelocity({ x: dragToCentre * 4, y: 0 }),
   });
   for (let i = 0; i < 120; i++)
     world.advance(TIME_STEP, { x: 0, y: -environment.gravity });
@@ -46,12 +46,12 @@ it.each([
   1,
   WORLD_SCALE_RANGE.max,
 ])(
-  "replaces the default plate when a full-length drag throws a ball at its centre at world scale ×%s",
+  "replaces the default plate when a drag from the left wall to its centre throws a ball at it at world scale ×%s",
   (scale) => {
     expect(plateReplacedByThrow(scale)).toBe(true);
   },
 );
 
-it("leaves the default plate intact below the fracturing scale, as documented", () => {
+it("leaves the default plate intact at the smallest world scale for the same drag", () => {
   expect(plateReplacedByThrow(WORLD_SCALE_RANGE.min)).toBe(false);
 });
