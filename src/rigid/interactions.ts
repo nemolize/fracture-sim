@@ -3,7 +3,7 @@ import RAPIER from "@dimforge/rapier2d-compat";
 import type { Vec2 } from "@/sim/vec2";
 
 import { DEFAULT_ENVIRONMENT, type EnvironmentSettings } from "./environment";
-import { BLAST_RADIUS, limitVelocity } from "./tools";
+import { blastRadius, limitVelocity } from "./tools";
 
 interface ToolBody {
   body: RAPIER.RigidBody;
@@ -125,13 +125,14 @@ export class RigidTools {
   }
 
   blast(point: Vec2): void {
+    const radius = blastRadius(this.bounds.width);
     for (const { body } of this.bodies()) {
       const position = body.translation();
       const dx = position.x - point.x;
       const dy = position.y - point.y;
       const distance = Math.hypot(dx, dy);
-      if (distance >= BLAST_RADIUS) continue;
-      const speed = 8 * (1 - distance / BLAST_RADIUS);
+      if (distance >= radius) continue;
+      const speed = 8 * (1 - distance / radius);
       const direction =
         distance === 0
           ? { x: 0, y: 1 }
