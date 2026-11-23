@@ -201,8 +201,15 @@ test("WebGPU renders a blasted plate and its particles without diagnostics", asy
   await openSettings(page);
   await page.getByRole("radio", { name: "Blast" }).check();
   const canvas = page.getByLabel("Fracture simulation");
-  for (let i = 0; i < 6; i++)
-    await canvas.click({ position: { x: 400, y: 560 }, delay: 100 });
+  const box = await canvas.boundingBox();
+  if (box === null) throw new Error("the canvas has no layout box");
+  const BLAST_X_PER_WIDTH = 400 / 1120;
+  const BLAST_Y_PER_WIDTH = 560 / 1120;
+  const position = {
+    x: box.width * BLAST_X_PER_WIDTH,
+    y: box.width * BLAST_Y_PER_WIDTH,
+  };
+  for (let i = 0; i < 6; i++) await canvas.click({ position, delay: 100 });
   await expect(page.getByLabel("Simulation statistics")).toContainText(
     /Bodies\d{2,}/,
   );
