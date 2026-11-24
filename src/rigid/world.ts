@@ -12,7 +12,6 @@ import {
   validateSurface,
   type WorldMaterials,
 } from "@/sim/material";
-import { ParticleField } from "@/sim/particles";
 
 import { type BodyShape, centreExtent, createBodyShape } from "./body";
 import {
@@ -20,6 +19,7 @@ import {
   WAKE_GRAVITY_DELTA,
   WAKE_GRAVITY_SMOOTHING,
 } from "./constants";
+import { DebrisRegistry } from "./debris";
 import {
   DEFAULT_ENVIRONMENT,
   type EnvironmentSettings,
@@ -35,7 +35,6 @@ import {
   type ObjectSize,
   validateObjectSize,
 } from "./object-size";
-import { BodyObstacles } from "./obstacles";
 import { GLASS_COLOR } from "./palette";
 import { limitVelocity, type ToolAction } from "./tools";
 import type { Snapshot } from "./types";
@@ -54,8 +53,7 @@ export class RigidWorld {
   private readonly world: RAPIER.World;
   private readonly shapes: BodyShape[] = [];
   private readonly tools: RigidTools;
-  private readonly particles = new ParticleField();
-  private readonly obstacles: BodyObstacles;
+  private readonly debris: DebrisRegistry;
   private readonly fracture: ImpactFracture;
   private readonly areaScale: number;
   geometryRevision = 0;
@@ -88,22 +86,22 @@ export class RigidWorld {
     this.environment = { ...environment };
     const lengthScale = Math.min(1, worldScale(environment));
     this.areaScale = lengthScale ** 2;
-    this.fracture = new ImpactFracture(
-      materials.object.minFragmentArea * this.areaScale,
-      this.particles,
-    );
     this.arealDensity = arealDensity(materials.object);
     this.live = liveMaterials(materials);
     this.wakeGravity = { x: 0, y: -environment.gravity };
     this.averageGravity = { ...this.wakeGravity };
     this.world = new RAPIER.World({ ...this.wakeGravity });
+    this.debris = new DebrisRegistry(this.world);
+    this.fracture = new ImpactFracture(
+      materials.object.minFragmentArea * this.areaScale,
+      this.debris,
+    );
     this.tools = new RigidTools(
       this.world,
       () => this.shapes.filter((shape) => !shape.fixed),
       this.environment,
     );
     const { width, height } = environment;
-    this.obstacles = new BodyObstacles(width, height);
     this.world.timestep = TIME_STEP;
     this.world.lengthUnit = lengthScale;
     this.floor = this.box(
@@ -152,6 +150,7 @@ export class RigidWorld {
 
   private wakeBodies(): void {
     for (const { body, fixed } of this.shapes) if (!fixed) body.wakeUp();
+    this.debris.wake();
   }
 
   private box(
@@ -303,6 +302,10 @@ export class RigidWorld {
         body.collider(0).setFriction(materials.object.friction);
         body.collider(0).setRestitution(materials.object.restitution);
       }
+      this.debris.setSurface(
+        materials.object.friction,
+        materials.object.restitution,
+      );
       this.wakeBodies();
     }
     this.live = materials;
@@ -346,17 +349,7 @@ export class RigidWorld {
       )
         this.geometryRevision++;
       this.returnSunkBodies();
-      this.obstacles.refresh(
-        this.shapes,
-        this.geometryRevision,
-        this.particles.size > 0,
-      );
-      this.particles.step(
-        TIME_STEP,
-        gravity,
-        this.environment,
-        this.obstacles.grid,
-      );
+      this.debris.contain(this.environment.width, this.environment.height);
       this.elapsed += TIME_STEP;
       this.remainder -= TIME_STEP;
       steps++;
@@ -406,14 +399,15 @@ export class RigidWorld {
     });
     return {
       poses,
-      particles: this.particles.snapshot(),
+      particles: this.debris.snapshot(),
       stats: {
         bodies,
         sleeping,
-        particles: this.particles.size,
+        particles: this.debris.size,
         stepMs: this.stepMs,
         time: this.elapsed,
-        mass: this.shapes.reduce((sum, s) => sum + s.mass, 0),
+        mass:
+          this.shapes.reduce((sum, s) => sum + s.mass, 0) + this.debris.mass,
       },
     };
   }

@@ -22,6 +22,21 @@ export const rigidPieces = (
     : [pieces.reduce((a, b) => (b.area > a.area ? b : a))];
 };
 
+/** Splits `mass` in proportion to `areas`; the last share takes the remainder so the shares sum to `mass` exactly. */
+export const apportionMass = (
+  mass: number,
+  areas: readonly number[],
+): number[] => {
+  const total = areas.reduce((sum, area) => sum + area, 0);
+  let assigned = 0;
+  return areas.map((area, index) => {
+    const share =
+      index === areas.length - 1 ? mass - assigned : (mass * area) / total;
+    assigned += share;
+    return share;
+  });
+};
+
 const perimeter = (ring: readonly Vec2[]): number =>
   ring.reduce((sum, a, i) => {
     const b = ring[(i + 1) % ring.length]!;

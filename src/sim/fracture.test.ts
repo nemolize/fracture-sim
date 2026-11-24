@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  apportionMass,
   fracturePieces as splitWithToughness,
   MAX_HIT_PIECES,
   MIN_FRAGMENT_AREA,
@@ -125,6 +126,30 @@ it("keeps cracks inside a rotated plate and conserves its area", () => {
       expect(Math.abs((y - x) / Math.sqrt(2))).toBeLessThanOrEqual(0.5 + 1e-12);
     }
   }
+});
+
+describe("apportionMass", () => {
+  it("splits in proportion to area", () => {
+    const [a, b, c] = apportionMass(12, [1, 2, 3]);
+    expect([a, b, c]).toEqual([2, 4, 6]);
+  });
+
+  it("sums to the parent mass exactly where plain proportions drift", () => {
+    const mass = 46.98249609433009;
+    const areas = [
+      0.3636464188568661, 0.22692774034380891, 0.08099892957245203,
+    ];
+    const total = areas.reduce((sum, area) => sum + area, 0);
+    const plain = areas.map((area) => (mass * area) / total);
+    expect(plain.reduce((sum, share) => sum + share, 0)).not.toBe(mass);
+    expect(
+      apportionMass(mass, areas).reduce((sum, share) => sum + share, 0),
+    ).toBe(mass);
+  });
+
+  it("gives a single piece the whole mass", () => {
+    expect(apportionMass(7, [0.5])).toEqual([7]);
+  });
 });
 
 describe("rigidPieces", () => {

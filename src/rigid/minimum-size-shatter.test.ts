@@ -2,7 +2,7 @@
 import { afterEach, beforeAll, expect, it } from "vitest";
 
 import { fillBodyPool, parkBalls } from "./body-pool";
-import { TIME_STEP } from "./constants";
+import { DEBRIS_STRIDE, TIME_STEP } from "./constants";
 import { DEFAULT_ENVIRONMENT } from "./environment";
 import { MAX_BODIES } from "./fracture";
 import { objectUnit } from "./object-size";
@@ -33,8 +33,9 @@ const dropMinimumPlate = (height: number) => {
     true,
   );
   world["world"].propagateModifiedBodyPositionsToColliders();
+  const initialMass = world.snapshot().stats.mass;
   advance(1.5);
-  return { plate, snapshot: world.snapshot() };
+  return { plate, snapshot: world.snapshot(), initialMass };
 };
 
 it("keeps a minimum-size plate that lands below the crack threshold", () => {
@@ -44,12 +45,14 @@ it("keeps a minimum-size plate that lands below the crack threshold", () => {
   expect(snapshot.particles.length).toBe(0);
 });
 
-it("turns a minimum-size plate that lands above the crack threshold into one particle", () => {
-  const { plate, snapshot } = dropMinimumPlate(0.5);
+it("turns a minimum-size plate that lands above the crack threshold into one debris circle that keeps its mass", () => {
+  const { plate, snapshot, initialMass } = dropMinimumPlate(0.5);
   expect(plate !== undefined && world?.["shapes"].includes(plate)).toBe(false);
   expect(snapshot.stats.bodies).toBe(0);
-  expect(snapshot.stats.mass).toBe(0);
-  expect(snapshot.particles.length / 4).toBe(1);
+  expect(snapshot.stats.mass).toBeCloseTo(initialMass, 12);
+  expect(snapshot.particles.length / DEBRIS_STRIDE).toBe(1);
+  advance(5);
+  expect(world?.snapshot().stats.particles).toBe(1);
 });
 
 it("shatters a minimum-size plate even when the body pool is full", () => {
