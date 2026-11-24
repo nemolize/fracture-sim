@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import type { Harness } from "../src/harness/main";
+import { DEBRIS_STRIDE } from "../src/rigid/constants";
 import { openSettings } from "./settings";
 
 declare global {
@@ -138,7 +139,7 @@ test("worker turns tiny fragments into particles and ships them with the snapsho
   page,
 }) => {
   await page.goto("/harness.html");
-  const result = await page.evaluate(async () => {
+  const result = await page.evaluate(async (stride) => {
     await window.harness.reset(undefined, { width: 2, height: 1 });
     let peak = 0;
     let mass = 0;
@@ -150,12 +151,12 @@ test("worker turns tiny fragments into particles and ships them with the snapsho
       for (let j = 0; j < 10; j++) {
         const frame = await window.harness.step(0.1, { x: 0, y: -9.8 }, 12);
         if (frame.type !== "frame") throw new Error("Worker failed");
-        peak = Math.max(peak, frame.snapshot.particles.length / 4);
+        peak = Math.max(peak, frame.snapshot.particles.length / stride);
         mass = frame.snapshot.stats.mass;
       }
     }
     return { peak, mass };
-  });
+  }, DEBRIS_STRIDE);
   expect(result.peak).toBeGreaterThan(0);
   expect(result.mass).toBeCloseTo(50, 12);
 });

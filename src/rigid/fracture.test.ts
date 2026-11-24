@@ -3,12 +3,12 @@ import RAPIER from "@dimforge/rapier2d-compat";
 import { afterEach, beforeAll, expect, it, vi } from "vitest";
 
 import { MIN_FRAGMENT_AREA, splittableArea } from "@/sim/fracture";
-import { ParticleField } from "@/sim/particles";
 import { polygonMoments } from "@/sim/polygon";
 
 import { type BodyShape, polygonCollider } from "./body";
 import { fillBodyPool, parkBalls } from "./body-pool";
 import { TIME_STEP } from "./constants";
+import { DebrisRegistry } from "./debris";
 import {
   DEFAULT_ENVIRONMENT,
   INITIAL_ENVIRONMENT,
@@ -54,8 +54,8 @@ it("separates drops below and above the crack threshold using real Rapier impuls
 
 it("breaks two chunks colliding at 4 m/s and keeps their mass through subsequent impacts", () => {
   const engine = new RAPIER.World({ x: 0, y: 0 });
-  const particles = new ParticleField();
-  const fracture = new ImpactFracture(MIN_FRAGMENT_AREA, particles);
+  const debris = new DebrisRegistry(engine);
+  const fracture = new ImpactFracture(MIN_FRAGMENT_AREA, debris);
   fracture.setCrackEnergy(12);
   const shapes: BodyShape[] = [];
   const polygon = [
@@ -89,19 +89,22 @@ it("breaks two chunks colliding at 4 m/s and keeps their mass through subsequent
     for (let i = 0; i < 60; i++) fracture.step(engine, shapes, () => undefined);
     expect(shapes.length).toBeGreaterThan(2);
     expect(shapes.every((s) => !originals.includes(s.body.handle))).toBe(true);
-    expect(shapes.reduce((s, p) => s + p.mass, 0)).toBeCloseTo(20, 12);
+    expect(shapes.reduce((s, p) => s + p.mass, 0) + debris.mass).toBeCloseTo(
+      20,
+      12,
+    );
   } finally {
     fracture.dispose();
     engine.free();
   }
 });
 
-it("turns tiny pieces into massless particles and gives their mass to the rigid pieces", () => {
+it("turns tiny pieces into debris circles that carry their share of the parent mass", () => {
   const engine = new RAPIER.World({ x: 0, y: 0 });
   // A small floor, so the 0.01 m² chunks can split into pieces that count as dust.
   const minFragmentArea = 0.0005;
-  const particles = new ParticleField();
-  const fracture = new ImpactFracture(minFragmentArea, particles);
+  const debris = new DebrisRegistry(engine);
+  const fracture = new ImpactFracture(minFragmentArea, debris);
   fracture.setCrackEnergy(0.5);
   const shapes: BodyShape[] = [];
   const polygon = [
@@ -132,9 +135,13 @@ it("turns tiny pieces into massless particles and gives their mass to the rigid 
   }
   try {
     for (let i = 0; i < 30; i++) fracture.step(engine, shapes, () => undefined);
-    expect(particles.size).toBeGreaterThan(0);
+    expect(debris.size).toBeGreaterThan(0);
     expect(shapes.length).toBeGreaterThan(2);
-    expect(shapes.reduce((s, p) => s + p.mass, 0)).toBeCloseTo(0.5, 12);
+    expect(shapes.reduce((s, p) => s + p.mass, 0)).toBeLessThan(0.5);
+    expect(shapes.reduce((s, p) => s + p.mass, 0) + debris.mass).toBeCloseTo(
+      0.5,
+      12,
+    );
     for (const { domain } of shapes)
       expect(polygonMoments(domain).area).toBeGreaterThanOrEqual(
         splittableArea(minFragmentArea),

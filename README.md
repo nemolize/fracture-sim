@@ -80,12 +80,14 @@ Voronoi edge length must fit the energy budget; pieces smaller than the minimum 
 square of the world scale below ×1) are rejected. A hit creates at most 40 pieces.
 
 A piece under twice the minimum fragment area (0.02 m² by default, scaled the same way) is
-not worth a rigid body: it becomes a particle that falls, rests against the container walls and on bodies, and shrinks to nothing
-over 2 s. A particle never pushes a body, and a body does not carry a particle with its
-velocity: the particle is only moved out of the body it overlaps each step. The rigid pieces of that split share its mass, and the
-largest piece always stays a body. A body already under that area cannot split: a hit past the same narrowest-width
-threshold turns it whole into one particle, and its mass leaves the world. At most 4,000 particles are alive; the oldest
-is replaced beyond that.
+not worth a rigid body: it becomes debris, a circle of the same area in the Rapier world that
+stays until it is replaced. Debris collides with the floor, bodies and other debris, so it piles up,
+supports bodies and pushes them; it is never grabbed or split, and a debris contact does not crack
+a body. The parent's mass is shared among all its pieces, solid and debris, in proportion to
+area, so a split conserves mass; the largest piece always stays a body. A body already under
+that area cannot split: a hit past the same narrowest-width threshold turns it whole into one
+debris circle. At most 4,000 debris circles exist; beyond that the oldest is removed, and its
+mass leaves the world.
 
 `src/rigid/fracture.ts` uses contact impulses to locate active contacts, but budgets
 fracture from the lost normal-mode kinetic energy across the step, including

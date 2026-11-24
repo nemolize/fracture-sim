@@ -1,7 +1,7 @@
 import { floorMargin, visibleWorldHeight } from "@/gpu/camera";
 import { BufferUsage } from "@/gpu/usage";
-import { MAX_PARTICLES } from "@/sim/particles";
 
+import { DEBRIS_STRIDE, MAX_DEBRIS } from "./constants";
 import { DEFAULT_ENVIRONMENT, type EnvironmentSettings } from "./environment";
 import { GLASS_COLOR } from "./palette";
 
@@ -23,17 +23,18 @@ struct Vertex { @builtin(position) position: vec4f, @location(0) color: vec3f };
 `;
 
 const particleShader = (bounds: Pick<EnvironmentSettings, "width">) => `
-struct Vertex { @builtin(position) position: vec4f };
-@group(0) @binding(0) var<storage, read> particles: array<vec4f>;
+struct Vertex { @builtin(position) position: vec4f, @location(0) local: vec2f };
+@group(0) @binding(0) var<storage, read> particles: array<f32>;
 @group(0) @binding(1) var<uniform> view: vec4f;
 @vertex fn vertex(@builtin(vertex_index) corner: u32, @builtin(instance_index) instance: u32) -> Vertex {
-  let particle = particles[instance];
+  let centre = vec2f(particles[instance * ${String(DEBRIS_STRIDE)}u], particles[instance * ${String(DEBRIS_STRIDE)}u + 1u]);
+  let diameter = particles[instance * ${String(DEBRIS_STRIDE)}u + 2u];
   var offsets = array<vec2f, 6>(vec2f(-1, -1), vec2f(1, -1), vec2f(1, 1), vec2f(-1, -1), vec2f(1, 1), vec2f(-1, 1));
-  let life = particle.w;
-  let p = particle.xy + offsets[corner] * particle.z * life * 0.5;
-  return Vertex(${clip(bounds)});
+  let p = centre + offsets[corner] * diameter * 0.5;
+  return Vertex(${clip(bounds)}, offsets[corner]);
 }
-@fragment fn fragment() -> @location(0) vec4f {
+@fragment fn fragment(input: Vertex) -> @location(0) vec4f {
+  if (dot(input.local, input.local) > 1.0) { discard; }
   return vec4f(${GLASS_COLOR.join(", ")}, 1.0);
 }
 `;
@@ -103,7 +104,7 @@ export class RigidRenderer {
       ],
     });
     this.particles = device.createBuffer({
-      size: MAX_PARTICLES * 16,
+      size: MAX_DEBRIS * DEBRIS_STRIDE * 4,
       usage: BufferUsage.STORAGE | BufferUsage.COPY_DST,
     });
     const particleModule = device.createShaderModule({
@@ -163,7 +164,7 @@ export class RigidRenderer {
     pass.draw(this.count);
     pass.setPipeline(this.particlePipeline);
     pass.setBindGroup(0, this.particleGroup);
-    pass.draw(6, particles.length / 4);
+    pass.draw(6, particles.length / DEBRIS_STRIDE);
     pass.end();
     this.device.queue.submit([encoder.finish()]);
   }

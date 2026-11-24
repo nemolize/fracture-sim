@@ -1,16 +1,17 @@
 import RAPIER from "@dimforge/rapier2d-compat";
 
 import {
+  apportionMass,
   type DustPiece,
   type FractureResult,
   resolveFracture,
   rigidPieces,
 } from "@/sim/fracture";
 import { DEFAULT_CRACK_ENERGY, isCrackEnergy } from "@/sim/material";
-import type { ParticleField } from "@/sim/particles";
 import type { Piece } from "@/sim/split";
 
 import { type BodyShape, polygonCollider } from "./body";
+import type { DebrisRegistry } from "./debris";
 import { type BodyMotion, contactMotion, impactEnergy } from "./impact-energy";
 
 export const MAX_BODIES = 2000;
@@ -21,11 +22,11 @@ export class ImpactFracture {
   private crackEnergy = DEFAULT_CRACK_ENERGY;
 
   private minFragmentArea: number;
-  private readonly particles: ParticleField;
+  private readonly debris: DebrisRegistry;
 
-  constructor(minFragmentArea: number, particles: ParticleField) {
+  constructor(minFragmentArea: number, debris: DebrisRegistry) {
     this.minFragmentArea = minFragmentArea;
-    this.particles = particles;
+    this.debris = debris;
   }
 
   setMinFragmentArea(value: number): void {
@@ -173,7 +174,12 @@ export class ImpactFracture {
     const velocity = parent.body.linvel();
     const spin = parent.body.angvel();
     const created: BodyShape[] = [];
-    const solidArea = solids.reduce((sum, piece) => sum + piece.area, 0);
+    const masses = apportionMass(
+      parent.mass,
+      [...solids, ...dust].map((piece) => piece.area),
+    );
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- `masses` has one share per solid, then per dust piece.
+    const massAt = (index: number): number => masses[index]!;
     const launch = (piece: DustPiece) => {
       const dx =
         Math.cos(angle) * piece.centroidOffset.x -
@@ -186,15 +192,9 @@ export class ImpactFracture {
         velocity: { x: velocity.x - spin * dy, y: velocity.y + spin * dx },
       };
     };
-    let assigned = 0;
     try {
-      for (const piece of solids) {
-        // Dust carries no mass of its own: the rigid pieces share the parent's whole mass.
-        const mass =
-          piece === solids[solids.length - 1]
-            ? parent.mass - assigned
-            : (parent.mass * piece.area) / solidArea;
-        assigned += mass;
+      for (const [index, piece] of solids.entries()) {
+        const mass = massAt(index);
         const { position, velocity: pieceVelocity } = launch(piece);
         const polygon = piece.polygon.map((p): readonly [number, number] => [
           p.x,
@@ -226,9 +226,17 @@ export class ImpactFracture {
         });
         world.createCollider(collider, body);
       }
-      for (const piece of dust) {
+      for (const [index, piece] of dust.entries()) {
         const { position, velocity: dustVelocity } = launch(piece);
-        this.particles.spawn(position, dustVelocity, Math.sqrt(piece.area));
+        this.debris.spawn({
+          position,
+          velocity: dustVelocity,
+          angularVelocity: spin,
+          radius: Math.sqrt(piece.area / Math.PI),
+          mass: massAt(solids.length + index),
+          friction: parent.body.collider(0).friction(),
+          restitution: parent.body.collider(0).restitution(),
+        });
       }
       return created;
     } catch (error) {
