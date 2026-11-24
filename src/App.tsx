@@ -13,6 +13,7 @@ const INITIAL_STATS: WorldStats = {
   mass: 0,
   bodies: 0,
   sleeping: 0,
+  particles: 0,
   stepMs: 0,
   time: 0,
 };

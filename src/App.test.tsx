@@ -35,7 +35,14 @@ vi.mock("@/FractureCanvas", () => ({
       <button
         type="button"
         onClick={() => {
-          onStats({ mass: 50, bodies: 3, sleeping: 2, stepMs: 0.1, time: 1 });
+          onStats({
+            mass: 50,
+            bodies: 3,
+            sleeping: 2,
+            particles: 0,
+            stepMs: 0.1,
+            time: 1,
+          });
         }}
       >
         report stats

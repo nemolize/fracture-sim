@@ -27,6 +27,8 @@ export const StatsReadout = ({ stats, material }: Props) => {
       <dd className="text-right tabular-nums">{stats.bodies}</dd>
       <dt>Sleeping</dt>
       <dd className="text-right tabular-nums">{stats.sleeping}</dd>
+      <dt>Particles</dt>
+      <dd className="text-right tabular-nums">{stats.particles}</dd>
       <dt>Physics step</dt>
       <dd className="text-right tabular-nums">{stats.stepMs.toFixed(2)} ms</dd>
       <dt>Areal density</dt>

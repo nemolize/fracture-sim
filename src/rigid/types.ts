@@ -9,6 +9,7 @@ export interface WorldStats {
   mass: number;
   bodies: number;
   sleeping: number;
+  particles: number;
   stepMs: number;
   time: number;
 }
