@@ -24,13 +24,14 @@ struct Vertex { @builtin(position) position: vec4f, @location(0) color: vec3f };
 
 const particleShader = (bounds: Pick<EnvironmentSettings, "width">) => `
 struct Vertex { @builtin(position) position: vec4f };
-@group(0) @binding(0) var<storage, read> particles: array<vec4f>;
+@group(0) @binding(0) var<storage, read> particles: array<f32>;
 @group(0) @binding(1) var<uniform> view: vec4f;
 @vertex fn vertex(@builtin(vertex_index) corner: u32, @builtin(instance_index) instance: u32) -> Vertex {
-  let particle = particles[instance];
+  let base = instance * 3u;
+  let center = vec2f(particles[base], particles[base + 1u]);
+  let size = particles[base + 2u];
   var offsets = array<vec2f, 6>(vec2f(-1, -1), vec2f(1, -1), vec2f(1, 1), vec2f(-1, -1), vec2f(1, 1), vec2f(-1, 1));
-  let life = particle.w;
-  let p = particle.xy + offsets[corner] * particle.z * life * 0.5;
+  let p = center + offsets[corner] * size * 0.5;
   return Vertex(${clip(bounds)});
 }
 @fragment fn fragment() -> @location(0) vec4f {
@@ -103,7 +104,7 @@ export class RigidRenderer {
       ],
     });
     this.particles = device.createBuffer({
-      size: MAX_PARTICLES * 16,
+      size: MAX_PARTICLES * 12,
       usage: BufferUsage.STORAGE | BufferUsage.COPY_DST,
     });
     const particleModule = device.createShaderModule({
@@ -163,7 +164,7 @@ export class RigidRenderer {
     pass.draw(this.count);
     pass.setPipeline(this.particlePipeline);
     pass.setBindGroup(0, this.particleGroup);
-    pass.draw(6, particles.length / 4);
+    pass.draw(6, particles.length / 3);
     pass.end();
     this.device.queue.submit([encoder.finish()]);
   }

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/dot-notation -- Inspect real engine fixtures without exposing mutation APIs to the app. */
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
+import { MAX_PARTICLES } from "@/sim/particles";
 import { percentile } from "@/sim/timing";
 
 import { centreExtent } from "./body";
@@ -126,4 +127,23 @@ it(`steps a settled ${String(MAX_BODIES)}-body pile with a p95 physics step unde
   expect(stats.sleeping).toBe(MAX_BODIES);
   const p95 = percentile(samples, 0.95);
   expect(p95).toBeLessThan(STEP_P95_LIMIT_MS);
+}, 90_000);
+
+it(`steps ${String(MAX_PARTICLES)} settled particles with a p95 physics step under ${String(STEP_P95_LIMIT_MS)} ms`, () => {
+  const built = new RigidWorld(DEFAULT_ENVIRONMENT);
+  world = built;
+  const { width } = DEFAULT_ENVIRONMENT;
+  for (let i = 0; i < MAX_PARTICLES; i++)
+    built["particles"].spawn(
+      { x: ((i + 0.5) / MAX_PARTICLES) * width, y: 1 + (i % 4) * 0.1 },
+      { x: 0, y: 0 },
+      0.01,
+    );
+  settle(built);
+  const samples = Array.from(
+    { length: 600 },
+    () => built.advance(TIME_STEP, gravity, NEVER_CRACKS).stats.stepMs,
+  );
+  expect(built.snapshot().particles.length).toBe(MAX_PARTICLES * 3);
+  expect(percentile(samples, 0.95)).toBeLessThan(STEP_P95_LIMIT_MS);
 }, 90_000);

@@ -49,7 +49,7 @@ it("turns a minimum-size plate that lands above the crack threshold into one par
   expect(plate !== undefined && world?.["shapes"].includes(plate)).toBe(false);
   expect(snapshot.stats.bodies).toBe(0);
   expect(snapshot.stats.mass).toBe(0);
-  expect(snapshot.particles.length / 4).toBe(1);
+  expect(snapshot.particles.length / 3).toBe(1);
 });
 
 it("shatters a minimum-size plate even when the body pool is full", () => {
@@ -63,3 +63,16 @@ it("shatters a minimum-size plate even when the body pool is full", () => {
   expect(plate !== undefined && world["shapes"].includes(plate)).toBe(false);
   expect(world.snapshot().stats.bodies).toBe(MAX_BODIES - 1);
 });
+
+it("keeps the particle a shattered minimum-size plate left, in place, for a minute", () => {
+  dropMinimumPlate(0.5);
+  advance(2);
+  const [x, y, size] = world?.snapshot().particles ?? [];
+  advance(60);
+  const [laterX, laterY, laterSize] = world?.snapshot().particles ?? [];
+  expect(world?.snapshot().particles.length).toBe(3);
+  expect(laterSize).toBe(size);
+  expect(
+    Math.hypot((laterX ?? 0) - (x ?? 0), (laterY ?? 0) - (y ?? 0)),
+  ).toBeLessThan(1e-3);
+}, 30_000);

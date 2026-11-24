@@ -150,7 +150,7 @@ test("worker turns tiny fragments into particles and ships them with the snapsho
       for (let j = 0; j < 10; j++) {
         const frame = await window.harness.step(0.1, { x: 0, y: -9.8 }, 12);
         if (frame.type !== "frame") throw new Error("Worker failed");
-        peak = Math.max(peak, frame.snapshot.particles.length / 4);
+        peak = Math.max(peak, frame.snapshot.particles.length / 3);
         mass = frame.snapshot.stats.mass;
       }
     }

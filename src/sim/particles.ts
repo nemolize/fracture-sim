@@ -4,7 +4,6 @@ import type { Vec2 } from "./vec2";
 
 // Chosen empirically, no fixed source.
 export const MAX_PARTICLES = 4000;
-export const PARTICLE_LIFETIME = 2;
 const SURFACE_FRICTION = 0.9;
 // Chosen empirically, no fixed source.
 const MAX_LANDINGS = 3;
@@ -12,18 +11,18 @@ const MAX_LANDINGS = 3;
 const X = 0;
 const VX = 2;
 const SIZE = 4;
-const AGE = 5;
-const STRIDE = 6;
+const STRIDE = 5;
 
 export interface Bounds {
   width: number;
   height: number;
 }
 
-/** Ballistic squares confined to the container; they rest on bodies but never push them. */
+/** Ballistic squares that stay where they settle and never push bodies. */
 export class ParticleField {
   private readonly data = new Float32Array(MAX_PARTICLES * STRIDE);
   private count = 0;
+  private next = 0;
 
   get size(): number {
     return this.count;
@@ -31,9 +30,11 @@ export class ParticleField {
 
   /** At capacity the oldest particle is replaced. */
   spawn(position: Vec2, velocity: Vec2, size: number): void {
-    const slot = this.count < MAX_PARTICLES ? this.count++ : this.oldest();
+    const slot = this.next;
+    this.next = (this.next + 1) % MAX_PARTICLES;
+    this.count = Math.min(this.count + 1, MAX_PARTICLES);
     this.data.set(
-      [position.x, position.y, velocity.x, velocity.y, size, 0],
+      [position.x, position.y, velocity.x, velocity.y, size],
       slot * STRIDE,
     );
   }
@@ -45,14 +46,8 @@ export class ParticleField {
     obstacles?: ObstacleGrid,
   ): void {
     const d = this.data;
-    for (let i = 0; i < this.count;) {
+    for (let i = 0; i < this.count; i++) {
       const o = i * STRIDE;
-      d[o + AGE] = d[o + AGE]! + seconds;
-      if (d[o + AGE]! >= PARTICLE_LIFETIME) {
-        this.count--;
-        d.copyWithin(o, this.count * STRIDE, (this.count + 1) * STRIDE);
-        continue;
-      }
       d[o + VX] = d[o + VX]! + gravity.x * seconds;
       d[o + VX + 1] = d[o + VX + 1]! + gravity.y * seconds;
       const fromX = d[o + X]!;
@@ -63,23 +58,16 @@ export class ParticleField {
         this.landOnBodies(o, obstacles, fromX, fromY);
       this.contain(o, 0, bounds.width);
       this.contain(o, 1, bounds.height);
-      i++;
     }
   }
 
-  /** Fourth component is remaining life, 1 → 0. */
   snapshot(): Float32Array<ArrayBuffer> {
-    const out = new Float32Array(this.count * 4);
+    const out = new Float32Array(this.count * 3);
     for (let i = 0; i < this.count; i++) {
       const o = i * STRIDE;
       out.set(
-        [
-          this.data[o + X]!,
-          this.data[o + X + 1]!,
-          this.data[o + SIZE]!,
-          1 - this.data[o + AGE]! / PARTICLE_LIFETIME,
-        ],
-        i * 4,
+        [this.data[o + X]!, this.data[o + X + 1]!, this.data[o + SIZE]!],
+        i * 3,
       );
     }
     return out;
@@ -129,17 +117,7 @@ export class ParticleField {
   }
 
   private drawnHalf(o: number): number {
-    return (
-      (this.data[o + SIZE]! * (1 - this.data[o + AGE]! / PARTICLE_LIFETIME)) / 2
-    );
-  }
-
-  private oldest(): number {
-    let slot = 0;
-    for (let i = 1; i < this.count; i++)
-      if (this.data[i * STRIDE + AGE]! > this.data[slot * STRIDE + AGE]!)
-        slot = i;
-    return slot;
+    return this.data[o + SIZE]! / 2;
   }
 
   private contain(o: number, axis: 0 | 1, limit: number): void {

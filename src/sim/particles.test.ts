@@ -1,29 +1,28 @@
 import { expect, it } from "vitest";
 
 import { ObstacleGrid } from "./obstacles";
-import { MAX_PARTICLES, PARTICLE_LIFETIME, ParticleField } from "./particles";
+import { MAX_PARTICLES, ParticleField } from "./particles";
 
 const BOUNDS = { width: 10, height: 5 };
 const NO_GRAVITY = { x: 0, y: 0 };
 
-it("moves a particle under gravity and reports its remaining life", () => {
+it("moves a particle under gravity", () => {
   const field = new ParticleField();
   field.spawn({ x: 5, y: 3 }, { x: 1, y: 0 }, 0.02);
   field.step(0.5, { x: 0, y: -2 }, BOUNDS);
   expect(field.size).toBe(1);
-  const [x, y, size, life] = field.snapshot();
+  const [x, y, size] = field.snapshot();
   expect(x).toBeCloseTo(5.5, 6);
   expect(y).toBeCloseTo(2.5, 6);
   expect(size).toBeCloseTo(0.02, 6);
-  expect(life).toBeCloseTo(1 - 0.5 / PARTICLE_LIFETIME, 6);
 });
 
 it("rests on the floor and slows sideways motion there", () => {
   const field = new ParticleField();
   field.spawn({ x: 5, y: 0.5 }, { x: 1, y: -10 }, 0.1);
   field.step(0.1, NO_GRAVITY, BOUNDS);
-  const [x, y, size, life] = field.snapshot();
-  expect(y).toBeCloseTo(((size ?? 0) * (life ?? 0)) / 2, 6);
+  const [x, y, size] = field.snapshot();
+  expect(y).toBeCloseTo((size ?? 0) / 2, 6);
   expect(x).toBeCloseTo(5.1, 6);
   field.step(0.1, NO_GRAVITY, BOUNDS);
   expect(field.snapshot()[0]).toBeCloseTo(5.1 + 0.09, 6);
@@ -39,8 +38,8 @@ it("keeps particles inside every wall, whichever way gravity points", () => {
     const field = new ParticleField();
     field.spawn({ x: 5, y: 2.5 }, { x: 0, y: 0 }, 0.1);
     for (let i = 0; i < 60; i++) field.step(1 / 60, gravity, BOUNDS);
-    const [x = NaN, y = NaN, size = 0, life = 0] = field.snapshot();
-    const half = (size * life) / 2;
+    const [x = NaN, y = NaN, size = 0] = field.snapshot();
+    const half = size / 2;
     expect(x).toBeGreaterThanOrEqual(half - 1e-6);
     expect(x).toBeLessThanOrEqual(BOUNDS.width - half + 1e-6);
     expect(y).toBeGreaterThanOrEqual(half - 1e-6);
@@ -48,55 +47,24 @@ it("keeps particles inside every wall, whichever way gravity points", () => {
   }
 });
 
-it("drops expired particles and keeps the others", () => {
+it("keeps a particle, at its spawn size, however long it has been alive", () => {
   const field = new ParticleField();
-  field.spawn({ x: 1, y: 1 }, { x: 0, y: 0 }, 0.01);
-  field.step(PARTICLE_LIFETIME - 0.5, NO_GRAVITY, BOUNDS);
-  field.spawn({ x: 2, y: 1 }, { x: 0, y: 0 }, 0.01);
-  field.spawn({ x: 3, y: 1 }, { x: 0, y: 0 }, 0.01);
-  field.step(0.6, NO_GRAVITY, BOUNDS);
-  expect(field.size).toBe(2);
-  expect([...field.snapshot()].filter((_, i) => i % 4 === 0)).toEqual([3, 2]);
-  field.step(PARTICLE_LIFETIME, NO_GRAVITY, BOUNDS);
-  expect(field.size).toBe(0);
-  expect(field.snapshot()).toHaveLength(0);
+  field.spawn({ x: 5, y: 3 }, { x: 0, y: 0 }, 0.02);
+  for (let i = 0; i < 3600; i++) field.step(1 / 60, { x: 0, y: -9.8 }, BOUNDS);
+  expect(field.size).toBe(1);
+  expect(field.snapshot()[2]).toBeCloseTo(0.02, 6);
 });
 
 it("replaces the oldest particle once the field is full", () => {
   const field = new ParticleField();
   for (let i = 0; i < MAX_PARTICLES; i++)
     field.spawn({ x: 1 + i / MAX_PARTICLES, y: 1 }, { x: 0, y: 0 }, 0.01);
-  // Age the first half, drop none, then expire nothing: x = 1 is the oldest.
   field.step(0.5, NO_GRAVITY, BOUNDS);
   field.spawn({ x: 9, y: 1 }, { x: 0, y: 0 }, 0.01);
   expect(field.size).toBe(MAX_PARTICLES);
-  const xs = [...field.snapshot()].filter((_, i) => i % 4 === 0);
+  const xs = [...field.snapshot()].filter((_, i) => i % 3 === 0);
   expect(xs).toContain(9);
   expect(xs).not.toContain(1);
-});
-
-it("replaces the oldest particle even after an expiry reordered the field", () => {
-  const field = new ParticleField();
-  const spawn = (x: number) => {
-    field.spawn({ x, y: 1 }, { x: 0, y: 0 }, 0.01);
-  };
-  spawn(1);
-  field.step(1, NO_GRAVITY, BOUNDS);
-  spawn(2);
-  field.step(0.5, NO_GRAVITY, BOUNDS);
-  const lastX = 3 + MAX_PARTICLES / 1000;
-  for (let i = 0; i < MAX_PARTICLES - 2; i++)
-    spawn(i === MAX_PARTICLES - 3 ? lastX : 3);
-  field.step(0.6, NO_GRAVITY, BOUNDS);
-  // The first particle expired and the last one moved into its slot.
-  expect(field.size).toBe(MAX_PARTICLES - 1);
-  spawn(8);
-  spawn(9);
-  expect(field.size).toBe(MAX_PARTICLES);
-  const xs = [...field.snapshot()].filter((_, i) => i % 4 === 0);
-  expect(xs).not.toContain(2);
-  expect(xs).toContain(9);
-  expect(xs).toContain(Math.fround(lastX));
 });
 
 it("lets a particle resting against a side wall fall freely, whatever its size", () => {
@@ -112,14 +80,18 @@ it("lets a particle resting against a side wall fall freely, whatever its size",
   }
 });
 
-it("keeps a resting particle in contact with the floor as it shrinks", () => {
+it("keeps a resting particle in contact with the floor and in place", () => {
   const field = new ParticleField();
   const size = 0.1;
   field.spawn({ x: 5, y: 0.5 }, { x: 0, y: 0 }, size);
   for (let i = 0; i < 60; i++) field.step(1 / 60, { x: 0, y: -9.8 }, BOUNDS);
-  const [, y, , life] = field.snapshot();
-  expect(life).toBeCloseTo(1 - 1 / PARTICLE_LIFETIME, 5);
-  expect(y).toBeCloseTo((size * (life ?? 0)) / 2, 5);
+  const [x, y] = field.snapshot();
+  for (let i = 0; i < 600; i++) field.step(1 / 60, { x: 0, y: -9.8 }, BOUNDS);
+  const [laterX, laterY] = field.snapshot();
+  expect(y).toBeCloseTo(size / 2, 5);
+  expect(
+    Math.hypot((laterX ?? 0) - (x ?? 0), (laterY ?? 0) - (y ?? 0)),
+  ).toBeLessThan(1e-3);
 });
 
 const slab = () => {
@@ -145,8 +117,14 @@ it("rests a falling particle on a body instead of passing through it", () => {
   const grid = slab();
   for (let i = 0; i < 90; i++)
     field.step(1 / 60, { x: 0, y: -9.8 }, BOUNDS, grid);
-  const [, y, size, life] = field.snapshot();
-  expect(y).toBeCloseTo(1.25 + ((size ?? 0) * (life ?? 0)) / 2, 3);
+  const [x, y, size] = field.snapshot();
+  expect(y).toBeCloseTo(1.25 + (size ?? 0) / 2, 3);
+  for (let i = 0; i < 600; i++)
+    field.step(1 / 60, { x: 0, y: -9.8 }, BOUNDS, grid);
+  const [laterX, laterY] = field.snapshot();
+  expect(
+    Math.hypot((laterX ?? 0) - (x ?? 0), (laterY ?? 0) - (y ?? 0)),
+  ).toBeLessThan(1e-3);
 });
 
 it("keeps sliding along a body's surface and slows down there", () => {
@@ -206,8 +184,18 @@ it("pushes a particle that spawns inside a body out of it", () => {
   const field = new ParticleField();
   field.spawn({ x: 5, y: 1.2 }, { x: 0, y: 0 }, 0.1);
   field.step(1 / 60, NO_GRAVITY, BOUNDS, slab());
-  const [, y, size, life] = field.snapshot();
-  expect(y).toBeCloseTo(1.25 + ((size ?? 0) * (life ?? 0)) / 2, 3);
+  const [, y, size] = field.snapshot();
+  expect(y).toBeCloseTo(1.25 + (size ?? 0) / 2, 3);
+});
+
+it("lets a particle that rested on a body fall once the body is gone", () => {
+  const field = new ParticleField();
+  field.spawn({ x: 5, y: 2 }, { x: 0, y: 0 }, 0.1);
+  const grid = slab();
+  for (let i = 0; i < 90; i++)
+    field.step(1 / 60, { x: 0, y: -9.8 }, BOUNDS, grid);
+  for (let i = 0; i < 90; i++) field.step(1 / 60, { x: 0, y: -9.8 }, BOUNDS);
+  expect(field.snapshot()[1]).toBeCloseTo(0.05, 3);
 });
 
 it("stops a particle sliding fast on one body at a body standing on it", () => {
@@ -229,7 +217,7 @@ it("stops a particle sliding fast on one body at a body standing on it", () => {
   }
   for (let i = 0; i < 30; i++)
     field.step(1 / 60, { x: 0, y: -9.8 }, BOUNDS, grid);
-  const xs = [...field.snapshot()].filter((_, i) => i % 4 === 0);
+  const xs = [...field.snapshot()].filter((_, i) => i % 3 === 0);
   for (const x of xs) expect(x).toBeLessThanOrEqual(1);
 });
 
@@ -281,8 +269,8 @@ it("never leaves a resting particle inside a thin body once its position is stor
     field.spawn({ x: 5, y: start }, { x: 0, y: 0 }, 0.04);
     for (let i = 0; i < 90; i++) {
       field.step(1 / 60, { x: 0, y: -9.8 }, BOUNDS, grid);
-      const [, y = 0, size = 0, life = 0] = field.snapshot();
-      expect(y).toBeGreaterThanOrEqual(1.02 + (size * life) / 2);
+      const [, y = 0, size = 0] = field.snapshot();
+      expect(y).toBeGreaterThanOrEqual(1.02 + size / 2);
     }
   }
 });
