@@ -410,6 +410,7 @@ export class RigidWorld {
       stats: {
         bodies,
         sleeping,
+        particles: this.particles.size,
         stepMs: this.stepMs,
         time: this.elapsed,
         mass: this.shapes.reduce((sum, s) => sum + s.mass, 0),

@@ -68,6 +68,7 @@ it("lets particles rest on a settled body", () => {
   );
   for (let i = 0; i < 60; i++) world.advance(TIME_STEP, gravity);
   expect(world.snapshot().particles[1]).toBeGreaterThanOrEqual(top - 1e-3);
+  expect(world.snapshot().stats.particles).toBe(1);
 });
 
 const settledBody = (engine: RAPIER.World) => {
