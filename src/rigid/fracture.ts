@@ -17,7 +17,7 @@ import {
   resolveFracture,
   rigidPieces,
 } from "@/sim/fracture";
-import { DEFAULT_CRACK_ENERGY, isCrackEnergy } from "@/sim/material";
+import { DEFAULT_CRACK_ENERGY, isPositiveFinite } from "@/sim/material";
 import type { Piece } from "@/sim/split";
 import type { Vec2 } from "@/sim/vec2";
 
@@ -51,7 +51,7 @@ export class ImpactFracture {
   }
 
   setMinFragmentArea(value: number): void {
-    if (!isCrackEnergy(value))
+    if (!isPositiveFinite(value))
       throw new Error("Minimum fragment area must be positive and finite");
     if (value !== this.minFragmentArea) {
       this.pending.clear();
@@ -60,7 +60,7 @@ export class ImpactFracture {
   }
 
   setCrackEnergy(value: number): void {
-    if (!isCrackEnergy(value))
+    if (!isPositiveFinite(value))
       throw new Error("Crack energy must be positive and finite");
     if (value !== this.crackEnergy) {
       this.pending.clear();
@@ -72,6 +72,17 @@ export class ImpactFracture {
     fractureEnergy: number,
     strength: StrengthModel | undefined,
   ): void {
+    if (!isPositiveFinite(fractureEnergy))
+      throw new Error("Fracture energy must be positive and finite");
+    if (
+      strength !== undefined &&
+      ![
+        strength.youngModulusPa,
+        strength.tensileStrengthPa,
+        strength.thicknessM,
+      ].every(isPositiveFinite)
+    )
+      throw new Error("Strength model values must be positive and finite");
     if (
       !sameStrength(strength, this.strength) ||
       fractureEnergy !== this.fractureEnergy
@@ -108,6 +119,34 @@ export class ImpactFracture {
       if (first === undefined || second === undefined) return;
       const a = first.shape,
         b = second.shape;
+      const crushed = new Set<BodyShape>();
+      let pairImpulse = 0;
+      let pairLowest = Infinity;
+      let pairHighest = -Infinity;
+      world.contactPair(
+        a.body.collider(0),
+        b.body.collider(0),
+        (manifold, flipped) => {
+          const raw = manifold.normal();
+          const pos = a.body.translation();
+          const angle = a.body.rotation();
+          for (let i = 0; i < manifold.numContacts(); i++) {
+            const j = manifold.contactImpulse(i);
+            const local = flipped
+              ? manifold.localContactPoint2(i)
+              : manifold.localContactPoint1(i);
+            if (local === null || !(j > 0)) continue;
+            const x =
+              pos.x + Math.cos(angle) * local.x - Math.sin(angle) * local.y;
+            const y =
+              pos.y + Math.sin(angle) * local.x + Math.cos(angle) * local.y;
+            const across = x * -raw.y + y * raw.x;
+            pairImpulse += j;
+            pairLowest = Math.min(pairLowest, across);
+            pairHighest = Math.max(pairHighest, across);
+          }
+        },
+      );
       world.contactPair(
         a.body.collider(0),
         b.body.collider(0),
@@ -125,8 +164,6 @@ export class ImpactFracture {
           });
           let impulse = 0;
           const point = { x: 0, y: 0 };
-          let lowest = Infinity;
-          let highest = -Infinity;
           for (let i = 0; i < manifold.numContacts(); i++) {
             const j = manifold.contactImpulse(i);
             const local = flipped
@@ -136,12 +173,6 @@ export class ImpactFracture {
             impulse += j;
             point.x += local.x * j;
             point.y += local.y * j;
-            if (j > 0) {
-              const world = toWorld(local);
-              const across = world.x * -normal.y + world.y * normal.x;
-              lowest = Math.min(lowest, across);
-              highest = Math.max(highest, across);
-            }
           }
           if (impulse <= 0) return;
           point.x /= impulse;
@@ -176,18 +207,42 @@ export class ImpactFracture {
               x: Math.cos(rotation) * dx + Math.sin(rotation) * dy,
               y: -Math.sin(rotation) * dx + Math.cos(rotation) * dy,
             };
-            const usable = this.usableEnergy(shape, local, energy, {
-              impulse,
-              effectiveMass: 1 / pairInverseMass,
-              span: highest - lowest,
-              normal: {
-                x:
-                  Math.cos(rotation) * normal.x + Math.sin(rotation) * normal.y,
-                y:
-                  -Math.sin(rotation) * normal.x +
-                  Math.cos(rotation) * normal.y,
-              },
-            });
+            let usable = energy;
+            const strength = this.strength;
+            if (strength !== undefined) {
+              const load = this.contactLoad(shape, {
+                impulse: pairImpulse,
+                effectiveMass: 1 / pairInverseMass,
+                span: pairHighest - pairLowest,
+                normal: {
+                  x:
+                    Math.cos(rotation) * normal.x +
+                    Math.sin(rotation) * normal.y,
+                  y:
+                    -Math.sin(rotation) * normal.x +
+                    Math.cos(rotation) * normal.y,
+                },
+              });
+              if (strength.crush !== null) {
+                if (!crushed.has(shape))
+                  this.crush(
+                    shape,
+                    local,
+                    energy,
+                    load,
+                    strength,
+                    strength.crush,
+                  );
+                crushed.add(shape);
+                continue;
+              }
+              usable = usableCrackEnergy(
+                load,
+                strength,
+                this.fractureEnergy,
+                energy,
+              );
+            }
             if (usable <= 0) continue;
             const result = resolveFracture(
               shape.domain,
@@ -225,31 +280,21 @@ export class ImpactFracture {
     return changed;
   }
 
-  private usableEnergy(
+  private contactLoad(
     shape: BodyShape,
-    local: Vec2,
-    energy: number,
     hit: { impulse: number; effectiveMass: number; span: number; normal: Vec2 },
-  ): number {
-    const strength = this.strength;
-    if (strength === undefined) return energy;
+  ): ContactLoad {
     const extent = ringExtent(shape.domain, hit.normal);
-    const patchWidth = Math.min(
-      extent.width,
-      Math.max(hit.span, extent.width * MIN_PATCH_FRACTION),
-    );
-    const load: ContactLoad = {
+    return {
       impulse: hit.impulse,
       effectiveMass: hit.effectiveMass,
-      patchWidth,
+      patchWidth: Math.min(
+        extent.width,
+        Math.max(hit.span, extent.width * MIN_PATCH_FRACTION),
+      ),
       bodyWidth: extent.width,
       bodyDepth: extent.depth,
     };
-    if (strength.crush !== null) {
-      this.crush(shape, local, energy, load, strength, strength.crush);
-      return 0;
-    }
-    return usableCrackEnergy(load, strength, this.fractureEnergy, energy);
   }
 
   private crush(

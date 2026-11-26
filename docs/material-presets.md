@@ -23,7 +23,7 @@ creates a projected fracture area `L × thickness`. Gc already accounts for
 both crack faces; no additional factor of two is applied.
 
 Glass at 10 mm is the initial selection. Choosing a preset loads its fracture
-energy, volumetric density, friction and restitution and keeps the thickness;
+energy, volumetric density, friction, restitution, stiffness, tensile strength and crush behaviour and keeps the thickness;
 moving any of those sliders selects Custom, and landing on a preset's values
 names the preset again. The density slider spans 10–20,000 kg/m³ so that foam fits. The Gc slider spans 0.1–1,000,000 J/m² on a
 logarithmic scale; thickness spans 0.1–100 mm. These are empirical UI bounds.
@@ -90,7 +90,17 @@ that stress by √2, and a flaw four times as long halves it. No preset sets one
 Measured with the real Rapier world, a 0.5 × 0.5 m plate dropped from 1 m onto
 a concrete floor: 180 mm solid polystyrene stays whole in a flat drop (also from
 0.3 m), glass at 10 mm still breaks, and the polystyrene plate dropped on a
-corner splits into 4 bodies.
+corner splits into 4 bodies. A tilt of 10° or more also splits it (4 to 5
+bodies), a tilt of 5° or less does not, and a 10 mm mild steel plate dropped
+flat from 1 m still splits into 3 bodies, as before the change.
+
+Limits of the model: thickness does not change whether a flat drop starts a
+crack, because the stress scales with sqrt(E / (m t)) and the mass grows with
+the thickness too; the polystyrene plate stays whole because of its tensile
+strength, not its thickness. The far side of a contact (floor or ball) is taken
+as rigid, so its softness acts only through the impulse it returns. The
+stored-energy cap rarely binds, since the stress it is derived from already
+implies at least nine times the lost energy for a single contact manifold.
 
 Expanded polystyrene (20 kg/m³) is a crushing material: it never cracks. The
 body keeps one permanent compression `p` per 0.05 m cell of its own coordinates.

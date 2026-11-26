@@ -228,7 +228,7 @@ export const matchPreset = (material: MaterialSettings): MaterialSettings => ({
     )?.id ?? "custom",
 });
 
-export const isCrackEnergy = (value: number): boolean =>
+export const isPositiveFinite = (value: number): boolean =>
   Number.isFinite(value) && value > 0;
 
 export const arealDensity = (material: MaterialSettings): number =>
@@ -240,11 +240,11 @@ export const validateMaterial = (material: MaterialSettings): void => {
   const areal = arealDensity(material);
   if (!Number.isFinite(areal) || areal < min || areal > max)
     throw new Error("Invalid material setting: areal density");
-  if (!isCrackEnergy(material.fractureEnergy))
+  if (!isPositiveFinite(material.fractureEnergy))
     throw new Error("Fracture energy must be positive and finite");
   if (
-    !isCrackEnergy(material.youngModulusPa) ||
-    !isCrackEnergy(material.tensileStrengthPa)
+    !isPositiveFinite(material.youngModulusPa) ||
+    !isPositiveFinite(material.tensileStrengthPa)
   )
     throw new Error(
       "Young's modulus and tensile strength must be positive and finite",
@@ -253,7 +253,7 @@ export const validateMaterial = (material: MaterialSettings): void => {
 
 export const crackEnergy = (material: MaterialSettings): number => {
   const result = material.fractureEnergy * (material.thicknessMm / 1000);
-  if (!isCrackEnergy(material.thicknessMm) || !isCrackEnergy(result))
+  if (!isPositiveFinite(material.thicknessMm) || !isPositiveFinite(result))
     throw new Error("Thickness and crack energy must be positive and finite");
   return result;
 };
