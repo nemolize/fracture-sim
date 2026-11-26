@@ -42,6 +42,9 @@ it("starts as glass, with the density, friction and restitution the app had befo
     preset: "glass",
     fractureEnergy: 7,
     density: 2500,
+    youngModulusPa: 70_000_000_000,
+    tensileStrengthPa: 10_000_000,
+    crush: null,
     friction: 0.5,
     restitution: 0,
     thicknessMm: 10,
@@ -60,6 +63,9 @@ it("keeps the thickness of the specimen when a preset is chosen", () => {
     preset: "ice",
     fractureEnergy: 1.5,
     density: 917,
+    youngModulusPa: 9_000_000_000,
+    tensileStrengthPa: 1_500_000,
+    crush: null,
     friction: 0.1,
     restitution: 0.05,
     thicknessMm: 3,
@@ -102,12 +108,20 @@ it("keeps every preset valid at the default thickness", () => {
 });
 
 it.each([
-  [{ density: 1 }, "Invalid material setting: areal density"],
+  [{ density: 0.01 }, "Invalid material setting: areal density"],
   [{ density: 1e6 }, "Invalid material setting: areal density"],
   [{ thicknessMm: NaN }, "Invalid material setting: areal density"],
   [{ friction: 2.1 }, "Invalid material setting: friction"],
   [{ restitution: -0.1 }, "Invalid material setting: restitution"],
   [{ fractureEnergy: 0 }, "Fracture energy must be positive and finite"],
+  [
+    { youngModulusPa: 0 },
+    "Young's modulus and tensile strength must be positive and finite",
+  ],
+  [
+    { tensileStrengthPa: NaN },
+    "Young's modulus and tensile strength must be positive and finite",
+  ],
 ] as const)("rejects the invalid material %j", (patch, message) => {
   expect(() => {
     validateMaterial({ ...DEFAULT_MATERIAL, ...patch });
@@ -163,6 +177,13 @@ it("derives what the world reads each frame from the two materials", () => {
   const floor = { preset: "custom" as const, friction: 1, restitution: 0.5 };
   expect(liveMaterials({ floor, object })).toEqual({
     crackEnergy: crackEnergy(object),
+    fractureEnergy: 7,
+    strength: {
+      youngModulusPa: 70_000_000_000,
+      tensileStrengthPa: 10_000_000,
+      thicknessM: 0.02,
+      crush: null,
+    },
     minFragmentArea: 0.01,
     floor,
     object,

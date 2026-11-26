@@ -26,6 +26,34 @@ const plate = [
 ];
 
 describe("impact crack budget", () => {
+  it("makes a 0.5 m crack only when the usable energy covers Gc times thickness times its length", () => {
+    const glassCrackEnergy = 7 * 0.01;
+    const strip = [
+      { x: -0.5, y: -0.25 },
+      { x: 0.5, y: -0.25 },
+      { x: 0.5, y: 0.25 },
+      { x: -0.5, y: 0.25 },
+    ];
+    const at = (energy: number) =>
+      splitWithToughness(strip, { x: 0, y: 0 }, energy, glassCrackEnergy);
+    expect(at(0.034)).toEqual([]);
+    const pieces = at(0.036);
+    expect(pieces.length).toBeGreaterThan(1);
+    const cutLength =
+      (pieces.reduce(
+        (sum, piece) =>
+          sum +
+          piece.domain.reduce((edge, a, i) => {
+            const b = piece.domain[(i + 1) % piece.domain.length];
+            return edge + Math.hypot((b?.x ?? 0) - a.x, (b?.y ?? 0) - a.y);
+          }, 0),
+        0,
+      ) -
+        3) /
+      2;
+    expect(cutLength * glassCrackEnergy).toBeLessThanOrEqual(0.036);
+  });
+
   it("uses the narrowest support width even for rotated plates", () => {
     expect(narrowestWidth(plate)).toBe(1);
     const rotated = plate.map(({ x, y }) => ({

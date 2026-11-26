@@ -1,3 +1,4 @@
+import type { CrushProperties, StrengthModel } from "./contact-stress";
 import type { FloorMaterialSettings } from "./floor-material";
 import { MIN_FRAGMENT_AREA } from "./fracture";
 
@@ -35,6 +36,9 @@ export const MATERIAL_PRESETS = [
     density: 2500,
     friction: 0.5,
     restitution: 0,
+    youngModulusPa: 70_000_000_000,
+    tensileStrengthPa: 10_000_000,
+    crush: null,
   },
   {
     id: "ice",
@@ -43,6 +47,9 @@ export const MATERIAL_PRESETS = [
     density: 917,
     friction: 0.1,
     restitution: 0.05,
+    youngModulusPa: 9_000_000_000,
+    tensileStrengthPa: 1_500_000,
+    crush: null,
   },
   {
     id: "pmma",
@@ -51,6 +58,9 @@ export const MATERIAL_PRESETS = [
     density: 1180,
     friction: 0.4,
     restitution: 0.3,
+    youngModulusPa: 3_000_000_000,
+    tensileStrengthPa: 70_000_000,
+    crush: null,
   },
   {
     id: "polystyrene",
@@ -59,6 +69,9 @@ export const MATERIAL_PRESETS = [
     density: 1050,
     friction: 0.4,
     restitution: 0.3,
+    youngModulusPa: 3_300_000_000,
+    tensileStrengthPa: 45_000_000,
+    crush: null,
   },
   {
     id: "concrete",
@@ -67,6 +80,9 @@ export const MATERIAL_PRESETS = [
     density: 2400,
     friction: 0.7,
     restitution: 0.1,
+    youngModulusPa: 30_000_000_000,
+    tensileStrengthPa: 3_000_000,
+    crush: null,
   },
   {
     id: "wood",
@@ -75,6 +91,9 @@ export const MATERIAL_PRESETS = [
     density: 600,
     friction: 0.5,
     restitution: 0.3,
+    youngModulusPa: 10_000_000_000,
+    tensileStrengthPa: 40_000_000,
+    crush: null,
   },
   {
     id: "steel",
@@ -83,6 +102,9 @@ export const MATERIAL_PRESETS = [
     density: 7850,
     friction: 0.4,
     restitution: 0.5,
+    youngModulusPa: 200_000_000_000,
+    tensileStrengthPa: 400_000_000,
+    crush: null,
   },
   {
     id: "rubber",
@@ -91,6 +113,25 @@ export const MATERIAL_PRESETS = [
     density: 1100,
     friction: 1.2,
     restitution: 0.8,
+    youngModulusPa: 10_000_000,
+    tensileStrengthPa: 15_000_000,
+    crush: null,
+  },
+  {
+    id: "eps",
+    label: "Expanded polystyrene (foam)",
+    fractureEnergy: 100,
+    density: 20,
+    friction: 0.6,
+    restitution: 0.1,
+    youngModulusPa: 5_000_000,
+    tensileStrengthPa: 200_000,
+    crush: {
+      plateauStressPa: 100_000,
+      densificationStrain: 0.6,
+      densifiedModulusPa: 20_000_000,
+      crushDepthM: 0.02,
+    },
   },
 ] as const;
 
@@ -100,13 +141,16 @@ export interface MaterialSettings extends Surface {
   fractureEnergy: number;
   /** Volumetric density, kg/m³. */
   density: number;
+  youngModulusPa: number;
+  tensileStrengthPa: number;
+  crush: CrushProperties | null;
   thicknessMm: number;
   /** Smallest fragment area at world scale ×1, m². */
   minFragmentArea: number;
 }
 
 export const MATERIAL_RANGES = {
-  density: { min: 500, max: 20_000, step: 1 },
+  density: { min: 10, max: 20_000, step: 1 },
   thicknessMm: { min: 0.1, max: 100, step: 0.1 },
 } as const;
 export const FRACTURE_ENERGY_LOG_RANGE = {
@@ -135,6 +179,9 @@ export const DEFAULT_MATERIAL: MaterialSettings = {
   preset: GLASS.id,
   fractureEnergy: GLASS.fractureEnergy,
   density: GLASS.density,
+  youngModulusPa: GLASS.youngModulusPa,
+  tensileStrengthPa: GLASS.tensileStrengthPa,
+  crush: GLASS.crush,
   friction: GLASS.friction,
   restitution: GLASS.restitution,
   thicknessMm: 10,
@@ -149,6 +196,9 @@ export const materialFromPreset = (
     preset: preset.id,
     fractureEnergy: preset.fractureEnergy,
     density: preset.density,
+    youngModulusPa: preset.youngModulusPa,
+    tensileStrengthPa: preset.tensileStrengthPa,
+    crush: preset.crush,
     friction: preset.friction,
     restitution: preset.restitution,
     thicknessMm: current.thicknessMm,
@@ -171,6 +221,8 @@ export const matchPreset = (material: MaterialSettings): MaterialSettings => ({
       (preset) =>
         preset.fractureEnergy === material.fractureEnergy &&
         preset.density === material.density &&
+        preset.youngModulusPa === material.youngModulusPa &&
+        preset.tensileStrengthPa === material.tensileStrengthPa &&
         preset.friction === material.friction &&
         preset.restitution === material.restitution,
     )?.id ?? "custom",
@@ -190,6 +242,13 @@ export const validateMaterial = (material: MaterialSettings): void => {
     throw new Error("Invalid material setting: areal density");
   if (!isCrackEnergy(material.fractureEnergy))
     throw new Error("Fracture energy must be positive and finite");
+  if (
+    !isCrackEnergy(material.youngModulusPa) ||
+    !isCrackEnergy(material.tensileStrengthPa)
+  )
+    throw new Error(
+      "Young's modulus and tensile strength must be positive and finite",
+    );
 };
 
 export const crackEnergy = (material: MaterialSettings): number => {
@@ -201,8 +260,17 @@ export const crackEnergy = (material: MaterialSettings): number => {
 
 export const DEFAULT_CRACK_ENERGY = crackEnergy(DEFAULT_MATERIAL);
 
+const strengthModel = (material: MaterialSettings): StrengthModel => ({
+  youngModulusPa: material.youngModulusPa,
+  tensileStrengthPa: material.tensileStrengthPa,
+  thicknessM: material.thicknessMm / 1000,
+  crush: material.crush,
+});
+
 export const liveMaterials = (materials: WorldMaterials): LiveMaterials => ({
   crackEnergy: crackEnergy(materials.object),
+  fractureEnergy: materials.object.fractureEnergy,
+  strength: strengthModel(materials.object),
   minFragmentArea: materials.object.minFragmentArea,
   floor: materials.floor,
   object: materials.object,
@@ -215,6 +283,8 @@ export interface WorldMaterials {
 
 export interface LiveMaterials {
   crackEnergy: number;
+  fractureEnergy: number;
+  strength: StrengthModel;
   minFragmentArea: number;
   floor: Surface;
   object: Surface;

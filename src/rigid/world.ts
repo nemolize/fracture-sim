@@ -96,6 +96,7 @@ export class RigidWorld {
       materials.object.minFragmentArea * this.areaScale,
       this.debris,
     );
+    this.fracture.setStrength(this.live.fractureEnergy, this.live.strength);
     this.tools = new RigidTools(
       this.world,
       () => this.shapes.filter((shape) => !shape.fixed),
@@ -310,6 +311,7 @@ export class RigidWorld {
     }
     this.live = materials;
     this.fracture.setCrackEnergy(materials.crackEnergy);
+    this.fracture.setStrength(materials.fractureEnergy, materials.strength);
     this.fracture.setMinFragmentArea(
       materials.minFragmentArea * this.areaScale,
     );

@@ -340,7 +340,7 @@ it("rejects an invalid material at construction", () => {
     () =>
       new RigidWorld(DEFAULT_ENVIRONMENT, PLATE, "rectangle", {
         floor: DEFAULT_FLOOR_MATERIAL,
-        object: { ...DEFAULT_MATERIAL, density: 1 },
+        object: { ...DEFAULT_MATERIAL, density: 0.01 },
       }),
   ).toThrow("Invalid material setting: areal density");
   expect(

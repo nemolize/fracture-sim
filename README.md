@@ -74,7 +74,14 @@ PMMA 500 J/m², polystyrene 400 J/m², mild steel 12,000 J/m², rubber 13,000 J/
 also offered, and the floor and the object choose from the same list. Sources and conditions are in
 [Material presets](docs/material-presets.md). Positive finite crack energies below
 1 J/m are supported. Changing the effective crack energy or the minimum fragment area cancels queued splits.
-A hit must exceed the body's narrowest width before splitting. Seeds are tried
+A hit first has to start a crack: the tensile stress the contact induces (from the normal
+impulse, the contact patch width and the body's stiffness) must reach the material's tensile
+strength, and the energy a hit can put into cracks is capped by the elastic energy stored under
+the contact (`src/sim/contact-stress.ts`, [Material presets](docs/material-presets.md)). A wide
+flat contact, such as a thick plate dropped on its edge, rarely does; a corner or ball contact does.
+The expanded polystyrene preset crushes instead of cracking: each contact cell keeps a permanent
+compression that makes a second hit on the same spot stiffer (`src/sim/crush.ts`). Rigid motion
+is not changed by the crushing. A hit must also exceed the body's narrowest width before splitting. Seeds are tried
 nearest the contact first, with spacing increasing with distance. Actual shared
 Voronoi edge length must fit the energy budget; pieces smaller than the minimum fragment area (0.01 m² by default, times the
 square of the world scale below ×1) are rejected. A hit creates at most 40 pieces.
