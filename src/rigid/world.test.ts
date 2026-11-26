@@ -406,7 +406,16 @@ it("applies a live object change to every dynamic body but not the walls", () =>
   world = new RigidWorld(DEFAULT_ENVIRONMENT, PLATE);
   const object = { ...DEFAULT_MATERIAL, friction: 0, restitution: 0.7 };
   world.advance(0, gravity, live(10000, { object }));
-  for (const { body, fixed } of world["shapes"]) {
+  const [floor, ...rest] = world["shapes"];
+  expect(floor?.body.collider(0).friction()).toBeCloseTo(
+    DEFAULT_FLOOR_MATERIAL.friction,
+    5,
+  );
+  expect(floor?.body.collider(0).restitution()).toBeCloseTo(
+    DEFAULT_FLOOR_MATERIAL.restitution,
+    5,
+  );
+  for (const { body, fixed } of rest) {
     expect(body.collider(0).friction()).toBe(fixed ? 0.5 : 0);
     expect(body.collider(0).restitution()).toBeCloseTo(fixed ? 0 : 0.7, 5);
   }

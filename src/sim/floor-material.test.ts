@@ -9,11 +9,11 @@ import {
 } from "./floor-material";
 import { MATERIAL_PRESETS, validateSurface } from "./material";
 
-it("starts with the friction 0.5 and restitution 0 the floor had before", () => {
+it("starts on the concrete floor", () => {
   expect(DEFAULT_FLOOR_MATERIAL).toEqual({
-    preset: "default",
-    friction: 0.5,
-    restitution: 0,
+    preset: "concrete",
+    friction: 0.7,
+    restitution: 0.1,
   });
 });
 

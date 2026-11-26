@@ -27,17 +27,17 @@ const moveSlider = (name: string, value: string): void => {
 const rubber = findFloorPreset("rubber");
 if (rubber === undefined) throw new Error("Missing preset");
 
-it("starts on the default floor", () => {
+it("starts on the concrete floor", () => {
   setup();
   expect(
     screen.getByRole("combobox", { name: "Floor material preset" }),
-  ).toHaveValue("default");
+  ).toHaveValue("concrete");
   expect(
     screen.getByRole("slider", { name: "Floor friction coefficient" }),
-  ).toHaveValue("0.5");
+  ).toHaveValue("0.7");
   expect(
     screen.getByRole("slider", { name: "Floor restitution coefficient" }),
-  ).toHaveValue("0");
+  ).toHaveValue("0.1");
 });
 
 it("loads a chosen preset", async () => {
@@ -104,10 +104,10 @@ it("ignores an unknown select value", () => {
   expect(onChange).not.toHaveBeenCalled();
 });
 
-it("is at the default for the glass floor, which has the default's values", () => {
-  const glass = findFloorPreset("glass");
-  if (glass === undefined) throw new Error("Missing preset");
-  setup(floorFromPreset(glass));
+it("is at the default for the concrete floor", () => {
+  const concrete = findFloorPreset("concrete");
+  if (concrete === undefined) throw new Error("Missing preset");
+  setup(floorFromPreset(concrete));
   expect(
     screen.getByRole("button", { name: "Reset Floor material preset" }),
   ).toBeDisabled();
