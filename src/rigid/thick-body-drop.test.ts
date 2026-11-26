@@ -12,6 +12,8 @@ import {
 
 import { GRAVITY, TIME_STEP } from "./constants";
 import { DEFAULT_ENVIRONMENT } from "./environment";
+import { DEFAULT_OBJECT_SIZE, fitObjectSize } from "./object-size";
+import { limitVelocity } from "./tools";
 import { initializePhysics, RigidWorld } from "./world";
 
 beforeAll(initializePhysics);
@@ -164,6 +166,37 @@ it.each([
       drop(material("glass", 10), 1, (degrees * Math.PI) / 180).snapshot().stats
         .bodies,
     ).toBe(bodies);
+  },
+);
+
+const throwAtPlate = (object: MaterialSettings): number => {
+  const environment = DEFAULT_ENVIRONMENT;
+  const size = fitObjectSize(DEFAULT_OBJECT_SIZE, environment);
+  const placed = new RigidWorld(environment, size, "rectangle", {
+    floor: CONCRETE_FLOOR,
+    object,
+  });
+  world = placed;
+  const radius = Math.min(0.12, environment.width / 20);
+  placed.apply({
+    type: "throw",
+    point: { x: radius, y: size.height * 0.9 },
+    velocity: limitVelocity({
+      x: (environment.width / 2 - radius) * 4,
+      y: 0,
+    }),
+  });
+  settle(placed);
+  return placed.snapshot().stats.bodies;
+};
+
+it.each(["steel", "polystyrene"])(
+  "does not break a 10 mm %s plate with a ball thrown at the tool's top speed, as documented, but does when the bulk dissipates nothing",
+  (id) => {
+    expect(throwAtPlate(material(id, 10))).toBe(2);
+    expect(
+      throwAtPlate({ ...material(id, 10), bulkDissipationJPerKg: 0 }),
+    ).toBeGreaterThan(2);
   },
 );
 

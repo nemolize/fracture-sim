@@ -89,7 +89,11 @@ none): `7 J/kg × mass` is subtracted from the lost energy of each contact
 before the crack budget. The stress-derived cap alone rarely binds (it equals
 `Kt² × J² / (8 m*)`, and even capped at the spring energy `J² / (8 m*)` the
 split counts below stay the same), so the bulk work is what stops a tough plate
-that carries a lot of lost energy from splitting.
+that carries a lot of lost energy from splitting. The work is taken off each
+contact event's loss in each solver step, not once per impact, so a landing the
+solver spreads over several steps or manifolds loses it more than once. A ball
+thrown at the tool's top speed no longer breaks a steel or polystyrene plate,
+whatever its thickness; with no bulk dissipation the same throws split them.
 
 A material that sets a flaw length `a0` also needs the Griffith stress
 `sqrt(2 E Gc / (π a0))`, with `a0` the total flaw length: doubling `a0` divides

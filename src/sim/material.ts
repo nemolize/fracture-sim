@@ -245,6 +245,9 @@ export const matchPreset = (material: MaterialSettings): MaterialSettings => ({
 export const isPositiveFinite = (value: number): boolean =>
   Number.isFinite(value) && value > 0;
 
+export const isNonNegativeFinite = (value: number): boolean =>
+  Number.isFinite(value) && value >= 0;
+
 export const arealDensity = (material: MaterialSettings): number =>
   (material.density * material.thicknessMm) / 1000;
 
@@ -263,10 +266,7 @@ export const validateMaterial = (material: MaterialSettings): void => {
     throw new Error(
       "Young's modulus and tensile strength must be positive and finite",
     );
-  if (
-    !Number.isFinite(material.bulkDissipationJPerKg) ||
-    material.bulkDissipationJPerKg < 0
-  )
+  if (!isNonNegativeFinite(material.bulkDissipationJPerKg))
     throw new Error("Bulk dissipation must be non-negative and finite");
 };
 
