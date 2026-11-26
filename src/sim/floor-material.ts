@@ -1,21 +1,13 @@
 import { MATERIAL_PRESETS, type Surface } from "./material";
 
-const DEFAULT_FLOOR = {
-  id: "default",
-  label: "Default",
-  friction: 0.5,
-  restitution: 0,
-} as const;
-
-export const FLOOR_PRESETS = [
-  DEFAULT_FLOOR,
-  ...MATERIAL_PRESETS.map(({ id, label, friction, restitution }) => ({
+export const FLOOR_PRESETS = MATERIAL_PRESETS.map(
+  ({ id, label, friction, restitution }) => ({
     id,
     label,
     friction,
     restitution,
-  })),
-] as const;
+  }),
+);
 
 export interface FloorMaterialSettings extends Surface {
   preset: (typeof FLOOR_PRESETS)[number]["id"] | "custom";
@@ -24,7 +16,7 @@ export interface FloorMaterialSettings extends Surface {
 export const findFloorPreset = (id: string) =>
   FLOOR_PRESETS.find((preset) => preset.id === id);
 
-const DEFAULT_PRESET = FLOOR_PRESETS[0];
+const DEFAULT_PRESET = MATERIAL_PRESETS[4];
 export const DEFAULT_FLOOR_MATERIAL: FloorMaterialSettings = {
   preset: DEFAULT_PRESET.id,
   friction: DEFAULT_PRESET.friction,

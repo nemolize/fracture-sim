@@ -379,7 +379,7 @@ describe("reset buttons", () => {
     await user.click(
       screen.getByRole("button", { name: "Reset Floor material preset" }),
     );
-    expect(onChange.mock.calls[2]?.[0].floorMaterial.preset).toBe("default");
+    expect(onChange.mock.calls[2]?.[0].floorMaterial.preset).toBe("concrete");
   });
 
   it("resets all parameters but keeps the tool", async () => {
