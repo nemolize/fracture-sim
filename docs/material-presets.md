@@ -23,9 +23,9 @@ creates a projected fracture area `L × thickness`. Gc already accounts for
 both crack faces; no additional factor of two is applied.
 
 Glass at 10 mm is the initial selection. Choosing a preset loads its fracture
-energy, volumetric density, friction and restitution and keeps the thickness;
+energy, volumetric density, friction, restitution, stiffness, tensile strength and crush behaviour and keeps the thickness;
 moving any of those sliders selects Custom, and landing on a preset's values
-names the preset again. The Gc slider spans 0.1–1,000,000 J/m² on a
+names the preset again. The density slider spans 10–20,000 kg/m³ so that foam fits. The Gc slider spans 0.1–1,000,000 J/m² on a
 logarithmic scale; thickness spans 0.1–100 mm. These are empirical UI bounds.
 
 The object and the floor pick from one list: every object material is also a
@@ -49,6 +49,69 @@ these values do not calibrate the simulation's full dynamic response to an
 actual material test. The plate starts asleep with its bottom touching the
 floor, avoiding a startup impact; pointer tools, collisions and gravity
 changes can wake it.
+
+## Strength, stiffness and crushing
+
+Each preset also carries a Young's modulus `youngModulusPa` and a tensile
+strength `tensileStrengthPa`. All of these values are representative and
+chosen empirically, with no fixed source; the glass tensile strength (10 MPa)
+is the effective strength of a flawed sheet, lower than the 40 MPa of a
+pristine one, and was chosen so the existing glass drops and throws still
+break. A crack starts only where the tensile stress a contact induces reaches
+the tensile strength.
+
+| Preset      | E (GPa) | f_t (MPa) |
+| ----------- | ------: | --------: |
+| Glass       |      70 |        10 |
+| Ice (−13°C) |       9 |       1.5 |
+| PMMA        |       3 |        70 |
+| Polystyrene |     3.3 |        45 |
+| Concrete    |      30 |         3 |
+| Wood        |      10 |        40 |
+| Steel       |     200 |       400 |
+| Rubber      |    0.01 |        15 |
+| EPS foam    |   0.005 |       0.2 |
+
+The estimate is `σ = Kt × F / (t × w)`. `F = (J / 2) × sqrt(k / m*)` is the peak
+load of a half-sine pulse of the step's normal impulse `J` on the body's contact
+spring `k = E t w / h` (the far side taken as rigid) with effective mass `m*`,
+`w` is the contact patch width, `t` the thickness and `h` the smaller of the body
+depth and `w`. The stress concentration `Kt` runs from 6 for a patch as wide as
+the body to 60 for a point contact (the patch is never narrower than 1% of the
+body width); both are empirical, fitted against the glass tests. The energy that
+can go into cracks is the lost energy capped by `σ² / (2E)` times the loaded
+volume `t × w × h`, so the crack length of one hit never exceeds
+`U / (Gc × t)`.
+
+A material that sets a flaw length `a0` also needs the Griffith stress
+`sqrt(2 E Gc / (π a0))`, with `a0` the total flaw length: doubling `a0` divides
+that stress by √2, and a flaw four times as long halves it. No preset sets one.
+
+Measured with the real Rapier world, a 0.5 × 0.5 m plate dropped from 1 m onto
+a concrete floor: 180 mm solid polystyrene stays whole in a flat drop (also from
+0.3 m), glass at 10 mm still breaks, and the polystyrene plate dropped on a
+corner splits into 4 bodies. A tilt of 10° or more also splits it (4 to 5
+bodies), a tilt of 5° or less does not, and a 10 mm mild steel plate dropped
+flat from 1 m still splits into 3 bodies, as before the change.
+
+Limits of the model: thickness does not change whether a flat drop starts a
+crack, because the stress scales with sqrt(E / (m t)) and the mass grows with
+the thickness too; the polystyrene plate stays whole because of its tensile
+strength, not its thickness. The far side of a contact (floor or ball) is taken
+as rigid, so its softness acts only through the impulse it returns. The
+stored-energy cap rarely binds, since the stress it is derived from already
+implies at least nine times the lost energy for a single contact manifold.
+
+Expanded polystyrene (20 kg/m³) is a crushing material: it never cracks. The
+body keeps one permanent compression `p` per 0.05 m cell of its own coordinates.
+A hit that exceeds what the cell takes elastically raises `p` along the plateau
+stress (100 kPa) and, past the densification point, the hardening (modulus
+20 MPa); the work spent is the lost energy of the body's contact. A crushed cell
+re-loads with a modulus that rises from E towards the densified modulus, so a
+second hit on the same spot is stiffer than one on a fresh spot. The rigid
+motion is not changed by the crushing: the stored compression and stiffness
+describe the foam, not the bounce. The foam depth one contact loads is at most
+20 mm.
 
 [mit]: https://ocw.mit.edu/courses/3-11-mechanics-of-materials-fall-1999/e5bca953e1dbd0cd0376f0f77033dc0d_MIT3_11F99_frac.pdf#page=9
 [ice]: https://www.cambridge.org/core/journals/journal-of-glaciology/article/fracture-toughness-of-ice-a-preliminary-account-of-some-new-experiments/87E062E1284661430F7346A643015532

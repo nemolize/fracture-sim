@@ -21,7 +21,7 @@ const TITLE_ID = "object-material-title";
 const NOTE_ID = "object-material-note";
 
 const MATERIAL_NOTE =
-  "Areal density is density × thickness; crack energy is fracture energy × thickness (both shown in the statistics over the canvas). Min fragment area is the reference at world scale ×1; smaller worlds apply it times the square of the scale. Presets are representative values and keep the thickness and the minimum fragment area. Friction, restitution and fracture energy apply immediately; density and thickness restart the scene.";
+  "Areal density is density × thickness; crack energy is fracture energy × thickness (both shown in the statistics over the canvas). Min fragment area is the reference at world scale ×1; smaller worlds apply it times the square of the scale. Presets are representative values and keep the thickness and the minimum fragment area. Friction, restitution and fracture energy apply immediately (foam presets crush instead of cracking, so fracture energy has no effect on them); density and thickness restart the scene. Presets also carry a stiffness and a tensile strength that these sliders do not show.";
 
 interface Props {
   value: MaterialSettings;
