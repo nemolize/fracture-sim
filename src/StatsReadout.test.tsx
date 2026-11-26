@@ -1,19 +1,14 @@
 import { render, screen } from "@testing-library/react";
-import { expect, it, vi } from "vitest";
+import { expect, it } from "vitest";
 
 import { DEFAULT_MATERIAL } from "@/sim/material";
 
 import { StatsReadout } from "./StatsReadout";
 
-const frameRate = vi.hoisted(() => {
-  const state: { value: number | null } = { value: 59.6 };
-  return state;
-});
-vi.mock("@/useFrameRate", () => ({ useFrameRate: () => frameRate.value }));
-
 it("shows the frame rate, body counts, step time and material readouts without capturing pointers", () => {
   render(
     <StatsReadout
+      frameRate={59.6}
       stats={{
         mass: 1,
         bodies: 240,
@@ -39,6 +34,7 @@ it("shows the frame rate, body counts, step time and material readouts without c
 it("keeps a minimum width so changing values do not resize the panel", () => {
   render(
     <StatsReadout
+      frameRate={59.6}
       stats={{
         mass: 1,
         bodies: 1,
@@ -56,9 +52,9 @@ it("keeps a minimum width so changing values do not resize the panel", () => {
 });
 
 it("shows a dash for the frame rate until one is measured", () => {
-  frameRate.value = null;
   render(
     <StatsReadout
+      frameRate={null}
       stats={{
         mass: 1,
         bodies: 1,
@@ -73,5 +69,4 @@ it("shows a dash for the frame rate until one is measured", () => {
   expect(screen.getByLabelText("Simulation statistics")).toHaveTextContent(
     "Frame rate–",
   );
-  frameRate.value = 59.6;
 });

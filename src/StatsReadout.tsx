@@ -5,15 +5,14 @@ import {
   crackEnergy,
   type MaterialSettings,
 } from "@/sim/material";
-import { useFrameRate } from "@/useFrameRate";
 
 interface Props {
   stats: WorldStats;
+  frameRate: number | null;
   material: MaterialSettings;
 }
 
-export const StatsReadout = ({ stats, material }: Props) => {
-  const fps = useFrameRate();
+export const StatsReadout = ({ stats, frameRate, material }: Props) => {
   return (
     <dl
       aria-label="Simulation statistics"
@@ -21,7 +20,7 @@ export const StatsReadout = ({ stats, material }: Props) => {
     >
       <dt>Frame rate</dt>
       <dd className="text-right tabular-nums">
-        {fps === null ? "–" : `${fps.toFixed(0)} fps`}
+        {frameRate === null ? "–" : `${frameRate.toFixed(0)} fps`}
       </dd>
       <dt>Bodies</dt>
       <dd className="text-right tabular-nums">{stats.bodies}</dd>
