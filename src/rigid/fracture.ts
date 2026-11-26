@@ -17,7 +17,11 @@ import {
   resolveFracture,
   rigidPieces,
 } from "@/sim/fracture";
-import { DEFAULT_CRACK_ENERGY, isPositiveFinite } from "@/sim/material";
+import {
+  DEFAULT_CRACK_ENERGY,
+  isNonNegativeFinite,
+  isPositiveFinite,
+} from "@/sim/material";
 import type { Piece } from "@/sim/split";
 import type { Vec2 } from "@/sim/vec2";
 
@@ -83,6 +87,11 @@ export class ImpactFracture {
       ].every(isPositiveFinite)
     )
       throw new Error("Strength model values must be positive and finite");
+    if (
+      strength?.bulkDissipationJPerKg !== undefined &&
+      !isNonNegativeFinite(strength.bulkDissipationJPerKg)
+    )
+      throw new Error("Bulk dissipation must be non-negative and finite");
     if (
       !sameStrength(strength, this.strength) ||
       fractureEnergy !== this.fractureEnergy
@@ -241,6 +250,7 @@ export class ImpactFracture {
                 strength,
                 this.fractureEnergy,
                 energy,
+                shape.mass,
               );
             }
             if (usable <= 0) continue;

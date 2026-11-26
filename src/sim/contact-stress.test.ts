@@ -85,8 +85,8 @@ it("makes no crack energy usable unless the contact stress reaches the tensile s
   const edge = load(BODY);
   const corner = load(BODY * MIN_PATCH_FRACTION);
   const weak = { ...strength, tensileStrengthPa: 1e12 };
-  expect(usableCrackEnergy(corner, weak, 7, 5)).toBe(0);
-  expect(usableCrackEnergy(corner, strength, 7, 5)).toBeGreaterThan(0);
+  expect(usableCrackEnergy(corner, weak, 7, 5, 1)).toBe(0);
+  expect(usableCrackEnergy(corner, strength, 7, 5, 1)).toBeGreaterThan(0);
   const tough = {
     ...strength,
     tensileStrengthPa: tensileStress(
@@ -95,35 +95,47 @@ it("makes no crack energy usable unless the contact stress reaches the tensile s
       THICKNESS,
     ),
   };
-  expect(usableCrackEnergy(edge, tough, 7, 5)).toBeGreaterThan(0);
+  expect(usableCrackEnergy(edge, tough, 7, 5, 1)).toBeGreaterThan(0);
   expect(
     usableCrackEnergy(
       edge,
       { ...tough, tensileStrengthPa: tough.tensileStrengthPa * 1.01 },
       7,
       5,
+      1,
     ),
   ).toBe(0);
 });
 
 it("caps the usable energy at the lost energy and at the elastic energy under the contact", () => {
   const corner = load(BODY * MIN_PATCH_FRACTION);
-  const stored = usableCrackEnergy(corner, strength, 7, Infinity);
+  const stored = usableCrackEnergy(corner, strength, 7, Infinity, 1);
   expect(stored).toBeGreaterThan(0);
   expect(stored).toBeLessThan(Infinity);
-  expect(usableCrackEnergy(corner, strength, 7, stored / 2)).toBe(stored / 2);
-  expect(usableCrackEnergy(corner, strength, 7, stored * 2)).toBe(stored);
+  expect(usableCrackEnergy(corner, strength, 7, stored / 2, 1)).toBe(
+    stored / 2,
+  );
+  expect(usableCrackEnergy(corner, strength, 7, stored * 2, 1)).toBe(stored);
 });
 
 it("also needs the Griffith stress when the material sets a flaw length", () => {
   const corner = load(BODY * MIN_PATCH_FRACTION);
-  expect(usableCrackEnergy(corner, strength, 7, 5)).toBeGreaterThan(0);
+  expect(usableCrackEnergy(corner, strength, 7, 5, 1)).toBeGreaterThan(0);
   expect(
-    usableCrackEnergy(corner, { ...strength, flawLengthM: 1e-12 }, 7, 5),
+    usableCrackEnergy(corner, { ...strength, flawLengthM: 1e-12 }, 7, 5, 1),
   ).toBe(0);
   expect(
-    usableCrackEnergy(corner, { ...strength, flawLengthM: 10 }, 7, 5),
+    usableCrackEnergy(corner, { ...strength, flawLengthM: 10 }, 7, 5, 1),
   ).toBeGreaterThan(0);
+});
+
+it("takes the work the bulk dissipates, per kilogram, off the lost energy before the crack budget", () => {
+  const corner = load(BODY * MIN_PATCH_FRACTION);
+  const dissipating = { ...strength, bulkDissipationJPerKg: 2 };
+  expect(usableCrackEnergy(corner, dissipating, 7, 5, 1)).toBe(3);
+  expect(usableCrackEnergy(corner, dissipating, 7, 5, 2)).toBe(1);
+  expect(usableCrackEnergy(corner, dissipating, 7, 5, 3)).toBe(0);
+  expect(usableCrackEnergy(corner, strength, 7, 5, 3)).toBe(5);
 });
 
 it("measures a ring along and across a direction", () => {
@@ -158,6 +170,7 @@ it("compares strength models by value", () => {
     { tensileStrengthPa: 1 },
     { thicknessM: 1 },
     { flawLengthM: 1 },
+    { bulkDissipationJPerKg: 1 },
   ])
     expect(sameStrength(strength, { ...strength, ...patch })).toBe(false);
   for (const patch of [

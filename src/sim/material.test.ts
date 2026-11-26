@@ -9,6 +9,7 @@ import {
   findMaterialPreset,
   fractureEnergyAt,
   liveMaterials,
+  matchPreset,
   MATERIAL_PRESETS,
   MATERIAL_RANGES,
   materialFromPreset,
@@ -44,6 +45,7 @@ it("starts as glass, with the density, friction and restitution the app had befo
     density: 2500,
     youngModulusPa: 70_000_000_000,
     tensileStrengthPa: 10_000_000,
+    bulkDissipationJPerKg: 0,
     crush: null,
     friction: 0.5,
     restitution: 0,
@@ -65,6 +67,7 @@ it("keeps the thickness of the specimen when a preset is chosen", () => {
     density: 917,
     youngModulusPa: 9_000_000_000,
     tensileStrengthPa: 1_500_000,
+    bulkDissipationJPerKg: 0,
     crush: null,
     friction: 0.1,
     restitution: 0.05,
@@ -121,6 +124,14 @@ it.each([
   [
     { tensileStrengthPa: NaN },
     "Young's modulus and tensile strength must be positive and finite",
+  ],
+  [
+    { bulkDissipationJPerKg: -1 },
+    "Bulk dissipation must be non-negative and finite",
+  ],
+  [
+    { bulkDissipationJPerKg: NaN },
+    "Bulk dissipation must be non-negative and finite",
   ],
 ] as const)("rejects the invalid material %j", (patch, message) => {
   expect(() => {
@@ -182,12 +193,29 @@ it("derives what the world reads each frame from the two materials", () => {
       youngModulusPa: 70_000_000_000,
       tensileStrengthPa: 10_000_000,
       thicknessM: 0.02,
+      bulkDissipationJPerKg: 0,
       crush: null,
     },
     minFragmentArea: 0.01,
     floor,
     object,
   });
+});
+
+it("gives only steel and solid polystyrene a bulk dissipation, and names the preset again when it is restored", () => {
+  for (const preset of MATERIAL_PRESETS) {
+    const material = materialFromPreset(preset, DEFAULT_MATERIAL);
+    expect(material.bulkDissipationJPerKg > 0).toBe(
+      preset.id === "steel" || preset.id === "polystyrene",
+    );
+    expect(matchPreset(material).preset).toBe(preset.id);
+    expect(
+      matchPreset({
+        ...material,
+        bulkDissipationJPerKg: material.bulkDissipationJPerKg + 1,
+      }).preset,
+    ).toBe("custom");
+  }
 });
 
 it("snaps a slider position next to a preset's fracture energy to it", () => {

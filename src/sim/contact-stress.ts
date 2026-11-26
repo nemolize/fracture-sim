@@ -5,6 +5,7 @@ export interface StrengthModel {
   tensileStrengthPa: number;
   thicknessM: number;
   flawLengthM?: number;
+  bulkDissipationJPerKg?: number;
   crush: CrushProperties | null;
 }
 
@@ -82,6 +83,7 @@ export const usableCrackEnergy = (
   strength: StrengthModel,
   fractureEnergy: number,
   lostEnergy: number,
+  massKg: number,
 ): number => {
   const { youngModulusPa, thicknessM } = strength;
   const stress = tensileStress(
@@ -97,8 +99,9 @@ export const usableCrackEnergy = (
   );
   if (!(stress >= threshold)) return 0;
   const volume = thicknessM * load.patchWidth * loadedDepth(load);
+  const bulkWork = (strength.bulkDissipationJPerKg ?? 0) * massKg;
   return Math.min(
-    lostEnergy,
+    Math.max(0, lostEnergy - bulkWork),
     localElasticEnergy(stress, youngModulusPa, volume),
   );
 };
@@ -140,6 +143,7 @@ export const sameStrength = (
     a.tensileStrengthPa === b.tensileStrengthPa &&
     a.thicknessM === b.thicknessM &&
     a.flawLengthM === b.flawLengthM &&
+    a.bulkDissipationJPerKg === b.bulkDissipationJPerKg &&
     sameCrush(a.crush, b.crush)
   );
 };
