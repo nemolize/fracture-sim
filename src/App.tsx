@@ -41,6 +41,7 @@ const App = () => {
   const [paused, setPaused] = useState(false);
   const [resetToken, setResetToken] = useState(0);
   const [stats, setStats] = useState<WorldStats>(INITIAL_STATS);
+  const [frameRate, setFrameRate] = useState<number | null>(null);
   const [physicsError, setPhysicsError] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -125,11 +126,16 @@ const App = () => {
             paused={paused}
             resetToken={resetToken}
             onStats={setStats}
+            onFrameRate={setFrameRate}
             onPhysicsError={setPhysicsError}
             onContextUnavailable={unsupported}
           >
             <div className="pointer-events-none absolute top-3 left-3 flex flex-col items-start gap-2">
-              <StatsReadout stats={stats} material={settings.material} />
+              <StatsReadout
+                stats={stats}
+                frameRate={frameRate}
+                material={settings.material}
+              />
               <ToolPicker
                 value={settings.tool}
                 disabled={paused}

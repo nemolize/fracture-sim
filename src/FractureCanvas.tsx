@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 
+import { FrameMeter } from "@/frameMeter";
 import {
   canvasSize,
   floorMargin,
@@ -27,6 +28,7 @@ interface Props {
   paused: boolean;
   resetToken: number;
   onStats: (stats: WorldStats) => void;
+  onFrameRate: (fps: number) => void;
   onContextUnavailable: (message: string) => void;
   onPhysicsError: (message: string) => void;
   children?: React.ReactNode;
@@ -39,6 +41,7 @@ export const FractureCanvas = ({
   paused,
   resetToken,
   onStats,
+  onFrameRate,
   onContextUnavailable,
   onPhysicsError,
   children,
@@ -52,6 +55,7 @@ export const FractureCanvas = ({
     settings,
     paused,
     onStats,
+    onFrameRate,
     onContextUnavailable,
     onPhysicsError,
   });
@@ -60,6 +64,7 @@ export const FractureCanvas = ({
       settings,
       paused,
       onStats,
+      onFrameRate,
       onContextUnavailable,
       onPhysicsError,
     };
@@ -93,6 +98,10 @@ export const FractureCanvas = ({
     let pending = false;
     let previous: number | null = null;
     let animation = 0;
+    let drawn: Snapshot | undefined;
+    const meter = new FrameMeter((fps) => {
+      latest.current.onFrameRate(fps);
+    });
     const visibleHeight = (): number =>
       visibleWorldHeight(canvas.clientWidth, canvas.clientHeight, width);
     let sentHeight = visibleHeight();
@@ -197,6 +206,7 @@ export const FractureCanvas = ({
 
     const resetClock = (): void => {
       previous = null;
+      meter.restart();
       gesture.cancel();
     };
     document.addEventListener("visibilitychange", resetClock);
@@ -237,6 +247,8 @@ export const FractureCanvas = ({
           canvas,
         );
       }
+      meter.tick(now, snapshot !== drawn);
+      drawn = snapshot;
       animation = requestAnimationFrame(frame);
     };
     send({
