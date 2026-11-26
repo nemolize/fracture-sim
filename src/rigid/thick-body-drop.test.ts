@@ -105,6 +105,68 @@ it("splits the 180 mm polystyrene plate into 4 bodies in a 1 m corner drop, as r
   ).toBe(4);
 });
 
+const TOUGH_DROPS = [
+  {
+    name: "180 mm polystyrene tilted 10 degrees",
+    id: "polystyrene",
+    mm: 180,
+    degrees: 10,
+  },
+  {
+    name: "180 mm polystyrene tilted 15 degrees",
+    id: "polystyrene",
+    mm: 180,
+    degrees: 15,
+  },
+  { name: "10 mm steel flat", id: "steel", mm: 10, degrees: 0 },
+] as const;
+
+it.each(TOUGH_DROPS)(
+  "keeps $name whole in a 1 m drop, because the bulk dissipates part of the lost energy",
+  ({ id, mm, degrees }) => {
+    expect(
+      drop(material(id, mm), 1, (degrees * Math.PI) / 180).snapshot().stats
+        .bodies,
+    ).toBe(1);
+  },
+);
+
+it.each(TOUGH_DROPS)(
+  "splits $name in a 1 m drop when the bulk dissipates nothing",
+  ({ id, mm, degrees }) => {
+    expect(
+      drop(
+        { ...material(id, mm), bulkDissipationJPerKg: 0 },
+        1,
+        (degrees * Math.PI) / 180,
+      ).snapshot().stats.bodies,
+    ).toBeGreaterThan(1);
+  },
+);
+
+it.each(TOUGH_DROPS)(
+  "still splits $name in a 2 m drop",
+  ({ id, mm, degrees }) => {
+    expect(
+      drop(material(id, mm), 2, (degrees * Math.PI) / 180).snapshot().stats
+        .bodies,
+    ).toBeGreaterThan(1);
+  },
+);
+
+it.each([
+  [0, 4],
+  [10, 3],
+])(
+  "leaves the 10 mm glass plate at its recorded body count in a 1 m drop tilted %s degrees",
+  (degrees, bodies) => {
+    expect(
+      drop(material("glass", 10), 1, (degrees * Math.PI) / 180).snapshot().stats
+        .bodies,
+    ).toBe(bodies);
+  },
+);
+
 it("absorbs a 1 m drop of an expanded polystyrene plate by crushing, stiffening the same spot on a second hit", () => {
   const eps = material("eps", 10);
   const { placed, plate } = place(eps, 1);
@@ -193,6 +255,10 @@ it("rejects a non-positive fracture energy or strength value and cancels a queue
     expect(() => {
       fracture.setStrength(7, { ...strength, ...patch });
     }).toThrow("Strength model values must be positive and finite");
+  for (const bulkDissipationJPerKg of [-1, NaN])
+    expect(() => {
+      fracture.setStrength(7, { ...strength, bulkDissipationJPerKg });
+    }).toThrow("Bulk dissipation must be non-negative and finite");
   const plate = placed["shapes"][4];
   if (plate === undefined) throw new Error("Missing plate");
   fracture["pending"].set(plate, { kind: "split", pieces: [] });

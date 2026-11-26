@@ -26,6 +26,9 @@ export const validateSurface = (surface: Surface): void => {
   }
 };
 
+// Chosen empirically against the drop tests, no fixed source.
+const BULK_DISSIPATION_J_PER_KG = 7;
+
 // Representative values, chosen empirically; the sourced fracture energies are
 // listed in docs/material-presets.md.
 export const MATERIAL_PRESETS = [
@@ -71,6 +74,7 @@ export const MATERIAL_PRESETS = [
     restitution: 0.3,
     youngModulusPa: 3_300_000_000,
     tensileStrengthPa: 45_000_000,
+    bulkDissipationJPerKg: BULK_DISSIPATION_J_PER_KG,
     crush: null,
   },
   {
@@ -104,6 +108,7 @@ export const MATERIAL_PRESETS = [
     restitution: 0.5,
     youngModulusPa: 200_000_000_000,
     tensileStrengthPa: 400_000_000,
+    bulkDissipationJPerKg: BULK_DISSIPATION_J_PER_KG,
     crush: null,
   },
   {
@@ -143,6 +148,7 @@ export interface MaterialSettings extends Surface {
   density: number;
   youngModulusPa: number;
   tensileStrengthPa: number;
+  bulkDissipationJPerKg: number;
   crush: CrushProperties | null;
   thicknessMm: number;
   /** Smallest fragment area at world scale ×1, m². */
@@ -181,12 +187,18 @@ export const DEFAULT_MATERIAL: MaterialSettings = {
   density: GLASS.density,
   youngModulusPa: GLASS.youngModulusPa,
   tensileStrengthPa: GLASS.tensileStrengthPa,
+  bulkDissipationJPerKg: 0,
   crush: GLASS.crush,
   friction: GLASS.friction,
   restitution: GLASS.restitution,
   thicknessMm: 10,
   minFragmentArea: MIN_FRAGMENT_AREA,
 };
+
+const presetBulkDissipation = (
+  preset: (typeof MATERIAL_PRESETS)[number],
+): number =>
+  "bulkDissipationJPerKg" in preset ? preset.bulkDissipationJPerKg : 0;
 
 export const materialFromPreset = (
   preset: (typeof MATERIAL_PRESETS)[number],
@@ -198,6 +210,7 @@ export const materialFromPreset = (
     density: preset.density,
     youngModulusPa: preset.youngModulusPa,
     tensileStrengthPa: preset.tensileStrengthPa,
+    bulkDissipationJPerKg: presetBulkDissipation(preset),
     crush: preset.crush,
     friction: preset.friction,
     restitution: preset.restitution,
@@ -223,6 +236,7 @@ export const matchPreset = (material: MaterialSettings): MaterialSettings => ({
         preset.density === material.density &&
         preset.youngModulusPa === material.youngModulusPa &&
         preset.tensileStrengthPa === material.tensileStrengthPa &&
+        presetBulkDissipation(preset) === material.bulkDissipationJPerKg &&
         preset.friction === material.friction &&
         preset.restitution === material.restitution,
     )?.id ?? "custom",
@@ -249,6 +263,11 @@ export const validateMaterial = (material: MaterialSettings): void => {
     throw new Error(
       "Young's modulus and tensile strength must be positive and finite",
     );
+  if (
+    !Number.isFinite(material.bulkDissipationJPerKg) ||
+    material.bulkDissipationJPerKg < 0
+  )
+    throw new Error("Bulk dissipation must be non-negative and finite");
 };
 
 export const crackEnergy = (material: MaterialSettings): number => {
@@ -264,6 +283,7 @@ const strengthModel = (material: MaterialSettings): StrengthModel => ({
   youngModulusPa: material.youngModulusPa,
   tensileStrengthPa: material.tensileStrengthPa,
   thicknessM: material.thicknessMm / 1000,
+  bulkDissipationJPerKg: material.bulkDissipationJPerKg,
   crush: material.crush,
 });
 

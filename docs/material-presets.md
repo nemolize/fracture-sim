@@ -79,9 +79,17 @@ spring `k = E t w / h` (the far side taken as rigid) with effective mass `m*`,
 depth and `w`. The stress concentration `Kt` runs from 6 for a patch as wide as
 the body to 60 for a point contact (the patch is never narrower than 1% of the
 body width); both are empirical, fitted against the glass tests. The energy that
-can go into cracks is the lost energy capped by `σ² / (2E)` times the loaded
-volume `t × w × h`, so the crack length of one hit never exceeds
-`U / (Gc × t)`.
+can go into cracks is the lost energy, less the work the bulk of the body
+dissipates, capped by `σ² / (2E)` times the loaded volume `t × w × h`, so the
+crack length of one hit never exceeds `U / (Gc × t)`.
+
+Steel and solid polystyrene set a bulk dissipation of 7 J/kg (chosen
+empirically against the drop tests, no fixed source; every other preset has
+none): `7 J/kg × mass` is subtracted from the lost energy of each contact
+before the crack budget. The stress-derived cap alone rarely binds (it equals
+`Kt² × J² / (8 m*)`, and even capped at the spring energy `J² / (8 m*)` the
+split counts below stay the same), so the bulk work is what stops a tough plate
+that carries a lot of lost energy from splitting.
 
 A material that sets a flaw length `a0` also needs the Griffith stress
 `sqrt(2 E Gc / (π a0))`, with `a0` the total flaw length: doubling `a0` divides
@@ -89,18 +97,20 @@ that stress by √2, and a flaw four times as long halves it. No preset sets one
 
 Measured with the real Rapier world, a 0.5 × 0.5 m plate dropped from 1 m onto
 a concrete floor: 180 mm solid polystyrene stays whole in a flat drop (also from
-0.3 m), glass at 10 mm still breaks, and the polystyrene plate dropped on a
-corner splits into 4 bodies. A tilt of 10° or more also splits it (4 to 5
-bodies), a tilt of 5° or less does not, and a 10 mm mild steel plate dropped
-flat from 1 m still splits into 3 bodies, as before the change.
+0.3 m) and when tilted by 1°, 5°, 10° or 15°, glass at 10 mm still breaks (4
+bodies flat, 3 tilted by 10°), the polystyrene plate dropped on a corner (45°)
+splits into 4 bodies, and a 10 mm mild steel plate dropped flat stays whole.
+From 2 m the tilted polystyrene plates and the steel plate split again; with no
+bulk dissipation the 1 m drops of those three split as before (4 to 5 bodies
+for polystyrene tilted by 10° or more, 3 for steel).
 
 Limits of the model: thickness does not change whether a flat drop starts a
 crack, because the stress scales with sqrt(E / (m t)) and the mass grows with
 the thickness too; the polystyrene plate stays whole because of its tensile
 strength, not its thickness. The far side of a contact (floor or ball) is taken
 as rigid, so its softness acts only through the impulse it returns. The
-stored-energy cap rarely binds, since the stress it is derived from already
-implies at least nine times the lost energy for a single contact manifold.
+bulk dissipation is a per-mass constant, not derived from the plate's yield or
+deformed volume.
 
 Expanded polystyrene (20 kg/m³) is a crushing material: it never cracks. The
 body keeps one permanent compression `p` per 0.05 m cell of its own coordinates.

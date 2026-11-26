@@ -84,6 +84,15 @@ export class ImpactFracture {
     )
       throw new Error("Strength model values must be positive and finite");
     if (
+      strength !== undefined &&
+      !(
+        strength.bulkDissipationJPerKg === undefined ||
+        (Number.isFinite(strength.bulkDissipationJPerKg) &&
+          strength.bulkDissipationJPerKg >= 0)
+      )
+    )
+      throw new Error("Bulk dissipation must be non-negative and finite");
+    if (
       !sameStrength(strength, this.strength) ||
       fractureEnergy !== this.fractureEnergy
     ) {
@@ -241,6 +250,7 @@ export class ImpactFracture {
                 strength,
                 this.fractureEnergy,
                 energy,
+                shape.mass,
               );
             }
             if (usable <= 0) continue;
